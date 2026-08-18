@@ -1,3 +1,8 @@
+export const metadata = {
+  title: 'Thawnthu App',
+  description: 'Mizo Thawnthu chhiarna',
+}
+
 export default function RootLayout({
   children,
 }: {
