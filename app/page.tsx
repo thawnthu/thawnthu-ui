@@ -1,1 +1,37 @@
-'use client';import{useState,useEffect}from"react";import{db,auth}from"./lib/firebase";import{collection,addDoc,onSnapshot,updateDoc,doc,serverTimestamp}from"firebase/firestore";import{GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged}from"firebase/auth";const provider=new GoogleAuthProvider();export default function Home(){const[posts,setPosts]=useState<any[]>([]);const[newPost,setNewPost]=useState("");const[user,setUser]=useState<any>(null);useEffect(()=>{onAuthStateChanged(auth,setUser);onSnapshot(collection(db,"posts"),(snap)=>{setPosts(snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.createdAt?.seconds-a.createdAt?.seconds))})},[]);const login=()=>signInWithPopup(auth,provider);const logout=()=>signOut(auth);const addPost=async()=>{if(!newPost.trim()||!user)return;await addDoc(collection(db,"posts"),{text:newPost,likes:0,author:user.displayName,createdAt:serverTimestamp()});setNewPost("")};const likePost=async(id:string,likes:number)=>{await updateDoc(doc(db,"posts",id),{likes:likes+1})};return(<main className="p-4 bg-gray-100 min-h-screen"><h1 className="text-2xl font-bold mb-4">Thawnthu Share 🔥</h1>{user?<div className="flex gap-2 mb-4"><span>{user.displayName}</span><button onClick={logout} className="bg-red-500 text-white px-2 rounded">Logout</button></div>:<button onClick={login} className="bg-blue-500 text-white px-2 rounded mb-4">Login Google</button>}{user&&(<div className="mb-4 flex gap-2"><input value={newPost} onChange={e=>setNewPost(e.target.value)} placeholder="I thawnthu ziak rawh" className="border p-2 text-black w-full rounded"/><button onClick={addPost} className="bg-green-500 text-white px-4 rounded">Post</button></div>)}{posts.map(post=>(<div key={post.id} className="bg-white p-3 mb-2 rounded shadow"><p className="font-bold">{post.author}</p><p>{post.text}</p><button onClick={()=>likePost(post.id,post.likes)} className="text-red-500">❤️ {post.likes}</button></div>))}</main>)}
+'use client'
+import { useState } from 'react';
+
+export default function Home() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
+  const handleLogin = () => {
+    alert(`Login: ${email}`)
+  }
+
+  return (
+    <main style={{padding: '20px', maxWidth: '400px', margin: '50px auto'}}>
+      <h1 style={{textAlign: 'center'}}>Thawnthu App</h1>
+      <input 
+        type="email" 
+        placeholder="Email" 
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        style={{width: '100%', padding: '10px', marginBottom: '10px'}}
+      />
+      <input 
+        type="password" 
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        style={{width: '100%', padding: '10px', marginBottom: '10px'}}
+      />
+      <button 
+        onClick={handleLogin}
+        style={{width: '100%', padding: '10px', background: 'black', color: 'white'}}
+      >
+        Login
+      </button>
+    </main>
+  )
+}
