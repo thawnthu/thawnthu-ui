@@ -1,0 +1,49 @@
+/* thawnthu-ui/globals.css */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap');
+
+body { 
+  background: #f9fafb; 
+  font-family: 'Noto Sans', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Mobile App Card */
+.card { 
+  background: white; 
+  padding: 1rem; 
+  border-radius: 0.75rem; 
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+  margin-bottom: 0.75rem;
+}
+
+/* Button */
+.btn-primary { 
+  background: #2563eb; 
+  color: white; 
+  padding: 0.5rem 1rem; 
+  border-radius: 9999px;
+  border: none;
+}
+
+/* Category Badge */
+.badge { 
+  background: #dbeafe; 
+  color: #1e40af; 
+  padding: 0.25rem 0.5rem; 
+  border-radius: 9999px; 
+  font-size: 0.75rem;
+}
+
+/* Bottom Nav */
+.bottom-nav { 
+  position: fixed; 
+  bottom: 0; 
+  left: 0; 
+  right: 0; 
+  background: white; 
+  border-top: 1px solid #e5e7eb; 
+  display: flex; 
+  justify-content: space-around; 
+  padding: 0.5rem 0;
+}
