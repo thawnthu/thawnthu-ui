@@ -1,23 +1,32 @@
 'use client'
 import { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, Timestamp } from 'firebase/firestore'; // Timestamp kan belh
 import BottomNav from '../components/BottomNav';
+
+// 1. HEI HI A CHUNG BER AH BELH RAWH
+type Thawnthu = {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  createdAt: Timestamp;
+}
 
 const CATEGORIES = ['Pasaltha', 'Fiamthu', 'Thu Tha', 'Chanchin', 'Hla']
 
 export default function CategoryPage() {
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [selectedCat, setSelectedCat] = useState<string | null>(null)
-  const [posts, setPosts] = useState<any[]>([])
+  const [posts, setPosts] = useState<Thawnthu[]>([]) // 2. any[] a tang in Thawnthu[] ah thlak
 
   useEffect(() => { fetchCounts() }, [])
-  
+
   const fetchCounts = async () => {
     const snap = await getDocs(collection(db, "thawnthu"));
-    let allPosts = snap.docs.map(doc => ({id: doc.id,...doc.data()}))
-    
-    // Category tina post zat chhiar
+    // 3. as Thawnthu[] kan belh
+    let allPosts = snap.docs.map(doc => ({id: doc.id,...doc.data()} as Thawnthu))
+
     let newCounts: Record<string, number> = {}
     CATEGORIES.forEach(c => {
       newCounts[c] = allPosts.filter(p => p.category === c).length
@@ -28,7 +37,7 @@ export default function CategoryPage() {
   const handleSelect = async (cat: string) => {
     setSelectedCat(cat)
     const snap = await getDocs(collection(db, "thawnthu"));
-    let allPosts = snap.docs.map(doc => ({id: doc.id,...doc.data()}))
+    let allPosts = snap.docs.map(doc => ({id: doc.id,...doc.data()} as Thawnthu)) // 4. hetah pawh
     let filtered = allPosts.filter(p => p.category === cat)
     filtered.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
     setPosts(filtered)
@@ -45,7 +54,6 @@ export default function CategoryPage() {
     <main style={{padding: '20px', paddingBottom: '80px', background: colors.bg, minHeight: '100vh'}}>
       <h2 style={{fontSize: '24px', fontWeight: '800', marginBottom: '20px'}}>Category</h2>
 
-      {/* CATEGORY LIST */}
       {!selectedCat && CATEGORIES.map(c => (
         <div 
           key={c} 
@@ -77,7 +85,6 @@ export default function CategoryPage() {
         </div>
       ))}
 
-      {/* CATEGORY CHHUNG POST TE */}
       {selectedCat && (
         <>
           <button onClick={() => setSelectedCat(null)} style={{marginBottom: '20px', background: 'none', border: 'none', fontSize: '16px', fontWeight: '700', color: colors.accent}}>← Category zawng zawng</button>
