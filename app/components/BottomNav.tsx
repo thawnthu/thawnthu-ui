@@ -11,9 +11,9 @@ export default function BottomNav() {
     {href: '/notification', label: 'Notification'},
   ]
   return (
-    <div style={{position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-around', padding: '12px 0', zIndex: 10}}>
+    <div style={{position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-around', padding: '14px 0', zIndex: 10, boxShadow: '0 -2px 10px rgba(0,0,0,0.05)'}}>
       {nav.map(n => (
-        <Link key={n.href} href={n.href} style={{color: pathname === n.href? 'black' : 'gray', textDecoration: 'none', fontSize: '14px', fontWeight: pathname === n.href? 'bold' : 'normal'}}>
+        <Link key={n.href} href={n.href} style={{color: pathname === n.href? 'var(--accent)' : 'gray', textDecoration: 'none', fontSize: '14px', fontWeight: 'bold'}}>
           {n.label}
         </Link>
       ))}
