@@ -1,4 +1,6 @@
-import { initializeApp, getApps } from "firebase/app";
-const firebaseConfig = { apiKey: "AIzaSyCYP1iIoI7KsJIcw0mP0s6_EYZ8JWmIQXU", projectId: "thawnthu-e3b68" };
-const app =!getApps().length? initializeApp(firebaseConfig) : getApps()[0];
-export default app;
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+};
