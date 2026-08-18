@@ -13,12 +13,12 @@ export default function PostPage() {
   const [loading, setLoading] = useState(false)
 
   const handlePost = async () => {
-    if(!title ||!content) return alert('Kim lo')
+    if(!title ||!content) return alert('Title leh Thawnthu dah rawh')
     setLoading(true)
     await addDoc(collection(db, "thawnthu"), {
       title, content, category, createdAt: serverTimestamp()
     })
-    alert('Dah a hlawhtling!')
+    alert('Thawnthu dah a hlawhtling!')
     setTitle(''); setContent('')
     setLoading(false)
   }
@@ -26,14 +26,14 @@ export default function PostPage() {
   return (
     <main style={{padding: '20px', paddingBottom: '70px'}}>
       <h2>Thawnthu Thar Dah</h2>
-      <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} style={{width: '100%', padding: '12px', marginBottom: '10px'}}/>
-      <textarea placeholder="I thawnthu ziak rawh..." value={content} onChange={(e) => setContent(e.target.value)} rows={8} style={{width: '100%', padding: '12px', marginBottom: '10px'}}/>
+      <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} style={{width: '100%', padding: '12px', marginBottom: '10px', boxSizing: 'border-box'}}/>
+      <textarea placeholder="I thawnthu ziak rawh..." value={content} onChange={(e) => setContent(e.target.value)} rows={8} style={{width: '100%', padding: '12px', marginBottom: '10px', boxSizing: 'border-box'}}/>
       
-      <select value={category} onChange={(e) => setCategory(e.target.value)} style={{width: '100%', padding: '12px', marginBottom: '15px'}}>
-        {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+      <select value={category} onChange={(e) => setCategory(e.target.value)} style={{width: '100%', padding: '12px', marginBottom: '15px', boxSizing: 'border-box'}}>
+        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
       </select>
 
-      <button onClick={handlePost} disabled={loading} style={{padding: '12px 30px', background: 'black', color: 'white', border: 'none', borderRadius: '6px'}}>
+      <button onClick={handlePost} disabled={loading} style={{width: '100%', padding: '14px', background: 'black', color: 'white', border: 'none', borderRadius: '6px', fontSize: '16px'}}>
         {loading? 'Dah mek...' : 'Post'}
       </button>
       <BottomNav/>
