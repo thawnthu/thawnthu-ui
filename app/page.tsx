@@ -2,11 +2,20 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link'
 import { db } from './lib/firebase';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query, Timestamp } from 'firebase/firestore'; // Timestamp kan belh
 import BottomNav from './components/BottomNav';
 
+// 1. TYPE KAN DEFINE ANG
+type Thawnthu = {
+  id: string;
+  title: string;
+  content: string;
+  category?: string; // ? dah = awm lo thei
+  createdAt: Timestamp;
+}
+
 export default function HomePage() {
-  const [thawnthu, setThawnthu] = useState<any[]>([])
+  const [thawnthu, setThawnthu] = useState<Thawnthu[]>([]) // 2. any[] -> Thawnthu[]
   const [dark, setDark] = useState(false)
 
   useEffect(() => {
@@ -17,7 +26,8 @@ export default function HomePage() {
   const fetchData = async () => {
     const q = query(collection(db, "thawnthu"), orderBy("createdAt", "desc"));
     const snapshot = await getDocs(q);
-    setThawnthu(snapshot.docs.map(doc => ({id: doc.id,...doc.data()})))
+    // 3. as Thawnthu kan belh
+    setThawnthu(snapshot.docs.map(doc => ({id: doc.id,...doc.data()} as Thawnthu)))
   }
 
   const colors = {
@@ -57,13 +67,15 @@ export default function HomePage() {
                 color: 'white',
                 padding: '5px 12px', 
                 borderRadius: '20px',
-                fontWeight: '700'
+                fontWeight: '700',
+                display: 'inline-block', // heihi belh
+                marginBottom: '8px' // heihi belh
               }}>
                 {t.category}
               </span>
             )}
 
-            <h3 style={{margin: '12px 0 8px 0', fontSize: '18px', fontWeight: '800'}}>{t.title}</h3>
+            <h3 style={{margin: '8px 0 8px 0', fontSize: '18px', fontWeight: '800'}}>{t.title}</h3> {/* margin ka siam tha */}
             <p style={{whiteSpace: 'pre-line', lineHeight: '1.6', margin: 0}}>{t.content}</p>
           </div>
         ))}
