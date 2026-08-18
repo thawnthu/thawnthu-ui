@@ -1,25 +1,27 @@
 'use client'
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { auth } from '../lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
 
-export default function Login() {
+export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const router = useRouter()
 
   const handleLogin = async () => {
+    setError('')
     try {
       await signInWithEmailAndPassword(auth, email, password)
-      router.push('/post') // Login hnu ah post page ah a kal ang
+      router.push('/post')
     } catch (err: any) {
       setError(err.message)
     }
   }
 
   const handleRegister = async () => {
+    setError('')
     try {
       await createUserWithEmailAndPassword(auth, email, password)
       router.push('/post')
@@ -34,8 +36,8 @@ export default function Login() {
       <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={{width: '100%', padding: '12px', marginBottom: '10px'}}/>
       <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} style={{width: '100%', padding: '12px', marginBottom: '15px'}}/>
       <button onClick={handleLogin} style={{width: '100%', padding: '12px', background: 'black', color: 'white', border: 'none', marginBottom: '10px'}}>Login</button>
-      <button onClick={handleRegister} style={{width: '100%', padding: '12px', background: '#555', color: 'white', border: 'none'}}>Account Siam</button>
-      {error && <p style={{color: 'red'}}>{error}</p>}
+      <button onClick={handleRegister} style={{width: '100%', padding: '12px', background: '#555', color: 'white', border: 'none'}}>Account Siam Thar</button>
+      {error && <p style={{color: 'red', marginTop: '10px'}}>{error}</p>}
     </main>
   )
-  }
+}
