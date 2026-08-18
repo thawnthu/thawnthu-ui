@@ -1,29 +1,68 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { collection, getDocs, orderBy, query, Timestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+type Post = {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  author: string;
+  createdAt: Timestamp;
+}
 
 export default function Home() {
   const [page, setPage] = useState('home');
   const [menuOpen, setMenuOpen] = useState(false);
   const [dark, setDark] = useState(true);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // FIREBASE ATANGA DATA LAK
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+        const snapshot = await getDocs(q);
+        const postsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+         ...doc.data()
+        })) as Post[];
+        setPosts(postsData);
+      } catch (err) {
+        console.log(err)
+      }
+      setLoading(false);
+    };
+    fetchPosts();
+  }, []);
 
   const categories = [
-    { name: 'Pasaltha', count: 98 },
-    { name: 'Fiamthu', count: 78 },
-    { name: 'Love Story', count: 45 },
-    { name: 'Sual lam', count: 32 },
-    { name: 'Nula palai', count: 67 },
+    { name: 'Pasaltha', count: posts.filter(p => p.category === 'Pasaltha').length },
+    { name: 'Fiamthu', count: posts.filter(p => p.category === 'Fiamthu').length },
+    { name: 'Love Story', count: posts.filter(p => p.category === 'Love Story').length },
+    { name: 'Sual lam', count: posts.filter(p => p.category === 'Sual lam').length },
+    { name: 'Nula palai', count: posts.filter(p => p.category === 'Nula palai').length },
   ];
   
-  const posts = [
-    { title: 'Ramhuai pui ka tawh dan', cat: 'Pasaltha', author: 'Zuala', time: '2h ago' },
-    { title: 'Zan in ka nuih zat dan', cat: 'Fiamthu', author: 'Mami', time: '5h ago' },
-    { title: 'Ka hmangaih te nena kan kal', cat: 'Love Story', author: 'Ruatfela', time: '1d ago' },
-  ];
+  // Time "2h ago" ang a chantir na
+  const timeAgo = (timestamp: Timestamp) => {
+    if (!timestamp) return "";
+    const seconds = Math.floor((new Date().getTime() - timestamp.toDate().getTime()) / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  }
 
   const bg = dark ? '#0f0f10' : '#f5f5f5';
   const card = dark ? '#1a1a1c' : '#ffffff';
   const text = dark ? '#ffffff' : '#000';
-  const subtext = dark ? '#a0a0a0' : '#555555';
+  const subtext = dark ? '#a0a0a0' : '#555';
   const border = dark ? '#2a2a2c' : '#e0e0e0';
   const accent = '#5865F2';
 
@@ -89,13 +128,16 @@ export default function Home() {
         
         {page === 'home' && (
           <>
-            {posts.map((p,i)=>(
-              <div key={i} style={{background: card, margin: '12px', padding: '16px', borderRadius: '16px', border: `1px solid ${border}`}}>
-                <span style={{fontSize: '12px', background: border, padding: '6px 10px', borderRadius: '8px', fontWeight: '600'}}>{p.cat}</span>
+            {loading? <p style={{padding: '20px'}}>Loading...</p> : 
+            posts.length === 0? <p style={{padding: '20px'}}>Post ala awm lo. Admin ah kal la dah rawh</p> :
+            posts.map((p)=>(
+              <div key={p.id} style={{background: card, margin: '12px', padding: '16px', borderRadius: '16px', border: `1px solid ${border}`}}>
+                <span style={{fontSize: '12px', background: border, padding: '6px 10px', borderRadius: '8px', fontWeight: '600'}}>{p.category}</span>
                 <h3 style={{margin: '12px 0 8px 0', fontSize: '18px', fontWeight: '700'}}>{p.title}</h3>
-                <p style={{margin: 0, fontSize: '14px', color: subtext}}>{p.author} • {p.time}</p>
+                <p style={{margin: 0, fontSize: '14px', color: subtext}}>{p.author} • {timeAgo(p.createdAt)}</p>
               </div>
             ))}
+            }
           </>
         )}
 
