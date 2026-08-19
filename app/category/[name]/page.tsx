@@ -14,7 +14,7 @@ export default function CategoryDetailPage() {
   const [loading, setLoading] = useState(true);
   const [dark, setDark] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null); // Modal atan
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -70,10 +70,10 @@ export default function CategoryDetailPage() {
         </div>
       </div>
 
-      {/* HEADER A HNUAIAH ARROW + CATEGORY NAME - A TET HRET */}
+      {/* 1. ARROW BOLD + LAITAK */}
       <div style={{padding: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
-        <Link href="/category" style={{fontSize: '24px', color: accent, textDecoration: 'none', lineHeight: '24px'}}>←</Link>
-        <h2 style={{fontSize: '20px', fontWeight: '800', margin: 0}}>--- {categoryName}</h2>
+        <Link href="/category" style={{fontSize: '24px', color: accent, textDecoration: 'none', lineHeight: '24px', fontWeight: '800'}}>←</Link>
+        <h2 style={{fontSize: '20px', fontWeight: '800', margin: 0}}>{categoryName}</h2>
       </div>
 
       {/* CONTENT */}
@@ -81,13 +81,18 @@ export default function CategoryDetailPage() {
         {loading? <p style={{padding: '0 4px'}}>Loading...</p> :
         posts.length === 0? <p style={{padding: '0 4px'}}>He category ah hian post ala awm lo</p> :
         posts.map((p)=>(
-          // 4. HEI HI CLICK THEIH KAN SIAm
-          <div key={p.id} onClick={()=>setSelectedPost(p)} style={{background: card, margin: '12px 0', padding: '16px', borderRadius: '16px', border: `1px solid ${border}`, cursor: 'pointer'}}>
-            <h3 style={{margin: '0 0 8px 0', fontSize: '18px', fontWeight: '700'}}>{p.title}</h3>
-            <hr style={{border: 'none', borderBottom: `1px solid ${border}`, margin: '8px 0'}}/> {/* 2. LINE */}
+          <div key={p.id} style={{background: card, margin: '12px 0', padding: '16px', borderRadius: '16px', border: `1px solid ${border}`}}>
+
+            {/* 2. TITLE SIRAH COPY BUTTON DAH */}
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
+              <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700'}}>{p.title}</h3>
+              <button onClick={()=>copyText(p.content)} style={{background: border, color: text, border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer'}}>📋 Copy</button>
+            </div>
+
+            <hr style={{border: 'none', borderBottom: `1px solid ${border}`, margin: '8px 0'}}/>
             <p style={{margin: '0 0 12px 0', fontSize: '14px'}}>{p.content.substring(0,200)}...</p>
 
-            {/* 3. LIKE COMMENT BELH */}
+            {/* 3. LIKE COMMENT CLICK THEIH LOH + READ MORE */}
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: subtext}}>
               <span>{p.author} • {timeAgo(p.createdAt)}</span>
               <div style={{display: 'flex', gap: '12px'}}>
@@ -96,13 +101,12 @@ export default function CategoryDetailPage() {
               </div>
             </div>
 
-            {/* 2. COPY BUTTON */}
-            <button onClick={(e)=>{e.stopPropagation(); copyText(p.content)}} style={{marginTop: '10px', background: border, color: text, border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer'}}>📋 Copy</button>
+            <button onClick={()=>setSelectedPost(p)} style={{marginTop: '10px', background: 'none', border: 'none', color: accent, fontSize: '14px', fontWeight: '700', cursor: 'pointer', padding: 0}}>Read more →</button>
           </div>
         ))}
       </div>
 
-      {/* 4. POST FULL ENNA MODAL */}
+      {/* POST FULL MODAL */}
       {selectedPost && (
         <div onClick={()=>setSelectedPost(null)} style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, padding: '20px', overflowY: 'auto'}}>
           <div onClick={(e)=>e.stopPropagation()} style={{background: card, borderRadius: '16px', padding: '20px', maxWidth: '700px', margin: '40px auto'}}>
