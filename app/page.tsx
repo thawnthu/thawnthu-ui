@@ -144,21 +144,26 @@ export default function HomePage() {
         <div style={{position: 'relative'}} ref={menuRef}>
           <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', color: text, fontSize: '28px', cursor: 'pointer'}}>⋮</button>
           {menuOpen && (
-            <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px 0', minWidth: '180px', zIndex: 30, boxShadow: '0 4px 12px rgba(0,0,0,0.2)'}}>
+  <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px 0', minWidth: '180px', zIndex: 30, boxShadow: '0 4px 12px rgba(0,0,0,0.2)'}}>
 
-              <button onClick={()=>{setDark(!dark); setMenuOpen(false)}} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: text, textAlign: 'left', fontSize: '15px', cursor: 'pointer'}}>
-                {dark? '☀️' : '🌙'} {dark? 'Light Mode' : 'Dark Mode'}
-              </button>
+    {/* DARK MODE TOGGLE KAN PAIH */}
+    <Link href="/setting" onClick={()=>setMenuOpen(false)} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: text, textAlign: 'left', fontSize: '15px', textDecoration: 'none'}}>
+      ⚙️ Setting
+    </Link>
 
-              <hr style={{border: 'none', borderBottom: `1px solid ${border}`, margin: '4px 12px'}}/>
+    <hr style={{border: 'none', borderBottom: `1px solid ${border}`, margin: '4px 12px'}}/>
 
-              <Link href="/about" onClick={()=>setMenuOpen(false)} style={{display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', color: text, textDecoration: 'none', fontSize: '15px'}}>ℹ️ About</Link>
+    <Link href="/about" onClick={()=>setMenuOpen(false)} style={{display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', color: text, textDecoration: 'none', fontSize: '15px'}}>
+      ℹ️ About
+    </Link>
 
-              <hr style={{border: 'none', borderBottom: `1px solid ${border}`, margin: '4px 12px'}}/>
+    <hr style={{border: 'none', borderBottom: `1px solid ${border}`, margin: '4px 12px'}}/>
 
-              <Link href="/contact" onClick={()=>setMenuOpen(false)} style={{display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', color: text, textDecoration: 'none', fontSize: '15px'}}>📞 Contact</Link>
-            </div>
-          )}
+    <Link href="/contact" onClick={()=>setMenuOpen(false)} style={{display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', color: text, textDecoration: 'none', fontSize: '15px'}}>
+      📞 Contact
+    </Link>
+  </div>
+)}
         </div>
       </div>
 
