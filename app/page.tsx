@@ -9,7 +9,7 @@ type Post = {
   content: string;
   category: string;
   author: string;
-  status: string; // pending, approved
+  status: string; 
   createdAt: Timestamp;
 }
 
@@ -22,23 +22,19 @@ export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // FORM STATE
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [author, setAuthor] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // FIREBASE ATANGA DATA LAK - "approved" chiah kan la
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
       try {
         const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
-        const postsData = snapshot.docs
-         .map(doc => ({ id: doc.id,...doc.data() })) as Post[];
-        // approved chiah lang tir
+        const postsData = snapshot.docs.map(doc => ({ id: doc.id,...doc.data() })) as Post[];
         setPosts(postsData.filter(p => p.status === 'approved'));
       } catch (err) {
         console.log(err)
@@ -46,25 +42,22 @@ export default function Home() {
       setLoading(false);
     };
     fetchPosts();
-  }, [submitting]); // Post thar a awm chuan refresh
+  }, [submitting]);
 
-  // POST THAWM THEHLUT NA
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title ||!content) return alert("Title leh Thu kim lo");
     setSubmitting(true);
     try {
       await addDoc(collection(db, "posts"), {
-        title,
-        content,
-        category,
+        title, content, category,
         author: author || "Anonymous",
-        status: "pending", // Admin approve hnu ah a lang
+        status: "pending", 
         createdAt: Timestamp.now(),
       });
       alert("I thu i thehlut e! Admin in a approve hnu ah a lang ang");
       setTitle(""); setContent(""); setAuthor("");
-      setPage('home'); // Home ah kir leh
+      setPage('home');
     } catch (err) {
       alert("Error: " + err)
     }
@@ -115,7 +108,6 @@ export default function Home() {
   return (
     <div style={{background: bg, color: text, minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif'}}>
 
-      {/* HEADER */}
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: bg, borderBottom: `1px solid ${border}`, position: 'sticky', top: 0, zIndex: 10}}>
         <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0}}>Thawnthu v2</h1>
         <div style={{position: 'relative'}}>
@@ -128,10 +120,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* CONTENT */}
       <div style={{flex: 1, overflowY: 'auto', paddingBottom: '80px'}}>
 
-        {/* HOME PAGE */}
         {page === 'home' && (
           <>
             {loading? <p style={{padding: '20px'}}>Loading...</p> :
@@ -143,57 +133,25 @@ export default function Home() {
                 <p style={{margin: '0 0 8px 0', fontSize: '14px'}}>{p.content.substring(0,150)}...</p>
                 <p style={{margin: 0, fontSize: '12px', color: subtext}}>{p.author} • {timeAgo(p.createdAt)}</p>
               </div>
-            ))}
-            }
+            ))} {/* <-- HEI HI A DIK */}
           </>
         )}
 
-        {/* POST PAGE - HEI HI A THAR */}
         {page === 'post' && (
           <form onSubmit={handleSubmit} style={{padding: '20px', maxWidth: '600px', margin: '0 auto'}}>
             <h2 style={{fontSize: '22px', marginBottom: '20px'}}>Thu Thehlut</h2>
-
-            <input
-              placeholder="I Hming"
-              value={author}
-              onChange={e=>setAuthor(e.target.value)}
-              style={{width: '100%', padding: "12px", marginBottom: "12px", background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', color: text}}
-            />
-
-            <select
-              value={category}
-              onChange={e=>setCategory(e.target.value)}
-              style={{width: '100%', padding: "12px", marginBottom: "12px", background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', color: text}}
-            >
+            <input placeholder="I Hming" value={author} onChange={e=>setAuthor(e.target.value)} style={{width: '100%', padding: "12px", marginBottom: "12px", background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', color: text}}/>
+            <select value={category} onChange={e=>setCategory(e.target.value)} style={{width: '100%', padding: "12px", marginBottom: "12px", background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', color: text}}>
               {CATEGORIES.map(c => <option key={c}>{c}</option>)}
             </select>
-
-            <input
-              placeholder="Thawnthu Hming"
-              value={title}
-              onChange={e=>setTitle(e.target.value)}
-              style={{width: '100%', padding: "12px", marginBottom: "12px", background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', color: text}}
-            />
-
-            <textarea
-              placeholder="I thu ziak rawh..."
-              value={content}
-              onChange={e=>setContent(e.target.value)}
-              rows={10}
-              style={{width: '100%', padding: "12px", marginBottom: "12px", background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', color: text}}
-            />
-
-            <button
-              type="submit"
-              disabled={submitting}
-              style={{width: '100%', padding: "14px", background: accent, color: "white", border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '16px', cursor: 'pointer'}}
-            >
+            <input placeholder="Thawnthu Hming" value={title} onChange={e=>setTitle(e.target.value)} style={{width: '100%', padding: "12px", marginBottom: "12px", background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', color: text}}/>
+            <textarea placeholder="I thu ziak rawh..." value={content} onChange={e=>setContent(e.target.value)} rows={10} style={{width: '100%', padding: "12px", marginBottom: "12px", background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', color: text}}/>
+            <button type="submit" disabled={submitting} style={{width: '100%', padding: "14px", background: accent, color: "white", border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '16px', cursor: 'pointer'}}>
               {submitting? "Thehluh mek..." : "Thehlut"}
             </button>
           </form>
         )}
 
-        {/* CATEGORY PAGE */}
         {page === 'category' && (
           <div style={{padding: '12px'}}>
             {categories.map((c,i)=>(
@@ -214,7 +172,6 @@ export default function Home() {
 
       </div>
 
-      {/* FOOTER */}
       <div style={{background: card, borderTop: `1px solid ${border}`, display: 'flex', justifyContent: 'space-around', position: 'fixed', bottom: 0, width: '100%'}}>
         <NavButton icon="🏠" label="Home" p="home"/>
         <NavButton icon="📂" label="Category" p="category"/>
@@ -223,4 +180,4 @@ export default function Home() {
       </div>
     </div>
   )
-              }
+}
