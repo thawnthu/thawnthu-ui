@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { collection, getDocs, query, orderBy, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { db, auth } from "../lib/firebase";
+import { db, auth } from "./lib/firebase"; // <-- HEI HI A PAWIMAWH
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
 type Post = {
@@ -22,7 +22,7 @@ export default function AdminPage() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
-        window.location.href = '/'; // Login lo chu home ah
+        window.location.href = '/'; 
       } else {
         setUser(currentUser);
       }
@@ -70,7 +70,7 @@ export default function AdminPage() {
       </div>
       <p>Welcome: {user.email}</p>
 
-      <h2 style={{marginTop: '30px'}}>Approve Nghah mek - {pendingPosts.length}</h2>
+      <h2 style={{marginTop: '30px', color: 'orange'}}>Approve Nghah mek - {pendingPosts.length}</h2>
 
       {loading? <p>Loading...</p> : 
       pendingPosts.length === 0? <p>Approve tur a awm rih lo</p> :
@@ -81,8 +81,8 @@ export default function AdminPage() {
           <p style={{color: '#aaa', fontSize: '14px'}}>{p.author}</p>
           <p style={{fontSize: '14px'}}>{p.content.substring(0,200)}...</p>
           <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}>
-            <button onClick={()=>handleApprove(p.id)} style={{padding: '10px', background: 'green', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}>✅ Approve</button>
-            <button onClick={()=>handleDelete(p.id)} style={{padding: '10px', background: 'red', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}>🗑️ Delete</button>
+            <button onClick={()=>handleApprove(p.id)} style={{padding: '10px', background: 'green', color: 'white', border: 'none', borderRadius: '4px'}}>✅ Approve</button>
+            <button onClick={()=>handleDelete(p.id)} style={{padding: '10px', background: 'red', color: 'white', border: 'none', borderRadius: '4px'}}>🗑️ Delete</button>
           </div>
         </div>
       ))}
