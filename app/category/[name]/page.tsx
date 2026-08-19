@@ -14,10 +14,10 @@ export default function CategoryDetailPage() {
   const categoryName = decodeURIComponent(params.name as string);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dark, setDark] = useState(true);
-  const [fontSize, setFontSize] = useState<FontSize>('medium'); // 1. FONT SIZE STATE BELH
+  const [dark, setDark] = useState(false); // 1. DEFAULT LIGHT MODE
+  const [fontSize, setFontSize] = useState<FontSize>('medium');
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showSettings, setShowSettings] = useState(false); // 2. SETTINGS MODAL
+  const [showSettings, setShowSettings] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [likes, setLikes] = useState<{[key: string]: boolean}>({});
   const [comments, setComments] = useState<{[key: string]: Comment[]}>({});
@@ -26,13 +26,14 @@ export default function CategoryDetailPage() {
   const [showCommentBox, setShowCommentBox] = useState<{[key: string]: boolean}>({});
   const [toast, setToast] = useState(false);
 
-  // 3. LOCALSTORAGE AH DAH VEK
+  // 2. LOAD SETTING LOCALSTORAGE ATANGIN
   useEffect(() => {
     const savedDark = localStorage.getItem('darkMode');
     const savedFont = localStorage.getItem('fontSize');
     const savedLikes = localStorage.getItem('likes');
     const savedComments = localStorage.getItem('comments');
-    if(savedDark) setDark(JSON.parse(savedDark));
+
+    if(savedDark!== null) setDark(JSON.parse(savedDark)); // null anih chuan default false = light
     if(savedFont) setFontSize(JSON.parse(savedFont));
     if(savedLikes) setLikes(JSON.parse(savedLikes));
     if(savedComments) setComments(JSON.parse(savedComments));
@@ -84,6 +85,7 @@ export default function CategoryDetailPage() {
     setCommentText(prev => ({...prev, [id]: ''}));
   }
 
+  // 3. SITE PUMPUI THEME CONTROL
   const bg = dark? '#0f0f10' : '#f5f5f5';
   const card = dark? '#1a1a1c' : '#ffffff';
   const text = dark? '#ffffff' : '#000';
@@ -91,7 +93,6 @@ export default function CategoryDetailPage() {
   const border = dark? '#2a2a2c' : '#e0e0e0';
   const accent = '#5865F2';
 
-  // 4. FONT SIZE CONTROL
   const fontSizes = {
     small: { base: '13px', h1: '20px', h2: '16px', h3: '15px' },
     medium: { base: '14px', h1: '24px', h2: '20px', h3: '18px' },
@@ -114,7 +115,7 @@ export default function CategoryDetailPage() {
   }
 
   return (
-    <div style={{background: bg, color: text, minHeight: '100vh', fontSize: fs.base}}> {/* FONT SIZE CONTROL */}
+    <div style={{background: bg, color: text, minHeight: '100vh', fontSize: fs.base}}>
       {toast && <div style={{position: 'fixed', bottom: '90px', left: '50%', transform: 'translateX(-50%)', background: '#333', color: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', zIndex: 200}}>copied</div>}
 
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: `1px solid ${border}`, position: 'sticky', top: 0, background: bg, zIndex: 20}}>
@@ -123,7 +124,6 @@ export default function CategoryDetailPage() {
           <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', color: text, fontSize: '28px', cursor: 'pointer'}}>⋮</button>
           {menuOpen && (
             <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px 0', minWidth: '180px', zIndex: 30}}>
-              {/* 5. DOT 3 MENU SIAMTHAT */}
               <button onClick={()=>{setShowSettings(true); setMenuOpen(false)}} style={{display: 'block', width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: text, textAlign: 'left', fontSize: '15px'}}>⚙️ Setting</button>
               <Link href="/about" onClick={()=>setMenuOpen(false)} style={{display: 'block', padding: '12px 16px', color: text, textDecoration: 'none', fontSize: '15px'}}>ℹ️ About</Link>
               <Link href="/contact" onClick={()=>setMenuOpen(false)} style={{display: 'block', padding: '12px 16px', color: text, textDecoration: 'none', fontSize: '15px'}}>📞 Contact Us</Link>
@@ -132,7 +132,7 @@ export default function CategoryDetailPage() {
         </div>
       </div>
 
-      {/* 6. SETTINGS MODAL */}
+      {/* SETTINGS MODAL */}
       {showSettings && (
         <div onClick={()=>setShowSettings(false)} style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
           <div onClick={(e)=>e.stopPropagation()} style={{background: card, borderRadius: '16px', padding: '20px', width: '90%', maxWidth: '400px'}}>
@@ -253,4 +253,4 @@ export default function CategoryDetailPage() {
       </div>
     </div>
   )
-                                                                                                                                              }
+                             }
