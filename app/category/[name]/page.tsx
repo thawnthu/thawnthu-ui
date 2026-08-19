@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, where } from "firebase/firestore"; // orderBy ka paih
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -14,22 +14,25 @@ export default function CategoryDetailPage() {
   const [loading, setLoading] = useState(true);
   const [dark, setDark] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null); // Modal atan
 
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
-      // orderBy ka paih a, where chiah ka hmang. Chuan JS in kan sort leh ang
       const q = query(collection(db, "posts"), where("category", "==", categoryName));
       const snapshot = await getDocs(q);
       let postsData = snapshot.docs.map(doc => ({ id: doc.id,...doc.data() })) as Post[];
-
-      // Thar lam te hmasa in sort
       postsData.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
       setPosts(postsData);
       setLoading(false);
     };
     fetchPosts();
   }, [categoryName]);
+
+  const copyText = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert("Copy tawh e!");
+  }
 
   const bg = dark? '#0f0f10' : '#f5f5f5';
   const card = dark? '#1a1a1c' : '#ffffff';
@@ -67,10 +70,10 @@ export default function CategoryDetailPage() {
         </div>
       </div>
 
-      {/* HEADER A HNUAIAH ARROW + CATEGORY NAME */}
-      <div style={{padding: '16px', display: 'flex', alignItems: 'center', gap: '12px'}}>
-        <Link href="/category" style={{fontSize: '28px', color: accent, textDecoration: 'none'}}>←</Link>
-        <h2 style={{fontSize: '24px', fontWeight: '800', margin: 0}}>{categoryName}</h2>
+      {/* HEADER A HNUAIAH ARROW + CATEGORY NAME - A TET HRET */}
+      <div style={{padding: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
+        <Link href="/category" style={{fontSize: '24px', color: accent, textDecoration: 'none', lineHeight: '24px'}}>←</Link>
+        <h2 style={{fontSize: '20px', fontWeight: '800', margin: 0}}>--- {categoryName}</h2>
       </div>
 
       {/* CONTENT */}
@@ -78,13 +81,41 @@ export default function CategoryDetailPage() {
         {loading? <p style={{padding: '0 4px'}}>Loading...</p> :
         posts.length === 0? <p style={{padding: '0 4px'}}>He category ah hian post ala awm lo</p> :
         posts.map((p)=>(
-          <div key={p.id} style={{background: card, margin: '12px 0', padding: '16px', borderRadius: '16px', border: `1px solid ${border}`}}>
+          // 4. HEI HI CLICK THEIH KAN SIAm
+          <div key={p.id} onClick={()=>setSelectedPost(p)} style={{background: card, margin: '12px 0', padding: '16px', borderRadius: '16px', border: `1px solid ${border}`, cursor: 'pointer'}}>
             <h3 style={{margin: '0 0 8px 0', fontSize: '18px', fontWeight: '700'}}>{p.title}</h3>
-            <p style={{margin: '0 0 8px 0', fontSize: '14px'}}>{p.content.substring(0,200)}...</p>
-            <p style={{margin: 0, fontSize: '12px', color: subtext}}>{p.author} • {timeAgo(p.createdAt)}</p>
+            <hr style={{border: 'none', borderBottom: `1px solid ${border}`, margin: '8px 0'}}/> {/* 2. LINE */}
+            <p style={{margin: '0 0 12px 0', fontSize: '14px'}}>{p.content.substring(0,200)}...</p>
+
+            {/* 3. LIKE COMMENT BELH */}
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: subtext}}>
+              <span>{p.author} • {timeAgo(p.createdAt)}</span>
+              <div style={{display: 'flex', gap: '12px'}}>
+                <span>❤️ (0) Like</span>
+                <span>💬 (0) Comment</span>
+              </div>
+            </div>
+
+            {/* 2. COPY BUTTON */}
+            <button onClick={(e)=>{e.stopPropagation(); copyText(p.content)}} style={{marginTop: '10px', background: border, color: text, border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer'}}>📋 Copy</button>
           </div>
         ))}
       </div>
+
+      {/* 4. POST FULL ENNA MODAL */}
+      {selectedPost && (
+        <div onClick={()=>setSelectedPost(null)} style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, padding: '20px', overflowY: 'auto'}}>
+          <div onClick={(e)=>e.stopPropagation()} style={{background: card, borderRadius: '16px', padding: '20px', maxWidth: '700px', margin: '40px auto'}}>
+            <h2 style={{margin: '0 0 8px 0'}}>{selectedPost.title}</h2>
+            <hr style={{border: 'none', borderBottom: `1px solid ${border}`, margin: '8px 0'}}/>
+            <p style={{whiteSpace: 'pre-wrap', lineHeight: '1.6'}}>{selectedPost.content}</p>
+            <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '16px'}}>
+              <button onClick={()=>copyText(selectedPost.content)} style={{background: accent, color: 'white', border: 'none', padding: '10px 16px', borderRadius: '8px'}}>📋 Copy All</button>
+              <button onClick={()=>setSelectedPost(null)} style={{background: border, color: text, border: 'none', padding: '10px 16px', borderRadius: '8px'}}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* BOTTOM NAV */}
       <div style={{background: card, borderTop: `1px solid ${border}`, display: 'flex', justifyContent: 'space-around', position: 'fixed', bottom: 0, width: '100%'}}>
