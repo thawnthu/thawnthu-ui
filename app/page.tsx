@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { collection, getDocs, orderBy, query, Timestamp, addDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { db } from "./lib/firebase";
 
 type Post = {
   id: string;
@@ -9,7 +9,7 @@ type Post = {
   content: string;
   category: string;
   author: string;
-  status: string; 
+  status: string;
   createdAt: Timestamp;
 }
 
@@ -35,7 +35,7 @@ export default function Home() {
         const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
         const postsData = snapshot.docs.map(doc => ({ id: doc.id,...doc.data() })) as Post[];
-        setPosts(postsData.filter(p => p.status === 'approved'));
+        setPosts(postsData); // approved filter paih. A zawng zawng kan show
       } catch (err) {
         console.log(err)
       }
@@ -52,10 +52,10 @@ export default function Home() {
       await addDoc(collection(db, "posts"), {
         title, content, category,
         author: author || "Anonymous",
-        status: "pending", 
+        status: "approved", // <-- HEI HI PAWIMAWH. DIRECT APPROVED
         createdAt: Timestamp.now(),
       });
-      alert("I thu i thehlut e! Admin in a approve hnu ah a lang ang");
+      alert("I thu i thehlut e! A lang nghal e");
       setTitle(""); setContent(""); setAuthor("");
       setPage('home');
     } catch (err) {
@@ -107,7 +107,6 @@ export default function Home() {
 
   return (
     <div style={{background: bg, color: text, minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif'}}>
-
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: bg, borderBottom: `1px solid ${border}`, position: 'sticky', top: 0, zIndex: 10}}>
         <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0}}>Thawnthu v2</h1>
         <div style={{position: 'relative'}}>
@@ -133,7 +132,7 @@ export default function Home() {
                 <p style={{margin: '0 0 8px 0', fontSize: '14px'}}>{p.content.substring(0,150)}...</p>
                 <p style={{margin: 0, fontSize: '12px', color: subtext}}>{p.author} • {timeAgo(p.createdAt)}</p>
               </div>
-            ))} {/* <-- HEI HI A DIK */}
+            ))}
           </>
         )}
 
