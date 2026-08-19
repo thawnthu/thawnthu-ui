@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react'; // 1. useRef belh
+import { useState, useEffect, useRef } from 'react';
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import Link from "next/link";
@@ -17,7 +17,6 @@ export default function CategoryDetailPage() {
   const [dark, setDark] = useState(false);
   const [fontSize, setFontSize] = useState<FontSize>('medium');
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [likes, setLikes] = useState<{[key: string]: boolean}>({});
   const [comments, setComments] = useState<{[key: string]: Comment[]}>({});
@@ -26,9 +25,9 @@ export default function CategoryDetailPage() {
   const [showCommentBox, setShowCommentBox] = useState<{[key: string]: boolean}>({});
   const [toast, setToast] = useState('');
 
-  const menuRef = useRef<HTMLDivElement>(null); // 2. MENU REF
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  // 3. HMUN DANG CLICK CHUAN MENU CLOSE
+  // HMUN DANG CLICK CHUAN MENU CLOSE
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current &&!menuRef.current.contains(event.target as Node)) {
@@ -39,6 +38,7 @@ export default function CategoryDetailPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [menuRef]);
 
+  // LOCALSTORAGE LOAD
   useEffect(() => {
     const savedDark = localStorage.getItem('darkMode');
     const savedFont = localStorage.getItem('fontSize');
@@ -55,6 +55,7 @@ export default function CategoryDetailPage() {
   useEffect(() => { localStorage.setItem('likes', JSON.stringify(likes)); }, [likes]);
   useEffect(() => { localStorage.setItem('comments', JSON.stringify(comments)); }, [comments]);
 
+  // POSTS LA
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
@@ -105,6 +106,7 @@ export default function CategoryDetailPage() {
     setCommentText(prev => ({...prev, [id]: ''}));
   }
 
+  // THEME
   const bg = dark? '#0f0f10' : '#f5f5f5';
   const card = dark? '#1a1a1c' : '#ffffff';
   const text = dark? '#ffffff' : '#000';
@@ -112,6 +114,7 @@ export default function CategoryDetailPage() {
   const border = dark? '#2a2a2c' : '#e0e0e0';
   const accent = '#5865F2';
 
+  // FONT SIZE
   const fontSizes = {
     small: { base: '13px', h1: '20px', h2: '16px', h3: '15px' },
     medium: { base: '14px', h1: '24px', h2: '20px', h3: '18px' },
@@ -137,17 +140,16 @@ export default function CategoryDetailPage() {
     <div style={{background: bg, color: text, minHeight: '100vh', fontSize: fs.base}}>
       {toast && <div style={{position: 'fixed', bottom: '90px', left: '50%', transform: 'translateX(-50%)', background: '#333', color: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', zIndex: 200}}>{toast}</div>}
 
+      {/* HEADER */}
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: `1px solid ${border}`, position: 'sticky', top: 0, background: bg, zIndex: 20}}>
         <h1 style={{fontSize: fs.h1, fontWeight: '800', margin: 0}}>Thawnthu V2</h1>
 
-        {/* 4. MENU REF BELH */}
         <div style={{position: 'relative'}} ref={menuRef}>
           <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', color: text, fontSize: '28px', cursor: 'pointer'}}>⋮</button>
           {menuOpen && (
             <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px 0', minWidth: '180px', zIndex: 30, boxShadow: '0 4px 12px rgba(0,0,0,0.2)'}}>
 
-              {/* 5. MENU INKAR AH LINE DAH */}
-              <button onClick={()=>{setShowSettings(true); setMenuOpen(false)}} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: text, textAlign: 'left', fontSize: '15px', cursor: 'pointer'}}>⚙️ Setting</button>
+              <Link href="/setting" onClick={()=>setMenuOpen(false)} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: text, textAlign: 'left', fontSize: '15px', textDecoration: 'none'}}>⚙️ Setting</Link>
 
               <hr style={{border: 'none', borderBottom: `1px solid ${border}`, margin: '4px 12px'}}/>
 
@@ -161,29 +163,7 @@ export default function CategoryDetailPage() {
         </div>
       </div>
 
-      {showSettings && (
-        <div onClick={()=>setShowSettings(false)} style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-          <div onClick={(e)=>e.stopPropagation()} style={{background: card, borderRadius: '16px', padding: '20px', width: '90%', maxWidth: '400px'}}>
-            <h2 style={{margin: '0 0 16px 0', fontSize: fs.h2}}>⚙️ Setting</h2>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-              <span style={{fontSize: fs.base}}>Dark Mode</span>
-              <button onClick={()=>setDark(!dark)} style={{background: dark? accent : border, width: '50px', height: '28px', borderRadius: '14px', border: 'none', position: 'relative', cursor: 'pointer'}}>
-                <div style={{background: 'white', width: '22px', height: '22px', borderRadius: '50%', position: 'absolute', top: '3px', left: dark? '25px' : '3px', transition: '0.3s'}}></div>
-              </button>
-            </div>
-            <div style={{marginBottom: '20px'}}>
-              <span style={{fontSize: fs.base, display: 'block', marginBottom: '10px'}}>Font Size</span>
-              <div style={{display: 'flex', gap: '8px'}}>
-                {(['small', 'medium', 'large'] as FontSize[]).map(size => (
-                  <button key={size} onClick={()=>setFontSize(size)} style={{flex: 1, padding: '10px', borderRadius: '8px', border: `2px solid ${fontSize === size? accent : border}`, background: fontSize === size? accent : 'transparent', color: fontSize === size? 'white' : text, fontWeight: '700', cursor: 'pointer', textTransform: 'capitalize'}}>{size}</button>
-                ))}
-              </div>
-            </div>
-            <button onClick={()=>setShowSettings(false)} style={{width: '100%', background: accent, color: 'white', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '700'}}>Done</button>
-          </div>
-        </div>
-      )}
-
+      {/* BACK ARROW + CATEGORY NAME */}
       <div style={{padding: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
         <Link href="/category" style={{display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: subtext}}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -193,6 +173,7 @@ export default function CategoryDetailPage() {
         </Link>
       </div>
 
+      {/* POSTS LIST */}
       <div style={{padding: '0 12px 80px 12px'}}>
         {loading? <p style={{padding: '0 4px'}}>Loading...</p> :
         posts.length === 0? <p style={{padding: '0 4px'}}>He category ah hian post ala awm lo</p> :
@@ -202,11 +183,14 @@ export default function CategoryDetailPage() {
               <h3 style={{margin: 0, fontSize: fs.h3, fontWeight: '700'}}>{p.title}</h3>
               <button onClick={()=>copyText(p.content)} style={{background: border, color: text, border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer'}}>📋 Copy</button>
             </div>
+
             <hr style={{border: 'none', borderBottom: `1px solid ${border}`, margin: '8px 0'}}/>
             <p style={{margin: '0 0 12px 0', fontSize: fs.base}}>
               {p.content.substring(0,200)}...
               <button onClick={()=>setSelectedPost(p)} style={{background: 'none', border: 'none', color: accent, fontSize: fs.base, fontWeight: '700', cursor: 'pointer', padding: '0 0 0 4px'}}>Read more</button>
             </p>
+
+            {/* LIKE, COMMENT, SHARE */}
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: subtext}}>
               <span>{p.author} • {timeAgo(p.createdAt)}</span>
               <div style={{display: 'flex', gap: '16px'}}>
@@ -215,6 +199,8 @@ export default function CategoryDetailPage() {
                 <button onClick={()=>handleShare(p)} style={{background: 'none', border: 'none', color: subtext, cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px'}}>📤</button>
               </div>
             </div>
+
+            {/* COMMENT BOX */}
             {showCommentBox[p.id] && (
               <div style={{marginTop: '12px'}}>
                 {comments[p.id]?.map((c, i)=>(
@@ -234,6 +220,7 @@ export default function CategoryDetailPage() {
         ))}
       </div>
 
+      {/* FULL POST MODAL */}
       {selectedPost && (
         <div onClick={()=>setSelectedPost(null)} style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, padding: '20px', overflowY: 'auto'}}>
           <div onClick={(e)=>e.stopPropagation()} style={{background: card, borderRadius: '16px', padding: '20px', maxWidth: '700px', margin: '40px auto'}}>
@@ -251,6 +238,7 @@ export default function CategoryDetailPage() {
               </div>
               <button onClick={()=>setSelectedPost(null)} style={{background: border, color: text, border: 'none', padding: '10px 16px', borderRadius: '8px'}}>Close</button>
             </div>
+
             {showCommentBox[selectedPost.id] && (
               <div style={{marginTop: '12px'}}>
                 {comments[selectedPost.id]?.map((c, i)=>(
@@ -270,6 +258,7 @@ export default function CategoryDetailPage() {
         </div>
       )}
 
+      {/* BOTTOM NAV */}
       <div style={{background: card, borderTop: `1px solid ${border}`, display: 'flex', justifyContent: 'space-around', position: 'fixed', bottom: 0, width: '100%'}}>
         <Link href="/" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: '700', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>🏠</span>Home</button></Link>
         <Link href="/category" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: accent, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: '700', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>📂</span>Category</button></Link>
@@ -278,4 +267,4 @@ export default function CategoryDetailPage() {
       </div>
     </div>
   )
-          }
+                                                                                                                                                                                                                                                                                          }
