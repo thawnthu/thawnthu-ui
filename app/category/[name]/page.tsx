@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react'; // 1. useRef belh
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import Link from "next/link";
@@ -25,6 +25,19 @@ export default function CategoryDetailPage() {
   const [commentText, setCommentText] = useState<{[key: string]: string}>({});
   const [showCommentBox, setShowCommentBox] = useState<{[key: string]: boolean}>({});
   const [toast, setToast] = useState('');
+
+  const menuRef = useRef<HTMLDivElement>(null); // 2. MENU REF
+
+  // 3. HMUN DANG CLICK CHUAN MENU CLOSE
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current &&!menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuRef]);
 
   useEffect(() => {
     const savedDark = localStorage.getItem('darkMode');
@@ -65,24 +78,13 @@ export default function CategoryDetailPage() {
     showToast('copied');
   }
 
-  // 1. SHARE FUNCTION BELH
   const handleShare = async (p: Post) => {
     const shareUrl = `${window.location.origin}/post/${p.id}`;
-    const shareData = {
-      title: p.title,
-      text: p.content.substring(0,100) + '...',
-      url: shareUrl
-    };
+    const shareData = { title: p.title, text: p.content.substring(0,100) + '...', url: shareUrl };
     try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        navigator.clipboard.writeText(shareUrl);
-        showToast('Link copied');
-      }
-    } catch (err) {
-      console.log('Share failed', err);
-    }
+      if (navigator.share) { await navigator.share(shareData); }
+      else { navigator.clipboard.writeText(shareUrl); showToast('Link copied'); }
+    } catch (err) { console.log('Share failed', err); }
   }
 
   const handleLike = (id: string, e: any) => {
@@ -97,11 +99,7 @@ export default function CategoryDetailPage() {
 
   const submitComment = (id: string) => {
     if(!commentName[id] ||!commentText[id]) return;
-    const newComment: Comment = {
-      name: commentName[id],
-      text: commentText[id],
-      time: Date.now()
-    }
+    const newComment: Comment = { name: commentName[id], text: commentText[id], time: Date.now() }
     setComments(prev => ({...prev, [id]: [...(prev[id] || []), newComment]}));
     setCommentName(prev => ({...prev, [id]: ''}));
     setCommentText(prev => ({...prev, [id]: ''}));
@@ -141,13 +139,23 @@ export default function CategoryDetailPage() {
 
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: `1px solid ${border}`, position: 'sticky', top: 0, background: bg, zIndex: 20}}>
         <h1 style={{fontSize: fs.h1, fontWeight: '800', margin: 0}}>Thawnthu V2</h1>
-        <div style={{position: 'relative'}}>
+
+        {/* 4. MENU REF BELH */}
+        <div style={{position: 'relative'}} ref={menuRef}>
           <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', color: text, fontSize: '28px', cursor: 'pointer'}}>⋮</button>
           {menuOpen && (
-            <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px 0', minWidth: '180px', zIndex: 30}}>
-              <button onClick={()=>{setShowSettings(true); setMenuOpen(false)}} style={{display: 'block', width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: text, textAlign: 'left', fontSize: '15px'}}>⚙️ Setting</button>
-              <Link href="/about" onClick={()=>setMenuOpen(false)} style={{display: 'block', padding: '12px 16px', color: text, textDecoration: 'none', fontSize: '15px'}}>ℹ️ About</Link>
-              <Link href="/contact" onClick={()=>setMenuOpen(false)} style={{display: 'block', padding: '12px 16px', color: text, textDecoration: 'none', fontSize: '15px'}}>📞 Contact Us</Link>
+            <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px 0', minWidth: '180px', zIndex: 30, boxShadow: '0 4px 12px rgba(0,0,0,0.2)'}}>
+
+              {/* 5. MENU INKAR AH LINE DAH */}
+              <button onClick={()=>{setShowSettings(true); setMenuOpen(false)}} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: text, textAlign: 'left', fontSize: '15px', cursor: 'pointer'}}>⚙️ Setting</button>
+
+              <hr style={{border: 'none', borderBottom: `1px solid ${border}`, margin: '4px 12px'}}/>
+
+              <Link href="/about" onClick={()=>setMenuOpen(false)} style={{display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', color: text, textDecoration: 'none', fontSize: '15px'}}>ℹ️ About</Link>
+
+              <hr style={{border: 'none', borderBottom: `1px solid ${border}`, margin: '4px 12px'}}/>
+
+              <Link href="/contact" onClick={()=>setMenuOpen(false)} style={{display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', color: text, textDecoration: 'none', fontSize: '15px'}}>📞 Contact Us</Link>
             </div>
           )}
         </div>
@@ -176,7 +184,6 @@ export default function CategoryDetailPage() {
         </div>
       )}
 
-      {/* 2. ARROW SIAMTHAT - I THAWN ANG CHIAH */}
       <div style={{padding: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
         <Link href="/category" style={{display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: subtext}}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -195,14 +202,11 @@ export default function CategoryDetailPage() {
               <h3 style={{margin: 0, fontSize: fs.h3, fontWeight: '700'}}>{p.title}</h3>
               <button onClick={()=>copyText(p.content)} style={{background: border, color: text, border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer'}}>📋 Copy</button>
             </div>
-
             <hr style={{border: 'none', borderBottom: `1px solid ${border}`, margin: '8px 0'}}/>
             <p style={{margin: '0 0 12px 0', fontSize: fs.base}}>
               {p.content.substring(0,200)}...
               <button onClick={()=>setSelectedPost(p)} style={{background: 'none', border: 'none', color: accent, fontSize: fs.base, fontWeight: '700', cursor: 'pointer', padding: '0 0 0 4px'}}>Read more</button>
             </p>
-
-            {/* 3. COMMENT PIAH AH SHARE BUTTON BELH */}
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: subtext}}>
               <span>{p.author} • {timeAgo(p.createdAt)}</span>
               <div style={{display: 'flex', gap: '16px'}}>
@@ -211,7 +215,6 @@ export default function CategoryDetailPage() {
                 <button onClick={()=>handleShare(p)} style={{background: 'none', border: 'none', color: subtext, cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px'}}>📤</button>
               </div>
             </div>
-
             {showCommentBox[p.id] && (
               <div style={{marginTop: '12px'}}>
                 {comments[p.id]?.map((c, i)=>(
@@ -231,7 +234,6 @@ export default function CategoryDetailPage() {
         ))}
       </div>
 
-      {/* FULL POST MODAL */}
       {selectedPost && (
         <div onClick={()=>setSelectedPost(null)} style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, padding: '20px', overflowY: 'auto'}}>
           <div onClick={(e)=>e.stopPropagation()} style={{background: card, borderRadius: '16px', padding: '20px', maxWidth: '700px', margin: '40px auto'}}>
@@ -241,8 +243,6 @@ export default function CategoryDetailPage() {
             </div>
             <hr style={{border: 'none', borderBottom: `1px solid ${border}`, margin: '8px 0'}}/>
             <p style={{whiteSpace: 'pre-wrap', lineHeight: '1.6', fontSize: fs.base}}>{selectedPost.content}</p>
-
-            {/* 4. FULL POST AH PAWH SHARE BUTTON */}
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px'}}>
               <div style={{display: 'flex', gap: '12px'}}>
                 <button onClick={(e)=>handleLike(selectedPost.id, e)} style={{background: border, color: likes[selectedPost.id]? accent : text, border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: '700'}}>({likes[selectedPost.id]? 1 : 0})❤️</button>
@@ -251,7 +251,6 @@ export default function CategoryDetailPage() {
               </div>
               <button onClick={()=>setSelectedPost(null)} style={{background: border, color: text, border: 'none', padding: '10px 16px', borderRadius: '8px'}}>Close</button>
             </div>
-
             {showCommentBox[selectedPost.id] && (
               <div style={{marginTop: '12px'}}>
                 {comments[selectedPost.id]?.map((c, i)=>(
@@ -279,4 +278,4 @@ export default function CategoryDetailPage() {
       </div>
     </div>
   )
-}
+          }
