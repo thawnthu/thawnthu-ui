@@ -15,8 +15,10 @@ export default function CategoryDetailPage() {
   const [dark, setDark] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [likes, setLikes] = useState<{[key: string]: number}>({});
-  const [comments, setComments] = useState<{[key: string]: number}>({});
+  const [likes, setLikes] = useState<{[key: string]: boolean}>({}); // toggle atan
+  const [commentCounts, setCommentCounts] = useState<{[key: string]: number}>({});
+  const [commentText, setCommentText] = useState<{[key: string]: string}>({});
+  const [showCommentBox, setShowCommentBox] = useState<{[key: string]: boolean}>({});
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -36,13 +38,21 @@ export default function CategoryDetailPage() {
     alert("Copy tawh e!");
   }
 
+  // 2. LIKE TOGGLE
   const handleLike = (id: string, e: any) => {
     e.stopPropagation();
-    setLikes(prev => ({...prev, [id]: (prev[id] || 0) + 1}));
+    setLikes(prev => ({...prev, [id]:!prev[id]}));
   }
-  const handleComment = (id: string, e: any) => {
+
+  // 2. COMMENT BOX SHOW/HIDE + ADD
+  const handleCommentClick = (id: string, e: any) => {
     e.stopPropagation();
-    setComments(prev => ({...prev, [id]: (prev[id] || 0) + 1}));
+    setShowCommentBox(prev => ({...prev, [id]:!prev[id]}));
+  }
+  const submitComment = (id: string) => {
+    if(!commentText[id]) return;
+    setCommentCounts(prev => ({...prev, [id]: (prev[id] || 0) + 1}));
+    setCommentText(prev => ({...prev, [id]: ''}));
   }
 
   const bg = dark? '#0f0f10' : '#f5f5f5';
@@ -80,9 +90,9 @@ export default function CategoryDetailPage() {
         </div>
       </div>
 
-      {/* ARROW --- + A HNIAM HRET */}
+      {/* 1. --- HI A LAI TAKAH ALIGN */}
       <div style={{padding: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
-        <Link href="/category" style={{fontSize: '20px', color: accent, textDecoration: 'none', lineHeight: '20px', fontWeight: '800', transform: 'translateY(2px)'}}>---</Link>
+        <Link href="/category" style={{fontSize: '20px', color: accent, textDecoration: 'none', lineHeight: '20px', fontWeight: '800', display: 'flex', alignItems: 'center'}}>---</Link>
         <h2 style={{fontSize: '20px', fontWeight: '800', margin: 0}}>{categoryName}</h2>
       </div>
 
@@ -102,17 +112,33 @@ export default function CategoryDetailPage() {
               <button onClick={()=>setSelectedPost(p)} style={{background: 'none', border: 'none', color: accent, fontSize: '14px', fontWeight: '700', cursor: 'pointer', padding: '0 0 0 4px'}}>Read more</button>
             </p>
 
+            {/* 2. LIKE COMMENT SIAMTHAT */}
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: subtext}}>
               <span>{p.author} • {timeAgo(p.createdAt)}</span>
               <div style={{display: 'flex', gap: '12px'}}>
-                <button onClick={(e)=>handleLike(p.id, e)} style={{background: 'none', border: 'none', color: subtext, cursor: 'pointer'}}>❤️ ({likes[p.id] || 0}) Love</button>
-                <button onClick={(e)=>handleComment(p.id, e)} style={{background: 'none', border: 'none', color: subtext, cursor: 'pointer'}}>💬 ({comments[p.id] || 0}) Comment</button>
+                <button onClick={(e)=>handleLike(p.id, e)} style={{background: 'none', border: 'none', color: likes[p.id]? accent : subtext, cursor: 'pointer', fontWeight: '700'}}>({likes[p.id]? 1 : 0})❤️</button>
+                <button onClick={(e)=>handleCommentClick(p.id, e)} style={{background: 'none', border: 'none', color: subtext, cursor: 'pointer', fontWeight: '700'}}>({commentCounts[p.id] || 0})💬</button>
               </div>
             </div>
+
+            {/* COMMENT BOX */}
+            {showCommentBox[p.id] && (
+              <div style={{marginTop: '10px', display: 'flex', gap: '8px'}}>
+                <input
+                  type="text"
+                  placeholder="Comment ziak rawh..."
+                  value={commentText[p.id] || ''}
+                  onChange={(e)=>setCommentText(prev=>({...prev, [p.id]: e.target.value}))}
+                  style={{flex: 1, padding: '8px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text}}
+                />
+                <button onClick={()=>submitComment(p.id)} style={{background: accent, color: 'white', border: 'none', padding: '8px 12px', borderRadius: '8px'}}>Send</button>
+              </div>
+            )}
           </div>
         ))}
       </div>
 
+      {/* FULL POST MODAL */}
       {selectedPost && (
         <div onClick={()=>setSelectedPost(null)} style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, padding: '20px', overflowY: 'auto'}}>
           <div onClick={(e)=>e.stopPropagation()} style={{background: card, borderRadius: '16px', padding: '20px', maxWidth: '700px', margin: '40px auto'}}>
@@ -121,11 +147,25 @@ export default function CategoryDetailPage() {
             <p style={{whiteSpace: 'pre-wrap', lineHeight: '1.6'}}>{selectedPost.content}</p>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px'}}>
               <div style={{display: 'flex', gap: '12px'}}>
-                <button onClick={(e)=>handleLike(selectedPost.id, e)} style={{background: border, color: text, border: 'none', padding: '10px 16px', borderRadius: '8px'}}>❤️ ({likes[selectedPost.id] || 0}) Love</button>
-                <button onClick={(e)=>handleComment(selectedPost.id, e)} style={{background: border, color: text, border: 'none', padding: '10px 16px', borderRadius: '8px'}}>💬 ({comments[selectedPost.id] || 0}) Comment</button>
+                <button onClick={(e)=>handleLike(selectedPost.id, e)} style={{background: border, color: likes[selectedPost.id]? accent : text, border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: '700'}}>({likes[selectedPost.id]? 1 : 0})❤️</button>
+                <button onClick={(e)=>handleCommentClick(selectedPost.id, e)} style={{background: border, color: text, border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: '700'}}>({commentCounts[selectedPost.id] || 0})💬</button>
               </div>
               <button onClick={()=>setSelectedPost(null)} style={{background: border, color: text, border: 'none', padding: '10px 16px', borderRadius: '8px'}}>Close</button>
             </div>
+
+            {/* FULL MODAL AH PAWN COMMENT BOX */}
+            {showCommentBox[selectedPost.id] && (
+              <div style={{marginTop: '10px', display: 'flex', gap: '8px'}}>
+                <input
+                  type="text"
+                  placeholder="Comment ziak rawh..."
+                  value={commentText[selectedPost.id] || ''}
+                  onChange={(e)=>setCommentText(prev=>({...prev, [selectedPost.id]: e.target.value}))}
+                  style={{flex: 1, padding: '8px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text}}
+                />
+                <button onClick={()=>submitComment(selectedPost.id)} style={{background: accent, color: 'white', border: 'none', padding: '8px 12px', borderRadius: '8px'}}>Send</button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -138,4 +178,4 @@ export default function CategoryDetailPage() {
       </div>
     </div>
   )
-}
+                }
