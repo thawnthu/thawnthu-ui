@@ -179,7 +179,7 @@ export default function Home() {
         width: '100%',
         maxWidth: '100%'
       }}>
-        <NavButton icon="🏠" label="Home" p="home"/>
+        <NavButton icon="🏠" label="Home" p="homeee"/>
         <NavButton icon="📂" label="Category" p="category"/>
         <NavButton icon="✍️" label="Post" p="post"/>
         <NavButton icon="🔔" label="Notify" p="notification"/>
