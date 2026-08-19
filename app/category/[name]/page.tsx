@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore"; // orderBy ka paih
 import { db } from "../../lib/firebase";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -18,9 +18,14 @@ export default function CategoryDetailPage() {
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
-      const q = query(collection(db, "posts"), where("category", "==", categoryName), orderBy("createdAt", "desc"));
+      // orderBy ka paih a, where chiah ka hmang. Chuan JS in kan sort leh ang
+      const q = query(collection(db, "posts"), where("category", "==", categoryName));
       const snapshot = await getDocs(q);
-      setPosts(snapshot.docs.map(doc => ({ id: doc.id,...doc.data() })) as Post[]);
+      let postsData = snapshot.docs.map(doc => ({ id: doc.id,...doc.data() })) as Post[];
+
+      // Thar lam te hmasa in sort
+      postsData.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
+      setPosts(postsData);
       setLoading(false);
     };
     fetchPosts();
@@ -31,6 +36,7 @@ export default function CategoryDetailPage() {
   const text = dark? '#ffffff' : '#000';
   const subtext = dark? '#a0a0a0' : '#555';
   const border = dark? '#2a2a2c' : '#e0e0e0';
+  const accent = '#5865F2';
   const toggleDark = () => setDark(!dark);
 
   const timeAgo = (timestamp: any) => {
@@ -61,13 +67,16 @@ export default function CategoryDetailPage() {
         </div>
       </div>
 
-      {/* CONTENT */}
-      <div style={{padding: '12px', paddingBottom: '80px'}}>
-        <Link href="/category" style={{color: '#5865F2', textDecoration: 'none'}}>← Category kir</Link>
-        <h2 style={{fontSize: '22px', fontWeight: '800', margin: '16px 0'}}>{categoryName}</h2>
+      {/* HEADER A HNUAIAH ARROW + CATEGORY NAME */}
+      <div style={{padding: '16px', display: 'flex', alignItems: 'center', gap: '12px'}}>
+        <Link href="/category" style={{fontSize: '28px', color: accent, textDecoration: 'none'}}>←</Link>
+        <h2 style={{fontSize: '24px', fontWeight: '800', margin: 0}}>{categoryName}</h2>
+      </div>
 
-        {loading? <p>Loading...</p> :
-        posts.length === 0? <p>He category ah hian post ala awm lo</p> :
+      {/* CONTENT */}
+      <div style={{padding: '0 12px 80px 12px'}}>
+        {loading? <p style={{padding: '0 4px'}}>Loading...</p> :
+        posts.length === 0? <p style={{padding: '0 4px'}}>He category ah hian post ala awm lo</p> :
         posts.map((p)=>(
           <div key={p.id} style={{background: card, margin: '12px 0', padding: '16px', borderRadius: '16px', border: `1px solid ${border}`}}>
             <h3 style={{margin: '0 0 8px 0', fontSize: '18px', fontWeight: '700'}}>{p.title}</h3>
@@ -80,10 +89,10 @@ export default function CategoryDetailPage() {
       {/* BOTTOM NAV */}
       <div style={{background: card, borderTop: `1px solid ${border}`, display: 'flex', justifyContent: 'space-around', position: 'fixed', bottom: 0, width: '100%'}}>
         <Link href="/" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: '700', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>🏠</span>Home</button></Link>
-        <Link href="/category" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: '#5865F2', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: '700', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>📂</span>Category</button></Link>
+        <Link href="/category" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: accent, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: '700', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>📂</span>Category</button></Link>
         <Link href="/post" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: '700', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>✍️</span>Post</button></Link>
         <Link href="/notification" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: '700', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>🔔</span>Notify</button></Link>
       </div>
     </div>
   )
-          }
+}
