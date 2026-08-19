@@ -14,7 +14,7 @@ export default function CategoryDetailPage() {
   const categoryName = decodeURIComponent(params.name as string);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dark, setDark] = useState(false); // 1. DEFAULT LIGHT MODE
+  const [dark, setDark] = useState(false);
   const [fontSize, setFontSize] = useState<FontSize>('medium');
   const [menuOpen, setMenuOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -24,16 +24,14 @@ export default function CategoryDetailPage() {
   const [commentName, setCommentName] = useState<{[key: string]: string}>({});
   const [commentText, setCommentText] = useState<{[key: string]: string}>({});
   const [showCommentBox, setShowCommentBox] = useState<{[key: string]: boolean}>({});
-  const [toast, setToast] = useState(false);
+  const [toast, setToast] = useState('');
 
-  // 2. LOAD SETTING LOCALSTORAGE ATANGIN
   useEffect(() => {
     const savedDark = localStorage.getItem('darkMode');
     const savedFont = localStorage.getItem('fontSize');
     const savedLikes = localStorage.getItem('likes');
     const savedComments = localStorage.getItem('comments');
-
-    if(savedDark!== null) setDark(JSON.parse(savedDark)); // null anih chuan default false = light
+    if(savedDark!== null) setDark(JSON.parse(savedDark));
     if(savedFont) setFontSize(JSON.parse(savedFont));
     if(savedLikes) setLikes(JSON.parse(savedLikes));
     if(savedComments) setComments(JSON.parse(savedComments));
@@ -57,10 +55,34 @@ export default function CategoryDetailPage() {
     fetchPosts();
   }, [categoryName]);
 
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(()=>setToast(''), 1500);
+  }
+
   const copyText = (text: string) => {
     navigator.clipboard.writeText(text);
-    setToast(true);
-    setTimeout(()=>setToast(false), 1500);
+    showToast('copied');
+  }
+
+  // 1. SHARE FUNCTION BELH
+  const handleShare = async (p: Post) => {
+    const shareUrl = `${window.location.origin}/post/${p.id}`;
+    const shareData = {
+      title: p.title,
+      text: p.content.substring(0,100) + '...',
+      url: shareUrl
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        navigator.clipboard.writeText(shareUrl);
+        showToast('Link copied');
+      }
+    } catch (err) {
+      console.log('Share failed', err);
+    }
   }
 
   const handleLike = (id: string, e: any) => {
@@ -85,7 +107,6 @@ export default function CategoryDetailPage() {
     setCommentText(prev => ({...prev, [id]: ''}));
   }
 
-  // 3. SITE PUMPUI THEME CONTROL
   const bg = dark? '#0f0f10' : '#f5f5f5';
   const card = dark? '#1a1a1c' : '#ffffff';
   const text = dark? '#ffffff' : '#000';
@@ -116,7 +137,7 @@ export default function CategoryDetailPage() {
 
   return (
     <div style={{background: bg, color: text, minHeight: '100vh', fontSize: fs.base}}>
-      {toast && <div style={{position: 'fixed', bottom: '90px', left: '50%', transform: 'translateX(-50%)', background: '#333', color: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', zIndex: 200}}>copied</div>}
+      {toast && <div style={{position: 'fixed', bottom: '90px', left: '50%', transform: 'translateX(-50%)', background: '#333', color: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', zIndex: 200}}>{toast}</div>}
 
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: `1px solid ${border}`, position: 'sticky', top: 0, background: bg, zIndex: 20}}>
         <h1 style={{fontSize: fs.h1, fontWeight: '800', margin: 0}}>Thawnthu V2</h1>
@@ -132,21 +153,16 @@ export default function CategoryDetailPage() {
         </div>
       </div>
 
-      {/* SETTINGS MODAL */}
       {showSettings && (
         <div onClick={()=>setShowSettings(false)} style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
           <div onClick={(e)=>e.stopPropagation()} style={{background: card, borderRadius: '16px', padding: '20px', width: '90%', maxWidth: '400px'}}>
             <h2 style={{margin: '0 0 16px 0', fontSize: fs.h2}}>⚙️ Setting</h2>
-
-            {/* Dark Mode Toggle */}
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
               <span style={{fontSize: fs.base}}>Dark Mode</span>
               <button onClick={()=>setDark(!dark)} style={{background: dark? accent : border, width: '50px', height: '28px', borderRadius: '14px', border: 'none', position: 'relative', cursor: 'pointer'}}>
                 <div style={{background: 'white', width: '22px', height: '22px', borderRadius: '50%', position: 'absolute', top: '3px', left: dark? '25px' : '3px', transition: '0.3s'}}></div>
               </button>
             </div>
-
-            {/* Font Size */}
             <div style={{marginBottom: '20px'}}>
               <span style={{fontSize: fs.base, display: 'block', marginBottom: '10px'}}>Font Size</span>
               <div style={{display: 'flex', gap: '8px'}}>
@@ -155,15 +171,19 @@ export default function CategoryDetailPage() {
                 ))}
               </div>
             </div>
-
             <button onClick={()=>setShowSettings(false)} style={{width: '100%', background: accent, color: 'white', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '700'}}>Done</button>
           </div>
         </div>
       )}
 
+      {/* 2. ARROW SIAMTHAT - I THAWN ANG CHIAH */}
       <div style={{padding: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
-        <Link href="/category" style={{fontSize: '24px', color: accent, textDecoration: 'none', lineHeight: '20px', fontWeight: '800', display: 'flex', alignItems: 'center'}}>←</Link>
-        <h2 style={{fontSize: fs.h2, fontWeight: '800', margin: 0}}>{categoryName}</h2>
+        <Link href="/category" style={{display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: subtext}}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          <span style={{fontSize: fs.h2, fontWeight: '800'}}>{categoryName}</span>
+        </Link>
       </div>
 
       <div style={{padding: '0 12px 80px 12px'}}>
@@ -182,11 +202,13 @@ export default function CategoryDetailPage() {
               <button onClick={()=>setSelectedPost(p)} style={{background: 'none', border: 'none', color: accent, fontSize: fs.base, fontWeight: '700', cursor: 'pointer', padding: '0 0 0 4px'}}>Read more</button>
             </p>
 
+            {/* 3. COMMENT PIAH AH SHARE BUTTON BELH */}
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: subtext}}>
               <span>{p.author} • {timeAgo(p.createdAt)}</span>
-              <div style={{display: 'flex', gap: '12px'}}>
-                <button onClick={(e)=>handleLike(p.id, e)} style={{background: 'none', border: 'none', color: likes[p.id]? accent : subtext, cursor: 'pointer', fontWeight: '700'}}>({likes[p.id]? 1 : 0})❤️</button>
-                <button onClick={(e)=>handleCommentClick(p.id, e)} style={{background: 'none', border: 'none', color: subtext, cursor: 'pointer', fontWeight: '700'}}>({comments[p.id]?.length || 0})💬</button>
+              <div style={{display: 'flex', gap: '16px'}}>
+                <button onClick={(e)=>handleLike(p.id, e)} style={{background: 'none', border: 'none', color: likes[p.id]? accent : subtext, cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px'}}>({likes[p.id]? 1 : 0})❤️</button>
+                <button onClick={(e)=>handleCommentClick(p.id, e)} style={{background: 'none', border: 'none', color: subtext, cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px'}}>({comments[p.id]?.length || 0})💬</button>
+                <button onClick={()=>handleShare(p)} style={{background: 'none', border: 'none', color: subtext, cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px'}}>📤</button>
               </div>
             </div>
 
@@ -209,6 +231,7 @@ export default function CategoryDetailPage() {
         ))}
       </div>
 
+      {/* FULL POST MODAL */}
       {selectedPost && (
         <div onClick={()=>setSelectedPost(null)} style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, padding: '20px', overflowY: 'auto'}}>
           <div onClick={(e)=>e.stopPropagation()} style={{background: card, borderRadius: '16px', padding: '20px', maxWidth: '700px', margin: '40px auto'}}>
@@ -218,10 +241,13 @@ export default function CategoryDetailPage() {
             </div>
             <hr style={{border: 'none', borderBottom: `1px solid ${border}`, margin: '8px 0'}}/>
             <p style={{whiteSpace: 'pre-wrap', lineHeight: '1.6', fontSize: fs.base}}>{selectedPost.content}</p>
+
+            {/* 4. FULL POST AH PAWH SHARE BUTTON */}
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px'}}>
               <div style={{display: 'flex', gap: '12px'}}>
                 <button onClick={(e)=>handleLike(selectedPost.id, e)} style={{background: border, color: likes[selectedPost.id]? accent : text, border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: '700'}}>({likes[selectedPost.id]? 1 : 0})❤️</button>
                 <button onClick={(e)=>handleCommentClick(selectedPost.id, e)} style={{background: border, color: text, border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: '700'}}>({comments[selectedPost.id]?.length || 0})💬</button>
+                <button onClick={()=>handleShare(selectedPost)} style={{background: border, color: text, border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: '700'}}>📤 Share</button>
               </div>
               <button onClick={()=>setSelectedPost(null)} style={{background: border, color: text, border: 'none', padding: '10px 16px', borderRadius: '8px'}}>Close</button>
             </div>
@@ -253,4 +279,4 @@ export default function CategoryDetailPage() {
       </div>
     </div>
   )
-                             }
+}
