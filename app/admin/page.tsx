@@ -2,28 +2,39 @@
 "use client"; 
 
 import { useEffect, useState } from "react";
-import { db, auth } from "../../lib/firebase"; // ../ 2 a ngai
+import { db, auth } from "../../lib/firebase"; 
 import { collection, getDocs, addDoc, Timestamp } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   // Login check
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
-      if (u) {
-        setUser(u);
-      } else {
-        setUser(null);
-      }
+      setUser(u);
       setLoading(false);
     });
     return () => unsub();
   }, []);
+
+  // Login function
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      alert("Login a fail. Email/Password dik lo");
+    }
+  };
+
+  // Logout
+  const handleLogout = () => signOut(auth);
 
   // Thawnthu thar dahna
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,11 +58,40 @@ export default function AdminPage() {
   };
 
   if (loading) return <p>Loading...</p>;
-  if (!user) return <p>Admin tan chiah ani. Login hmasa rawh.</p>;
 
+  // LOGIN LO ANIH CHUAN
+  if (!user) return (
+    <main style={{ padding: "20px", maxWidth: "400px", margin: "auto" }}>
+      <h1>Admin Login</h1>
+      <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <input 
+          type="email" 
+          placeholder="Email" 
+          value={email} 
+          onChange={(e) => setEmail(e.target.value)}
+          style={{ padding: "10px" }}
+        />
+        <input 
+          type="password" 
+          placeholder="Password" 
+          value={password} 
+          onChange={(e) => setPassword(e.target.value)}
+          style={{ padding: "10px" }}
+        />
+        <button type="submit" style={{ padding: "10px", background: "black", color: "white" }}>
+          Login
+        </button>
+      </form>
+    </main>
+  );
+
+  // LOGIN FEL CHUAN
   return (
     <main style={{ padding: "20px" }}>
-      <h1>Admin Dashboard</h1>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <h1>Admin Dashboard</h1>
+        <button onClick={handleLogout}>Logout</button>
+      </div>
       <p>Welcome: {user.email}</p>
       
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px", maxWidth: "500px" }}>
@@ -70,10 +110,10 @@ export default function AdminPage() {
           rows={10}
           style={{ padding: "10px" }}
         />
-        <button type="submit" style={{ padding: "10px", background: "black", color: "white" }}>
+        <button type="submit" style={{ padding: "10px", background: "green", color: "white" }}>
           Save
         </button>
       </form>
     </main>
   );
-}
+                                     }
