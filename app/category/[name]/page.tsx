@@ -21,7 +21,22 @@ export default function CategoryDetailPage() {
   const [commentName, setCommentName] = useState<{[key: string]: string}>({});
   const [commentText, setCommentText] = useState<{[key: string]: string}>({});
   const [showCommentBox, setShowCommentBox] = useState<{[key: string]: boolean}>({});
-  const [toast, setToast] = useState(false); // 3. copied toast atan
+  const [toast, setToast] = useState(false);
+
+  // 3. LOCALSTORAGE AH DAH ANG A CHHUAH PAWN A BO LOH NAN
+  useEffect(() => {
+    const savedLikes = localStorage.getItem('likes');
+    const savedComments = localStorage.getItem('comments');
+    if(savedLikes) setLikes(JSON.parse(savedLikes));
+    if(savedComments) setComments(JSON.parse(savedComments));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('likes', JSON.stringify(likes));
+  }, [likes]);
+  useEffect(() => {
+    localStorage.setItem('comments', JSON.stringify(comments));
+  }, [comments]);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -36,7 +51,6 @@ export default function CategoryDetailPage() {
     fetchPosts();
   }, [categoryName]);
 
-  // 3. COPY TOAST REUH TE
   const copyText = (text: string) => {
     navigator.clipboard.writeText(text);
     setToast(true);
@@ -86,7 +100,6 @@ export default function CategoryDetailPage() {
 
   return (
     <div style={{background: bg, color: text, minHeight: '100vh'}}>
-      {/* 3. TOAST REUH TE */}
       {toast && <div style={{position: 'fixed', bottom: '90px', left: '50%', transform: 'translateX(-50%)', background: '#333', color: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', zIndex: 200}}>copied</div>}
 
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: `1px solid ${border}`, position: 'sticky', top: 0, background: bg, zIndex: 20}}>
@@ -103,7 +116,6 @@ export default function CategoryDetailPage() {
         </div>
       </div>
 
-      {/* 1. ARROW ← A LAI TAKAH ALIGN */}
       <div style={{padding: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
         <Link href="/category" style={{fontSize: '24px', color: accent, textDecoration: 'none', lineHeight: '20px', fontWeight: '800', display: 'flex', alignItems: 'center'}}>←</Link>
         <h2 style={{fontSize: '20px', fontWeight: '800', margin: 0}}>{categoryName}</h2>
@@ -133,33 +145,17 @@ export default function CategoryDetailPage() {
               </div>
             </div>
 
-            {/* 2. COMMENT LIST + NAME + TEXT INPUT */}
             {showCommentBox[p.id] && (
               <div style={{marginTop: '12px'}}>
-                {/* Comment lo awmsa te enna */}
                 {comments[p.id]?.map((c, i)=>(
                   <div key={i} style={{background: bg, padding: '8px', borderRadius: '8px', marginBottom: '6px', fontSize: '13px'}}>
                     <b>{c.name}</b> <span style={{fontSize: '10px', color: subtext}}>{c.time}</span>
                     <p style={{margin: '4px 0 0 0'}}>{c.text}</p>
                   </div>
                 ))}
-
-                {/* Comment thar dahna */}
                 <div style={{display: 'flex', gap: '6px', marginTop: '8px'}}>
-                  <input
-                    type="text"
-                    placeholder="Hming"
-                    value={commentName[p.id] || ''}
-                    onChange={(e)=>setCommentName(prev=>({...prev, [p.id]: e.target.value}))}
-                    style={{width: '80px', padding: '8px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text, fontSize: '12px'}}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Comment ziak rawh..."
-                    value={commentText[p.id] || ''}
-                    onChange={(e)=>setCommentText(prev=>({...prev, [p.id]: e.target.value}))}
-                    style={{flex: 1, padding: '8px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text, fontSize: '12px'}}
-                  />
+                  <input type="text" placeholder="Hming" value={commentName[p.id] || ''} onChange={(e)=>setCommentName(prev=>({...prev, [p.id]: e.target.value}))} style={{width: '80px', padding: '8px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text, fontSize: '12px'}}/>
+                  <input type="text" placeholder="Comment ziak rawh..." value={commentText[p.id] || ''} onChange={(e)=>setCommentText(prev=>({...prev, [p.id]: e.target.value}))} style={{flex: 1, padding: '8px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text, fontSize: '12px'}}/>
                   <button onClick={()=>submitComment(p.id)} style={{background: accent, color: 'white', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '12px'}}>Send</button>
                 </div>
               </div>
@@ -172,7 +168,11 @@ export default function CategoryDetailPage() {
       {selectedPost && (
         <div onClick={()=>setSelectedPost(null)} style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, padding: '20px', overflowY: 'auto'}}>
           <div onClick={(e)=>e.stopPropagation()} style={{background: card, borderRadius: '16px', padding: '20px', maxWidth: '700px', margin: '40px auto'}}>
-            <h2 style={{margin: '0 0 8px 0'}}>{selectedPost.title}</h2>
+            {/* 2. TITLE SIR AH COPY DAH */}
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
+              <h2 style={{margin: 0}}>{selectedPost.title}</h2>
+              <button onClick={()=>copyText(selectedPost.content)} style={{background: border, color: text, border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer'}}>📋 Copy</button>
+            </div>
             <hr style={{border: 'none', borderBottom: `1px solid ${border}`, margin: '8px 0'}}/>
             <p style={{whiteSpace: 'pre-wrap', lineHeight: '1.6'}}>{selectedPost.content}</p>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px'}}>
@@ -183,6 +183,7 @@ export default function CategoryDetailPage() {
               <button onClick={()=>setSelectedPost(null)} style={{background: border, color: text, border: 'none', padding: '10px 16px', borderRadius: '8px'}}>Close</button>
             </div>
 
+            {/* 1. SEND BUTTON A LANG THEIH NAN FLEX:SHRINK:0 */}
             {showCommentBox[selectedPost.id] && (
               <div style={{marginTop: '12px'}}>
                 {comments[selectedPost.id]?.map((c, i)=>(
@@ -192,9 +193,9 @@ export default function CategoryDetailPage() {
                   </div>
                 ))}
                 <div style={{display: 'flex', gap: '6px', marginTop: '8px'}}>
-                  <input type="text" placeholder="Hming" value={commentName[selectedPost.id] || ''} onChange={(e)=>setCommentName(prev=>({...prev, [selectedPost.id]: e.target.value}))} style={{width: '80px', padding: '8px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text, fontSize: '12px'}}/>
+                  <input type="text" placeholder="Hming" value={commentName[selectedPost.id] || ''} onChange={(e)=>setCommentName(prev=>({...prev, [selectedPost.id]: e.target.value}))} style={{width: '80px', padding: '8px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text, fontSize: '12px', flexShrink: 0}}/>
                   <input type="text" placeholder="Comment ziak rawh..." value={commentText[selectedPost.id] || ''} onChange={(e)=>setCommentText(prev=>({...prev, [selectedPost.id]: e.target.value}))} style={{flex: 1, padding: '8px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text, fontSize: '12px'}}/>
-                  <button onClick={()=>submitComment(selectedPost.id)} style={{background: accent, color: 'white', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '12px'}}>Send</button>
+                  <button onClick={()=>submitComment(selectedPost.id)} style={{background: accent, color: 'white', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', flexShrink: 0}}>Send</button>
                 </div>
               </div>
             )}
@@ -210,4 +211,4 @@ export default function CategoryDetailPage() {
       </div>
     </div>
   )
-}
+              }
