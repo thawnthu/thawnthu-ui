@@ -5,7 +5,7 @@ import { db } from "../../lib/firebase";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
-type Comment = { name: string; text: string; time: number; } // time hi number ah kan thlak
+type Comment = { name: string; text: string; time: number; }
 type Post = { id: string; title: string; content: string; category: string; author: string; createdAt: any; }
 
 export default function CategoryDetailPage() {
@@ -86,10 +86,18 @@ export default function CategoryDetailPage() {
   const accent = '#5865F2';
   const toggleDark = () => setDark(!dark);
 
-  // TIMEAGO FUNCTION 2 TAN A HMAN THEIH
+  // SIAMTHAT: NaNd ago tih loh nan
   const timeAgo = (timestamp: any) => {
     if (!timestamp) return "";
-    let date = timestamp.toDate? timestamp.toDate() : new Date(timestamp); // Firebase Timestamp or number
+
+    // String lo awm palh se just now
+    if (typeof timestamp === 'string') return "just now";
+
+    let date = timestamp.toDate? timestamp.toDate() : new Date(timestamp);
+
+    // Date dik lo anih chuan just now
+    if (isNaN(date.getTime())) return "just now";
+
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
     if (seconds < 60) return `just now`;
     const minutes = Math.floor(seconds / 60);
@@ -150,7 +158,7 @@ export default function CategoryDetailPage() {
               <div style={{marginTop: '12px'}}>
                 {comments[p.id]?.map((c, i)=>(
                   <div key={i} style={{background: bg, padding: '8px', borderRadius: '8px', marginBottom: '6px', fontSize: '13px'}}>
-                    <b>{c.name}</b> <span style={{fontSize: '10px', color: subtext}}>{timeAgo(c.time)}</span> {/* HEI HI TIMEAGO KAN HMAN TAWH */}
+                    <b>{c.name}</b> <span style={{fontSize: '10px', color: subtext}}>{timeAgo(c.time)}</span>
                     <p style={{margin: '4px 0 0 0'}}>{c.text}</p>
                   </div>
                 ))}
@@ -186,7 +194,7 @@ export default function CategoryDetailPage() {
               <div style={{marginTop: '12px'}}>
                 {comments[selectedPost.id]?.map((c, i)=>(
                   <div key={i} style={{background: bg, padding: '8px', borderRadius: '8px', marginBottom: '6px', fontSize: '13px'}}>
-                    <b>{c.name}</b> <span style={{fontSize: '10px', color: subtext}}>{timeAgo(c.time)}</span> {/* HEI PAWH */}
+                    <b>{c.name}</b> <span style={{fontSize: '10px', color: subtext}}>{timeAgo(c.time)}</span>
                     <p style={{margin: '4px 0 0 0'}}>{c.text}</p>
                   </div>
                 ))}
@@ -209,4 +217,4 @@ export default function CategoryDetailPage() {
       </div>
     </div>
   )
-      }
+                }
