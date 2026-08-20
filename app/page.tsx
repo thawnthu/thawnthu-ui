@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [dark] = useState(false);
-  const [showMenu, setShowMenu] = useState(false); // 1. DOT 3 MENU
+  const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -24,7 +24,7 @@ export default function LoginPage() {
   const accent = '#8B2DCE';
   const subtext = dark? '#a0a0a0' : '#666';
 
-  useEffect(() => { // 1. MENU PIAH LAM CLICK IN A HIDE NAN
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current &&!menuRef.current.contains(event.target as Node)) {
         setShowMenu(false);
@@ -52,37 +52,41 @@ export default function LoginPage() {
   return (
     <div style={{background: bg, color: text, minHeight: '100vh'}}>
 
-      {/* 1. STICKY HEADER - ARROW PAIH A DOT 3 DAH */}
+      {/* HEADER - STICKY PAIH + DOT 3 TI LANG CHIANG */}
       <div style={{
         background: card,
-        padding: '16px',
+        padding: '16px 20px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between', // 1. MzApp leh Dot 3 inkar ti zau
+        justifyContent: 'space-between',
         borderBottom: `1px solid ${border}`,
-        position: 'sticky',
+        position: 'relative', // sticky paih
         top: 0,
         zIndex: 10
       }} ref={menuRef}>
-        <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0, color: accent}}>MzApp</h1> {/* 1. MzApp */}
+        <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0, color: accent}}>MzApp</h1>
 
-        {/* 1. DOT 3 BUTTON */}
-        <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', cursor: 'pointer', padding: '8px'}}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="#000"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2.9-2 2.9 2 2 2zm0 2c-1.1 0-2.9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2.9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+        {/* DOT 3 BUTTON - LANG CHIANG TUR IN CIRCLE BG KA BELH */}
+        <button onClick={()=>setShowMenu(!showMenu)} style={{background: '#f0f0f0', border: 'none', cursor: 'pointer', padding: '10px', borderRadius: '50%', display: 'flex'}}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round"> {/* 32px -> 24px + stroke */}
+            <circle cx="12" cy="12" r="1"/>
+            <circle cx="12" cy="5" r="1"/>
+            <circle cx="12" cy="19" r="1"/>
+          </svg>
         </button>
 
-        {/* 1. DOT 3 MENU + 2. LINE DAH VEK */}
+        {/* MENU */}
         {showMenu && (
           <div style={{position: 'absolute', top: '60px', right: '16px', background: card, borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '190px', zIndex: 20, border: `1px solid ${border}`}}>
-            <span onClick={()=>{router.push('/setting?back=/'); setShowMenu(false)}} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer', fontWeight: '700', color: text}}> {/* 1. gap 18px */}
+            <span onClick={()=>{router.push('/setting?back=/'); setShowMenu(false)}} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer', fontWeight: '700', color: text}}>
               <span style={{fontSize: '20px'}}>⚙️</span> Setting
             </span>
-            <hr style={{margin: '0 16px', border: 'none', borderBottom: `1px solid ${border}`}}/> {/* 2. LINE */}
-            <span onClick={()=>{router.push('/about?back=/'); setShowMenu(false)}} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer', fontWeight: '700', color: text}}> {/* 1. gap 18px */}
+            <hr style={{margin: '0 16px', border: 'none', borderBottom: `1px solid ${border}`}}/>
+            <span onClick={()=>{router.push('/about?back=/'); setShowMenu(false)}} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer', fontWeight: '700', color: text}}>
               <span style={{fontSize: '20px'}}>ℹ️</span> About
             </span>
-            <hr style={{margin: '0 16px', border: 'none', borderBottom: `1px solid ${border}`}}/> {/* 2. LINE */}
-            <span onClick={()=>{router.push('/contact?back=/'); setShowMenu(false)}} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer', fontWeight: '700', color: text}}> {/* 1. gap 18px */}
+            <hr style={{margin: '0 16px', border: 'none', borderBottom: `1px solid ${border}`}}/>
+            <span onClick={()=>{router.push('/contact?back=/'); setShowMenu(false)}} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer', fontWeight: '700', color: text}}>
               <span style={{fontSize: '20px'}}>📞</span> Contact Us
             </span>
           </div>
@@ -94,7 +98,7 @@ export default function LoginPage() {
         <div style={{width: '100%', maxWidth: '380px'}}>
           <div style={{background: card, padding: '24px', borderRadius: '20px', border: `1px solid ${border}`, boxShadow: '0 8px 30px rgba(0,0,0,0.12)'}}>
 
-            <p style={{color: subtext, fontSize: '14px', marginBottom: '20px', marginTop: '8px'}}>Please Login to continue</p> {/* marginTop ka belh hret */}
+            <p style={{color: subtext, fontSize: '14px', marginBottom: '20px', marginTop: '8px'}}>Please Login to continue</p>
 
             {error && <p style={{color: 'red', fontSize: '14px', marginBottom: '12px'}}>{error}</p>}
 
@@ -158,4 +162,4 @@ export default function LoginPage() {
       </div>
     </div>
   )
-                    }
+      }
