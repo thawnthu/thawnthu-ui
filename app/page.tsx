@@ -25,6 +25,21 @@ export default function HomePage() {
   const accent = '#5865F2';
   const subtext = dark? '#a0a0a0' : '#666';
 
+  // TYPE ERROR FIX NA
+  const menuItemStyle: React.CSSProperties = {
+    padding: '12px 16px',
+    border: 'none',
+    background: 'none',
+    width: '100%',
+    textAlign: 'left',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    fontSize: '15px',
+    cursor: 'pointer',
+    color: text
+  };
+
   // OUTSIDE CLICK AH MENU CLOSE
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -75,8 +90,6 @@ export default function HomePage() {
     p.content?.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  const menuItemStyle = {padding: '12px 16px', border: 'none', background: 'none', width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px', fontSize: '15px', cursor: 'pointer'};
-
   return (
     <div style={{background: bg, color: text, minHeight: '100vh', paddingBottom: '80px'}}>
       {/* HEADER */}
@@ -84,22 +97,22 @@ export default function HomePage() {
         <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0}}>Thawnthu</h1>
 
         <div style={{display: 'flex', gap: '16px', alignItems: 'center'}}>
-          {/* 1. SEARCH ICON I THAWN ANG */}
+          {/* SEARCH ICON */}
           <button onClick={()=>setSearchOpen(!searchOpen)} style={{background: 'none', border: 'none', fontSize: '22px'}}>🔍</button>
 
-          {/* 2. DOT 3 MENU + 3. OUTSIDE CLICK CLOSE */}
+          {/* DOT 3 MENU */}
           <div style={{position: 'relative'}} ref={menuRef}>
             <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', fontSize: '24px'}}>⋮</button>
             {menuOpen && (
               <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', width: '200px', zIndex: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.15)'}}>
-                <Link href="/setting" style={{textDecoration: 'none', color: text}}><button style={menuItemStyle}>⚙️ Setting</button></Link>
-                <Link href="/contact" style={{textDecoration: 'none', color: text}}><button style={menuItemStyle}>📞 Contact Us</button></Link>
-                <Link href="/about" style={{textDecoration: 'none', color: text}}><button style={menuItemStyle}>ℹ️ About</button></Link>
+                <Link href="/setting" style={{textDecoration: 'none'}}><button style={menuItemStyle}>⚙️ Setting</button></Link>
+                <Link href="/contact" style={{textDecoration: 'none'}}><button style={menuItemStyle}>📞 Contact Us</button></Link>
+                <Link href="/about" style={{textDecoration: 'none'}}><button style={menuItemStyle}>ℹ️ About</button></Link>
                 <hr style={{margin: '4px 0', border: 'none', borderTop: `1px solid ${border}`}}/>
                 {user? (
                   <button onClick={handleLogout} style={menuItemStyle}>🚪 Logout</button>
                 ) : (
-                  <Link href="/login" style={{textDecoration: 'none', color: text}}><button onClick={()=>setMenuOpen(false)} style={menuItemStyle}>🔑 Login</button></Link>
+                  <Link href="/login" style={{textDecoration: 'none'}}><button onClick={()=>setMenuOpen(false)} style={menuItemStyle}>🔑 Login</button></Link>
                 )}
               </div>
             )}
@@ -154,4 +167,4 @@ export default function HomePage() {
       </div>
     </div>
   )
-}
+          }
