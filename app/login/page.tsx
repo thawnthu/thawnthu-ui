@@ -29,7 +29,11 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/');
     } catch (err: any) {
-      setError(err.message);
+      // 3. ERROR MESSAGE ENGLISH VEK
+      if(err.code === 'auth/invalid-email') setError('Invalid email format');
+      else if(err.code === 'auth/user-not-found') setError('No account found with this email');
+      else if(err.code === 'auth/wrong-password') setError('Incorrect password');
+      else setError('Login failed. Please try again');
     }
     setLoading(false);
   }
@@ -37,7 +41,7 @@ export default function LoginPage() {
   return (
     <div style={{background: bg, color: text, minHeight: '100vh'}}>
 
-      {/* STICKY HEADER - ARROW TET */}
+      {/* STICKY HEADER - ARROW 22px */}
       <div style={{
         background: card,
         padding: '16px',
@@ -49,9 +53,9 @@ export default function LoginPage() {
         top: 0,
         zIndex: 10
       }}>
-        {/* 1. ARROW 24px - SETTING ANG TIAT */}
+        {/* 1. ARROW TI TE LEH */}
         <button onClick={()=>router.back()} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex'}}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={text} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={text} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
         </button>
@@ -91,15 +95,13 @@ export default function LoginPage() {
                   placeholder="Password"
                   style={{width: '100%', padding: '14px 45px 14px 45px', borderRadius: '12px', border: `1px solid ${border}`, background: inputBg, color: text, fontSize: '15px', outline: 'none', boxSizing: 'border-box'}}
                 />
-                {/* 2. MIT THAI TLANG LEM SVG THAR */}
+                {/* MIT THAI ICON */}
                 <button onClick={()=>setShowPass(!showPass)} style={{position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', zIndex: 2, display: 'flex'}}>
                   {showPass? (
-                    // MIT HAWNG
                     <svg width="22" height="22" viewBox="0 0 24 24" fill={accent}>
                       <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
                     </svg>
                   ) : (
-                    // MIT THAI TLANG - I THAWN ANG KHA
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
                       <line x1="1" y1="1" x2="23" y2="23"/>
@@ -112,16 +114,18 @@ export default function LoginPage() {
                 <Link href="/forgot" style={{color: accent, fontSize: '14px', textDecoration: 'none', fontWeight: '600'}}>Forgot password?</Link>
               </div>
 
+              {/* 2. BUTTON "Login" */}
               <button
                 onClick={handleLogin}
                 disabled={loading}
                 style={{background: accent, color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: '800', fontSize: '16px', cursor: 'pointer', marginTop: '4px', boxShadow: `0 4px 15px ${accent}40`}}>
-                {loading? "Loading..." : "Sign In"}
+                {loading? "Loading..." : "Login"}
               </button>
             </div>
 
+            {/* 3. TEXT ENGLISH */}
             <p style={{textAlign: 'center', marginTop: '20px', fontSize: '14px', color: subtext}}>
-              Account i la nei lo? <Link href="/signup" style={{color: accent, fontWeight: '700', textDecoration: 'none'}}>Sign Up</Link>
+              Don't have an account? <Link href="/signup" style={{color: accent, fontWeight: '700', textDecoration: 'none'}}>Sign Up</Link>
             </p>
           </div>
         </div>
