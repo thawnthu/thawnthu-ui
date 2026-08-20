@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { collection, getDocs } from "firebase/firestore";
 import { db, auth } from "../lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -7,75 +7,85 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function ChatPage() {
-  const [activeTab, setActiveTab] = useState('User'); // Profile ai in User hmasa ber ah kan dah
+  const [activeTab, setActiveTab] = useState('Chat');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [dark] = useState(false);
   const router = useRouter();
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  const bg = dark? '#0f0f10' : '#f5f5f5';
-  const card = dark? '#1a1a1c' : '#ffffff';
-  const text = dark? '#ffffff' : '#000';
-  const border = dark? '#2a2a2c' : '#e0e0e0';
+  const bg = '#F8F9FA';
+  const card = '#FFFFFF';
+  const text = '#1A1A1A';
+  const border = '#E9ECEF';
   const accent = '#8B2DCE';
+  const subtext = '#6C757D';
+
+  const tabs = ['Home', 'Chat', 'Online(98)', 'Notification(45)', 'Users', 'Group', 'Category', 'Profile'];
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
-      if(!u) router.push('/login');
-      else setUser(u);
+      if(!u) router.push('/'); else setUser(u); // Login loh chuan login ah
       setLoading(false);
     });
     return () => unsub();
   }, [router]);
 
-  if(loading) return <div style={{padding: '20px', background: bg, color: text}}>Loading...</div>
+  const handleLogout = async () => { await signOut(auth); setMenuOpen(false); }
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current &&!menuRef.current.contains(event.target as Node)) setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  if(loading) return <div style={{padding: '20px'}}>Loading...</div>
+
+  const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({ padding: '10px 16px', borderRadius: '20px', border: 'none', background: isActive? accent : '#F1F3F5', color: isActive? 'white' : text, fontWeight: '700', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' });
+  const menuItemStyle: React.CSSProperties = { padding: '12px 16px', border: 'none', background: 'none', width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '16px', fontSize: '15px', cursor: 'pointer', color: text, fontWeight: '700' };
 
   return (
-    <div style={{background: bg, color: text, minHeight: '100vh', paddingBottom: '80px'}}>
-      <div style={{background: card, padding: '16px', borderBottom: `1px solid ${border}`}}>
-        <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0}}>Thawnthu Chat</h1>
+    <div style={{background: bg, color: text, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column'}}>
+
+      {/* 1. HEADER FIX NGHEH */}
+      <div style={{flexShrink: 0, background: card, padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)'}}>
+        <h1 style={{fontSize: '22px', fontWeight: '800', margin: 0, color: accent}}>MzApp</h1>
+        <div style={{position: 'relative'}} ref={menuRef}>
+          <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}><svg width="24" height="24" viewBox="0 0 24 24" fill={text}><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
+          {menuOpen && (<div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', width: '200px', zIndex: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.15)'}}><Link href="/setting" style={{textDecoration: 'none'}}><button style={menuItemStyle}><span>⚙️</span><span>Setting</span></button></Link><hr style={{margin: '0', border: 'none', borderTop: `1px solid ${border}`}}/><Link href="/about" style={{textDecoration: 'none'}}><button style={menuItemStyle}><span>ℹ️</span><span>About</span></button></Link><button onClick={handleLogout} style={menuItemStyle}><span>🚪</span><span>Logout</span></button></div>)}
+        </div>
       </div>
 
-      <div style={{background: card, padding: '12px 16px', borderBottom: `1px solid ${border}`, display: 'flex', gap: '10px', overflowX: 'auto'}}>
-        {['Profile', 'User', 'Online', 'Status', 'Group'].map(tab => (
-          <button key={tab} onClick={()=>setActiveTab(tab)} style={{ padding: '10px 16px', borderRadius: '20px', border: `1px solid ${activeTab === tab? accent : border}`, background: activeTab === tab? accent : card, color: activeTab === tab? 'white' : text, fontWeight: '700'}}>
-            {tab}
-          </button>
-        ))}
+      {/* 2. TABS FIX NGHEH */}
+      <div style={{flexShrink: 0, background: card, padding: '12px 16px', display: 'flex', gap: '10px', overflowX: 'auto', borderBottom: `1px solid ${border}`}}>
+        {tabs.map(tab => (<button key={tab} onClick={()=>setActiveTab(tab)} style={tabButtonStyle(activeTab === tab)}>{tab}</button>))}
       </div>
 
-      <div style={{padding: '16px'}}>
-        {activeTab === 'Profile' && <div style={{background: card, padding: '20px', borderRadius: '16px'}}>Profile Tab - Hemi chhungah hian error a awm</div>}
-        {activeTab === 'User' && <UserTab card={card} border={border} text={text}/>}
-        {activeTab === 'Online' && <div style={{background: card, padding: '20px'}}>Online Tab</div>}
-        {activeTab === 'Status' && <div style={{background: card, padding: '20px'}}>Status Tab</div>}
-        {activeTab === 'Group' && <div style={{background: card, padding: '20px'}}>Group Tab</div>}
-      </div>
-
-      <div style={{background: card, borderTop: `1px solid ${border}`, display: 'flex', justifyContent: 'space-around', position: 'fixed', bottom: 0, width: '100%'}}>
-        <Link href="/"><button style={{background: 'none', border: 'none', color: text, padding: '12px'}}>🏠 Home</button></Link>
-        <Link href="/chat"><button style={{background: 'none', border: 'none', color: accent, padding: '12px'}}>💬 Chat</button></Link>
+      {/* 3. CONTENT CHIAH SCROLL THEIH */}
+      <div style={{flexGrow: 1, overflowY: 'auto', padding: '16px'}}>
+        {activeTab === 'Home' && <PageCard title="Home Page" card={card} border={border}/>}
+        {activeTab === 'Chat' && <ChatTab card={card} border={border} text={text} subtext={subtext}/>}
+        {activeTab === 'Online(98)' && <PageCard title="Online(98)" card={card} border={border}/>}
+        {activeTab === 'Notification(45)' && <PageCard title="Notification(45)" card={card} border={border}/>}
+        {activeTab === 'Users' && <UsersTab card={card} border={border} text={text}/>}
+        {activeTab === 'Group' && <PageCard title="Group Page" card={card} border={border}/>}
+        {activeTab === 'Category' && <PageCard title="Category Page" card={card} border={border}/>}
+        {activeTab === 'Profile' && <ProfileTab user={user} card={card} border={border} accent={accent} text={text}/>}
       </div>
     </div>
   )
 }
 
-function UserTab({card, border, text}: any) {
+function PageCard({title, card, border}: any){ return <div style={{background: card, padding: '40px', borderRadius: '20px', border: `1px solid ${border}`, textAlign: 'center', fontWeight: '800', fontSize: '18px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)'}}>{title}</div> }
+function ChatTab({card, border, text, subtext}: any) { return <PageCard title="Chat List" card={card} border={border}/> }
+function UsersTab({card, border, text}: any) {
   const [users, setUsers] = useState<any[]>([]);
-  useEffect(()=>{
-    getDocs(collection(db, "users"))
-   .then(snap=>setUsers(snap.docs.map(d=>({id: d.id,...d.data()}))))
-   .catch(err=>console.log(err))
-  },[]);
-
-  return (
-    <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-      {users.length === 0 && <p>User an la awm lo</p>}
-      {users.map((u: any)=>(
-        <div key={u.id} style={{background: card, padding: '12px', borderRadius: '12px', border: `1px solid ${border}`}}>
-          <span style={{color: text, fontWeight: '700'}}>{u.name || 'No Name'}</span>
-        </div>
-      ))}
-    </div>
-  )
+  useEffect(()=>{ getDocs(collection(db, "users")).then(snap=>setUsers(snap.docs.map(d=>({id: d.id,...d.data()})))) },[]);
+  return (<div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>{users.map((u: any)=>(<div key={u.id} style={{background: card, padding: '12px', borderRadius: '16px', border: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: '12px'}}><img src={u.photoURL || 'https://i.pravatar.cc/50'} style={{width: '50px', height: '50px', borderRadius: '50%'}}/><span style={{color: text, fontWeight: '700'}}>{u.name || 'No Name'}</span></div>))}</div>)
+}
+function ProfileTab({user, card, border, accent, text}: any) {
+  if(!user) return null;
+  return (<div style={{background: card, padding: '24px', borderRadius: '20px', border: `1px solid ${border}`, textAlign: 'center'}}><img src={user.photoURL || 'https://i.pravatar.cc/100'} style={{width: '90px', height: '90px', borderRadius: '50%', border: `3px solid ${accent}`}}/><h2 style={{margin: '12px 0 0 0'}}>{user.displayName || 'No Name'}</h2></div>)
 }
