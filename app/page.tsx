@@ -26,7 +26,7 @@ export default function HomePage() {
   const subtext = dark? '#a0a0a0' : '#666';
   const iconColor = text;
 
-  // 1. MENU ITEM BOLD BELH
+  // MENU ITEM - GAP THAWK THEI TAWH
   const menuItemStyle: React.CSSProperties = {
     padding: '12px 16px',
     border: 'none',
@@ -35,11 +35,11 @@ export default function HomePage() {
     textAlign: 'left',
     display: 'flex',
     alignItems: 'center',
-    gap: '20px',
+    gap: '16px', // icon leh text inkar
     fontSize: '15px',
     cursor: 'pointer',
     color: text,
-    fontWeight: '700' // BOLD
+    fontWeight: '700'
   };
 
   // OUTSIDE CLICK AH MENU CLOSE
@@ -118,16 +118,43 @@ export default function HomePage() {
             </button>
             {menuOpen && (
               <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', width: '200px', zIndex: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.15)'}}>
-                <Link href="/setting" style={{textDecoration: 'none'}}><button style={menuItemStyle}>⚙️ Setting</button></Link>
+
+                <Link href="/setting" style={{textDecoration: 'none'}}>
+                  <button style={menuItemStyle}>
+                    <span style={{fontSize: '20px'}}>⚙️</span>
+                    <span>Setting</span>
+                  </button>
+                </Link>
                 <hr style={{margin: '0', border: 'none', borderTop: `1px solid ${border}`}}/>
-                <Link href="/contact" style={{textDecoration: 'none'}}><button style={menuItemStyle}>📞 Contact Us</button></Link>
+
+                <Link href="/contact" style={{textDecoration: 'none'}}>
+                  <button style={menuItemStyle}>
+                    <span style={{fontSize: '20px'}}>📞</span>
+                    <span>Contact Us</span>
+                  </button>
+                </Link>
                 <hr style={{margin: '0', border: 'none', borderTop: `1px solid ${border}`}}/>
-                <Link href="/about" style={{textDecoration: 'none'}}><button style={menuItemStyle}>ℹ️ About</button></Link>
+
+                <Link href="/about" style={{textDecoration: 'none'}}>
+                  <button style={menuItemStyle}>
+                    <span style={{fontSize: '20px'}}>ℹ️</span>
+                    <span>About</span>
+                  </button>
+                </Link>
                 <hr style={{margin: '0', border: 'none', borderTop: `1px solid ${border}`}}/>
+
                 {user? (
-                  <button onClick={handleLogout} style={menuItemStyle}>🚪 Logout</button>
+                  <button onClick={handleLogout} style={menuItemStyle}>
+                    <span style={{fontSize: '20px'}}>🚪</span>
+                    <span>Logout</span>
+                  </button>
                 ) : (
-                  <Link href="/login" style={{textDecoration: 'none'}}><button onClick={()=>setMenuOpen(false)} style={menuItemStyle}>🔑 Login</button></Link>
+                  <Link href="/login" style={{textDecoration: 'none'}}>
+                    <button onClick={()=>setMenuOpen(false)} style={menuItemStyle}>
+                      <span style={{fontSize: '20px'}}>🔑</span>
+                      <span>Login</span>
+                    </button>
+                  </Link>
                 )}
               </div>
             )}
