@@ -68,7 +68,7 @@ export default function LoginPage() {
 
         {/* 1. DOT 3 BUTTON */}
         <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', cursor: 'pointer', padding: '8px'}}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill={text}><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2.9-2 2.9 2 2 2zm0 2c-1.1 0-2.9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2.9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="#000"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2.9-2 2.9 2 2 2zm0 2c-1.1 0-2.9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2.9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
         </button>
 
         {/* 1. DOT 3 MENU + 2. LINE DAH VEK */}
