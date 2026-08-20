@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { collection, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { db, auth } from "../lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import Link from "next/link";
@@ -29,7 +29,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
-      if(!u) router.push('/login'); // 1. ACCOUNT AWM LOH CHUAN LOGIN AH TIR
+      if(!u) router.push('/login');
       else setUser(u);
       setLoading(false);
     });
@@ -83,7 +83,7 @@ export default function ChatPage() {
   return (
     <div style={{background: bg, color: text, minHeight: '100vh', paddingBottom: '80px'}}>
 
-      {/* HEADER - THAWNTHU + SEARCH + DOT3 */}
+      {/* HEADER */}
       <div style={{background: card, padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${border}`, position: 'sticky', top: 0, zIndex: 10}}>
         <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0}}>Thawnthu</h1>
         <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
@@ -117,7 +117,7 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* TAB BUTTONS - COMMENT BUTTON STYLE */}
+      {/* TAB BUTTONS */}
       <div style={{background: card, padding: '12px 16px', borderBottom: `1px solid ${border}`, display: 'flex', gap: '10px', overflowX: 'auto'}}>
         {tabs.map(tab => (
           <button key={tab} onClick={()=>setActiveTab(tab)} style={tabButtonStyle(activeTab === tab)}>
@@ -135,7 +135,7 @@ export default function ChatPage() {
         {activeTab === 'Group' && <GroupTab card={card} border={border} text={text} accent={accent}/>}
       </div>
 
-      {/* FOOTER - HOME ANG CHIAH */}
+      {/* FOOTER */}
       <div style={{background: card, borderTop: `1px solid ${border}`, display: 'flex', justifyContent: 'space-around', position: 'fixed', bottom: 0, width: '100%'}}>
         <Link href="/" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '14px', width: '100%', padding: '8px 0', fontWeight: '700'}}><span style={{fontSize: '22px'}}>🏠</span>Home</button></Link>
         <Link href="/category" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '14px', width: '100%', padding: '8px 0', fontWeight: '700'}}><span style={{fontSize: '22px'}}>📂</span>Category</button></Link>
@@ -146,25 +146,35 @@ export default function ChatPage() {
   )
 }
 
-// 1. PROFILE TAB
+// 1. PROFILE TAB - CRASH FIX
 function ProfileTab({user, card, border, accent, text, subtext, bg}: any) {
-  const [name, setName] = useState(user?.displayName || '');
+  const [name, setName] = useState('');
   const [bio, setBio] = useState('');
+
+  useEffect(()=>{
+    if(user){
+      setName(user.displayName || '');
+    }
+  }, [user])
 
   const handleUpload = () => {
     alert("Storage kan la on lo. Nakinah kan ti dawn nia boss")
   }
 
   const handleSave = async () => {
-    await updateDoc(doc(db, "users", user.uid), {name, bio});
+    if(!user) return; // user awm loh chuan tih loh
+    const userRef = doc(db, "users", user.uid);
+    await setDoc(userRef, {name, bio, uid: user.uid, photoURL: user.photoURL}, {merge: true}); // setDoc + merge hmang
     alert("Profile update tawh")
   }
+
+  if(!user) return <p>Loading Profile...</p> // user lo nghak
 
   return (
     <div style={{background: card, padding: '20px', borderRadius: '16px', border: `1px solid ${border}`}}>
       <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px'}}>
         <label style={{cursor: 'pointer'}}>
-          <img src={user?.photoURL || 'https://i.pravatar.cc/100'} style={{width: '100px', height: '100px', borderRadius: '50%', objectFit: 'cover', border: `3px solid ${accent}`}}/>
+          <img src={user.photoURL || 'https://i.pravatar.cc/100'} style={{width: '100px', height: '100px', borderRadius: '50%', objectFit: 'cover', border: `3px solid ${accent}`}}/>
           <input type="file" onChange={handleUpload} style={{display: 'none'}}/>
         </label>
         <input value={name} onChange={(e)=>setName(e.target.value)} placeholder="I hming" style={{padding: '10px', borderRadius: '8px', border: `1px solid ${border}`, width: '100%', background: bg, color: text}}/>
@@ -175,7 +185,7 @@ function ProfileTab({user, card, border, accent, text, subtext, bg}: any) {
   )
 }
 
-// 2. USER TAB - USER ZAWNG ZAWNG
+// 2. USER TAB
 function UserTab({card, border, text}: any) {
   const [users, setUsers] = useState<any[]>([]);
   useEffect(()=>{ getDocs(collection(db, "users")).then(snap=>setUsers(snap.docs.map(d=>({id: d.id,...d.data()})))) },[]);
@@ -200,7 +210,7 @@ function OnlineTab({card, border, text}: any) {
   return <div style={{background: card, padding: '20px', borderRadius: '16px', border: `1px solid ${border}`, textAlign: 'center'}}>Online (0) - Hetah online list a lang ang</div>
 }
 
-// 4. STATUS TAB - WHATSAPP ANG
+// 4. STATUS TAB
 function StatusTab({card, border, text, accent, subtext}: any) {
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
@@ -223,4 +233,4 @@ function GroupTab({card, border, text, accent}: any) {
       <div style={{background: card, padding: '20px', borderRadius: '16px', border: `1px solid ${border}`}}>I siam tawh group te an lang ang</div>
     </div>
   )
-          }
+}
