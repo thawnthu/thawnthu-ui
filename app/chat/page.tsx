@@ -3,12 +3,13 @@ import { useState, useEffect, useRef } from 'react';
 import { collection, getDocs } from "firebase/firestore";
 import { db, auth } from "../lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function ChatPage() {
-  const [activeTab, setActiveTab] = useState('Home'); // 1. LOGIN ZAWHAH HOME
+  const [activeTab, setActiveTab] = useState('Home');
   const [menuOpen, setMenuOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(null); // 1. USER STATE KAN HMANG
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -20,19 +21,22 @@ export default function ChatPage() {
   const accent = '#8B2DCE';
   const subtext = '#6C757D';
 
-  // 2. USERS HI ONLINE(98) HNU AH KAN DAH - DELETE AWM LO
   const tabs = ['Home', 'Chat', 'Online(98)', 'Users', 'Notification(45)', 'Group', 'Category', 'Profile'];
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
-      if(!u) router.push('/'); else setUser(u);
+      if(!u) router.push('/'); else setUser(u); // 2. USER AWM CHUAN KAN DAH
       setLoading(false);
     });
     return () => unsub();
   }, [router]);
 
   const handleLogout = async () => { await signOut(auth); setMenuOpen(false); }
-  const goToChat = () => { setMenuOpen(false); router.push('/chat'); } // 3. DOT3 ATANGA CHAT AH LET
+
+  // 3. BACK DAN TUR FUNCTION THAR
+  const getBackLink = () => {
+    return user? '/chat' : '/'; // Login tawh chuan /chat, login loh chuan /
+  }
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -62,11 +66,12 @@ export default function ChatPage() {
           <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}><svg width="24" height="24" viewBox="0 0 24 24" fill={text}><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
           {menuOpen && (
             <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', width: '200px', zIndex: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.15)'}}>
-              <button onClick={goToChat} style={menuItemStyle}><span>⚙️</span><span>Setting</span></button>
+              {/* 4. LINK AH BACK DAN KAN PE */}
+              <Link href={`/setting?back=${getBackLink()}`} style={{textDecoration: 'none'}}><button style={menuItemStyle}><span>⚙️</span><span>Setting</span></button></Link>
               <hr style={menuDivider}/>
-              <button onClick={goToChat} style={menuItemStyle}><span>ℹ️</span><span>About</span></button>
+              <Link href={`/about?back=${getBackLink()}`} style={{textDecoration: 'none'}}><button style={menuItemStyle}><span>ℹ️</span><span>About</span></button></Link>
               <hr style={menuDivider}/>
-              <button onClick={goToChat} style={menuItemStyle}><span>📞</span><span>Contact Us</span></button>
+              <Link href={`/contact?back=${getBackLink()}`} style={{textDecoration: 'none'}}><button style={menuItemStyle}><span>📞</span><span>Contact Us</span></button></Link>
               <hr style={menuDivider}/>
               <button onClick={handleLogout} style={menuItemStyle}><span>🚪</span><span>Logout</span></button>
             </div>
@@ -74,7 +79,7 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* TABS WRAP - TLAR 2 AH A LENG KIM */}
+      {/* TABS WRAP */}
       <div style={{flexShrink: 0, background: card, padding: '12px 16px', display: 'flex', gap: '10px', flexWrap: 'wrap', borderBottom: `1px solid ${border}`}}>
         {tabs.map(tab => (<button key={tab} onClick={()=>setActiveTab(tab)} style={tabButtonStyle(activeTab === tab)}>{tab}</button>))}
       </div>
