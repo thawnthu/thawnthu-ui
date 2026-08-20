@@ -1,219 +1,73 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
-import { db, auth } from "./lib/firebase";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import Link from "next/link";
+import { useState } from 'react';
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "./lib/firebase";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-export default function HomePage() {
-  const [posts, setPosts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchText, setSearchText] = useState('');
-  const [user, setUser] = useState<any>(null);
-  const [notifCount, setNotifCount] = useState(3);
-  const [dark] = useState(false);
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const menuRef = useRef<HTMLDivElement>(null);
 
-  const bg = dark? '#0f0f10' : '#f5f5f5';
-  const card = dark? '#1a1a1c' : '#ffffff';
-  const text = dark? '#ffffff' : '#000';
-  const border = dark? '#2a2a2c' : '#e0e0e0';
-  const accent = '#5865F2';
-  const subtext = dark? '#a0a0a0' : '#666';
-  const iconColor = text;
+  const bg = '#F8F9FA';
+  const card = '#FFFFFF';
+  const text = '#1A1A1A';
+  const border = '#E9ECEF';
+  const accent = '#8B2DCE';
 
-  const menuItemStyle: React.CSSProperties = {
-    padding: '12px 16px',
-    border: 'none',
-    background: 'none',
-    width: '100%',
-    textAlign: 'left',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    fontSize: '15px',
-    cursor: 'pointer',
-    color: text,
-    fontWeight: '700'
+  const handleLogin = async (e: any) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push('/chat'); // Login hlawhtlin chuan Chat ah kal nghal
+    } catch (err: any) {
+      setError("Email or Password a dik lo");
+    }
+    setLoading(false);
   };
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current &&!menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [menuRef]);
-
-  useEffect(() => {
-    fetchPosts();
-    fetchCategories();
-    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
-    return () => unsub();
-  }, []);
-
-  const fetchPosts = async () => {
-    const q = query(collection(db, "posts"), orderBy("time", "desc"));
-    const snap = await getDocs(q);
-    setPosts(snap.docs.map(d => ({id: d.id,...d.data()})));
-  }
-
-  const fetchCategories = async () => {
-    const snap = await getDocs(collection(db, "categories"));
-    setCategories(snap.docs.map(d => ({id: d.id,...d.data()})));
-  }
-
-  const getCatName = (id: string) => {
-    return categories.find(c => c.id === id)?.name || "General";
-  }
-
-  const timeAgo = (timestamp: any) => {
-    if(!timestamp) return '';
-    const date = timestamp.toDate();
-    const diff = Math.floor((new Date().getTime() - date.getTime()) / 1000 / 3600);
-    return diff < 24? `${diff}h ago` : `${Math.floor(diff/24)}d ago`;
-  }
-
-  const handleLogout = async () => {
-    await signOut(auth);
-    setMenuOpen(false);
-  }
-
-  const filteredPosts = posts.filter(p =>
-    p.title?.toLowerCase().includes(searchText.toLowerCase()) ||
-    p.content?.toLowerCase().includes(searchText.toLowerCase())
-  );
-
   return (
-    <div style={{background: bg, color: text, minHeight: '100vh', paddingBottom: '80px'}}>
-      {/* HEADER */}
-      <div style={{background: card, padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${border}`, position: 'sticky', top: 0, zIndex: 10}}>
-        <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0}}>Thawnthu</h1>
-
-        <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
-          <button onClick={()=>setSearchOpen(!searchOpen)} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-          </button>
-
-          <div style={{position: 'relative'}} ref={menuRef}>
-            <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill={iconColor}>
-                <circle cx="12" cy="5" r="2"></circle>
-                <circle cx="12" cy="12" r="2"></circle>
-                <circle cx="12" cy="19" r="2"></circle>
-              </svg>
-            </button>
-            {menuOpen && (
-              <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', width: '200px', zIndex: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.15)'}}>
-
-                <Link href="/setting" style={{textDecoration: 'none'}}>
-                  <button style={menuItemStyle}>
-                    <span style={{fontSize: '20px'}}>⚙️</span>
-                    <span>Setting</span>
-                  </button>
-                </Link>
-                <hr style={{margin: '0', border: 'none', borderTop: `1px solid ${border}`}}/>
-
-                <Link href="/contact" style={{textDecoration: 'none'}}>
-                  <button style={menuItemStyle}>
-                    <span style={{fontSize: '20px'}}>📞</span>
-                    <span>Contact Us</span>
-                  </button>
-                </Link>
-                <hr style={{margin: '0', border: 'none', borderTop: `1px solid ${border}`}}/>
-
-                <Link href="/about" style={{textDecoration: 'none'}}>
-                  <button style={menuItemStyle}>
-                    <span style={{fontSize: '20px'}}>ℹ️</span>
-                    <span>About</span>
-                  </button>
-                </Link>
-                <hr style={{margin: '0', border: 'none', borderTop: `1px solid ${border}`}}/>
-
-                {user? (
-                  <button onClick={handleLogout} style={menuItemStyle}>
-                    <span style={{fontSize: '20px'}}>🚪</span>
-                    <span>Logout</span>
-                  </button>
-                ) : (
-                  <Link href="/login" style={{textDecoration: 'none'}}>
-                    <button onClick={()=>setMenuOpen(false)} style={menuItemStyle}>
-                      <span style={{fontSize: '20px'}}>🔑</span>
-                      <span>Login</span>
-                    </button>
-                  </Link>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* SEARCH BAR */}
-      {searchOpen && (
-        <div style={{padding: '12px 16px', background: card, borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'center'}}>
-          <input
-            value={searchText}
-            onChange={(e)=>setSearchText(e.target.value)}
-            placeholder="Thawnthu zawng rawh..."
-            autoFocus
-            style={{width: '100%', maxWidth: '400px', padding: '12px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text, outline: 'none'}}
+    <div style={{background: bg, minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px'}}>
+      <div style={{background: card, padding: '32px', borderRadius: '20px', width: '100%', maxWidth: '400px', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', border: `1px solid ${border}`}}>
+        <h1 style={{fontSize: '28px', fontWeight: '800', textAlign: 'center', margin: '0 0 8px 0', color: accent}}>MzApp</h1>
+        <p style={{textAlign: 'center', color: '#6C757D', margin: '0 0 24px 0'}}>Login rawh le</p>
+        
+        <form onSubmit={handleLogin} style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
+          <input 
+            type="email" 
+            placeholder="Email" 
+            value={email} 
+            onChange={(e)=>setEmail(e.target.value)} 
+            required
+            style={{padding: '14px', borderRadius: '12px', border: `1px solid ${border}`, background: bg, color: text, fontSize: '16px', outline: 'none'}}
           />
-        </div>
-      )}
+          <input 
+            type="password" 
+            placeholder="Password" 
+            value={password} 
+            onChange={(e)=>setPassword(e.target.value)} 
+            required
+            style={{padding: '14px', borderRadius: '12px', border: `1px solid ${border}`, background: bg, color: text, fontSize: '16px', outline: 'none'}}
+          />
+          
+          {error && <p style={{color: 'red', textAlign: 'center', margin: 0}}>{error}</p>}
+          
+          <button 
+            type="submit" 
+            disabled={loading}
+            style={{background: accent, color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: '800', fontSize: '16px', cursor: 'pointer'}}>
+            {loading? 'Logging in...' : 'Login'}
+          </button>
+        </form>
 
-      {/* POST LIST */}
-      <div style={{padding: '16px'}}>
-        {filteredPosts.length === 0 && <p>Post ala awm lo</p>}
-        {filteredPosts.map(post => (
-          <div key={post.id} style={{background: card, padding: '16px', borderRadius: '12px', border: `1px solid ${border}`, marginBottom: '16px'}}>
-            <span style={{background: bg, padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: '600'}}>{getCatName(post.categoryId)}</span>
-            <h2 style={{margin: '10px 0', fontSize: '20px'}}>{post.title}</h2>
-            <p style={{margin: '0 0 10px 0', lineHeight: '1.6'}}>{post.content?.substring(0, 150)}... <Link href={`/post/${post.id}`} style={{color: accent, textDecoration: 'none', fontWeight: '700'}}>Read more</Link></p>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', color: subtext}}>
-              <span>{post.authorName || 'Anonymous'} • {timeAgo(post.time)}</span>
-              <div style={{display: 'flex', gap: '16px'}}>
-                <span>(0) ❤️</span>
-                <span>(0) 💬</span>
-                <span>📤</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* FOOTER - FONT 12px ATANG 14px AH KA TI LIAN */}
-      <div style={{background: card, borderTop: `1px solid ${border}`, display: 'flex', justifyContent: 'space-around', position: 'fixed', bottom: 0, width: '100%'}}>
-        <Link href="/" style={{textDecoration: 'none', flex: 1}}>
-          <button style={{background: 'none', border: 'none', color: accent, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '16px', width: '100%', padding: '8px 0', fontWeight: '700'}}>
-            <span style={{fontSize: '22px'}}>🏠</span>Home
-          </button>
-        </Link>
-        <Link href="/category" style={{textDecoration: 'none', flex: 1}}>
-          <button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '16px', width: '100%', padding: '8px 0', fontWeight: '700'}}>
-            <span style={{fontSize: '22px'}}>📂</span>Category
-          </button>
-        </Link>
-        <Link href="/chat" style={{textDecoration: 'none', flex: 1}}>
-          <button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '16px', width: '100%', padding: '8px 0', fontWeight: '700'}}>
-            <span style={{fontSize: '22px'}}>💬</span>Chat
-          </button>
-        </Link>
-        <Link href="/notification" style={{textDecoration: 'none', flex: 1}}>
-          <button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '16px', width: '100%', padding: '8px 0', fontWeight: '700', position: 'relative'}}>
-            <span style={{fontSize: '22px'}}>🔔</span>Notification
-            {notifCount > 0 && <span style={{position: 'absolute', top: '4px', right: '25%', background: 'red', color: 'white', borderRadius: '50%', width: '18px', height: '18px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800'}}>{notifCount}</span>}
-          </button>
-        </Link>
+        <p style={{textAlign: 'center', marginTop: '20px', color: '#6C757D'}}>
+          Account i la neilo mi? <Link href="/signup" style={{color: accent, fontWeight: '700', textDecoration: 'none'}}>Sign Up rawh</Link>
+        </p>
       </div>
     </div>
   )
