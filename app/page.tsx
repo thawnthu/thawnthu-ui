@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
+import { useState, useEffect, useRef } from 'react';
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db, auth } from "./lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import Link from "next/link";
@@ -13,9 +13,10 @@ export default function HomePage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [user, setUser] = useState<any>(null);
-  const [notifCount, setNotifCount] = useState(3); // test atan 3. Tak ah chuan db atang in
+  const [notifCount, setNotifCount] = useState(3);
   const [dark] = useState(false);
   const router = useRouter();
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const bg = dark? '#0f0f10' : '#f5f5f5';
   const card = dark? '#1a1a1c' : '#ffffff';
@@ -23,6 +24,17 @@ export default function HomePage() {
   const border = dark? '#2a2a2c' : '#e0e0e0';
   const accent = '#5865F2';
   const subtext = dark? '#a0a0a0' : '#666';
+
+  // OUTSIDE CLICK AH MENU CLOSE
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current &&!menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuRef]);
 
   useEffect(() => {
     fetchPosts();
@@ -63,6 +75,8 @@ export default function HomePage() {
     p.content?.toLowerCase().includes(searchText.toLowerCase())
   );
 
+  const menuItemStyle = {padding: '12px 16px', border: 'none', background: 'none', width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px', fontSize: '15px', cursor: 'pointer'};
+
   return (
     <div style={{background: bg, color: text, minHeight: '100vh', paddingBottom: '80px'}}>
       {/* HEADER */}
@@ -70,22 +84,22 @@ export default function HomePage() {
         <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0}}>Thawnthu</h1>
 
         <div style={{display: 'flex', gap: '16px', alignItems: 'center'}}>
-          {/* SEARCH ICON */}
+          {/* 1. SEARCH ICON I THAWN ANG */}
           <button onClick={()=>setSearchOpen(!searchOpen)} style={{background: 'none', border: 'none', fontSize: '22px'}}>🔍</button>
 
-          {/* DOT 3 MENU */}
-          <div style={{position: 'relative'}}>
+          {/* 2. DOT 3 MENU + 3. OUTSIDE CLICK CLOSE */}
+          <div style={{position: 'relative'}} ref={menuRef}>
             <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', fontSize: '24px'}}>⋮</button>
             {menuOpen && (
-              <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', width: '200px', zIndex: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}>
-                <button style={{padding: '12px 16px', border: 'none', background: 'none', width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px'}}>⚙️ Setting</button>
-                <button style={{padding: '12px 16px', border: 'none', background: 'none', width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px'}}>📞 Contact Us</button>
-                <button style={{padding: '12px 16px', border: 'none', background: 'none', width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px'}}>ℹ️ About</button>
+              <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', width: '200px', zIndex: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.15)'}}>
+                <Link href="/setting" style={{textDecoration: 'none', color: text}}><button style={menuItemStyle}>⚙️ Setting</button></Link>
+                <Link href="/contact" style={{textDecoration: 'none', color: text}}><button style={menuItemStyle}>📞 Contact Us</button></Link>
+                <Link href="/about" style={{textDecoration: 'none', color: text}}><button style={menuItemStyle}>ℹ️ About</button></Link>
                 <hr style={{margin: '4px 0', border: 'none', borderTop: `1px solid ${border}`}}/>
                 {user? (
-                  <button onClick={handleLogout} style={{padding: '12px 16px', border: 'none', background: 'none', width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px'}}>🚪 Logout</button>
+                  <button onClick={handleLogout} style={menuItemStyle}>🚪 Logout</button>
                 ) : (
-                  <Link href="/login" style={{textDecoration: 'none'}}><button onClick={()=>setMenuOpen(false)} style={{padding: '12px 16px', border: 'none', background: 'none', width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px'}}>🔑 Login</button></Link>
+                  <Link href="/login" style={{textDecoration: 'none', color: text}}><button onClick={()=>setMenuOpen(false)} style={menuItemStyle}>🔑 Login</button></Link>
                 )}
               </div>
             )}
@@ -100,7 +114,8 @@ export default function HomePage() {
             value={searchText}
             onChange={(e)=>setSearchText(e.target.value)}
             placeholder="Thawnthu zawng rawh..."
-            style={{width: '100%', padding: '12px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text}}
+            autoFocus
+            style={{width: '100%', padding: '12px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text, outline: 'none'}}
           />
         </div>
       )}
@@ -130,12 +145,10 @@ export default function HomePage() {
         <Link href="/" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: accent, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', width: '100%', padding: '8px 0', fontWeight: '700'}}><span style={{fontSize: '22px'}}>🏠</span>Home</button></Link>
         <Link href="/category" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', width: '100%', padding: '8px 0', fontWeight: '700'}}><span style={{fontSize: '22px'}}>📂</span>Category</button></Link>
         <Link href="/chat" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', width: '100%', padding: '8px 0', fontWeight: '700'}}><span style={{fontSize: '22px'}}>💬</span>Chat</button></Link>
-
-        {/* NOTIFICATION WITH BADGE */}
         <Link href="/notification" style={{textDecoration: 'none', flex: 1}}>
           <button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', width: '100%', padding: '8px 0', fontWeight: '700', position: 'relative'}}>
             <span style={{fontSize: '22px'}}>🔔</span>Notification
-            {notifCount > 0 && <span style={{position: 'absolute', top: '4px', right: '25%', background: 'red', color: 'white', borderRadius: '50%', width: '18px', height: '18px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{notifCount}</span>}
+            {notifCount > 0 && <span style={{position: 'absolute', top: '4px', right: '25%', background: 'red', color: 'white', borderRadius: '50%', width: '18px', height: '18px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800'}}>{notifCount}</span>}
           </button>
         </Link>
       </div>
