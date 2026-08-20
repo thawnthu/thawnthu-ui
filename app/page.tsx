@@ -38,6 +38,7 @@ export default function HomePage() {
     fontSize: '15px',
     cursor: 'pointer',
     color: text
+    fontWeight: '700'
   };
 
   // OUTSIDE CLICK AH MENU CLOSE
