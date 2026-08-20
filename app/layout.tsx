@@ -1,11 +1,19 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "MzApp",
+  description: "Thawnthu App",
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, padding: 0 }}>
-        {children}
-        <style jsx global>{`
+      <head>
+        <style>{`
           html, body {
             height: 100%;
+            margin: 0;
+            padding: 0;
             overflow: hidden; /* PUMPUAI TAWLH THEI LO */
           }
           * {
@@ -13,6 +21,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             font-family: system-ui, -apple-system, sans-serif;
           }
         `}</style>
+      </head>
+      <body>
+        {children}
       </body>
     </html>
   )
