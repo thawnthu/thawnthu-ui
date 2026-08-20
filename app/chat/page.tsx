@@ -25,7 +25,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
-      if(!u) router.push('/'); else setUser(u); // Login loh chuan login ah
+      if(!u) router.push('/'); else setUser(u);
       setLoading(false);
     });
     return () => unsub();
@@ -43,23 +43,54 @@ export default function ChatPage() {
 
   if(loading) return <div style={{padding: '20px'}}>Loading...</div>
 
-  const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({ padding: '10px 16px', borderRadius: '20px', border: 'none', background: isActive? accent : '#F1F3F5', color: isActive? 'white' : text, fontWeight: '700', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' });
+  const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({ 
+    padding: '10px 16px', 
+    borderRadius: '20px', 
+    border: 'none', 
+    background: isActive? accent : '#F1F3F5', 
+    color: isActive? 'white' : text, 
+    fontWeight: '700', 
+    fontSize: '14px', 
+    cursor: 'pointer', 
+    whiteSpace: 'nowrap',
+    flexShrink: 0
+  });
+  
   const menuItemStyle: React.CSSProperties = { padding: '12px 16px', border: 'none', background: 'none', width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '16px', fontSize: '15px', cursor: 'pointer', color: text, fontWeight: '700' };
+  const menuDivider: React.CSSProperties = { margin: '0', border: 'none', borderTop: `1px solid ${border}` };
 
   return (
     <div style={{background: bg, color: text, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column'}}>
 
       {/* 1. HEADER FIX NGHEH */}
-      <div style={{flexShrink: 0, background: card, padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)'}}>
+      <div style={{flexShrink: 0, background: card, padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${border}`}}> {/* 1. LINE HNUAI AH */}
         <h1 style={{fontSize: '22px', fontWeight: '800', margin: 0, color: accent}}>MzApp</h1>
         <div style={{position: 'relative'}} ref={menuRef}>
           <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}><svg width="24" height="24" viewBox="0 0 24 24" fill={text}><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
-          {menuOpen && (<div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', width: '200px', zIndex: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.15)'}}><Link href="/setting" style={{textDecoration: 'none'}}><button style={menuItemStyle}><span>⚙️</span><span>Setting</span></button></Link><hr style={{margin: '0', border: 'none', borderTop: `1px solid ${border}`}}/><Link href="/about" style={{textDecoration: 'none'}}><button style={menuItemStyle}><span>ℹ️</span><span>About</span></button></Link><button onClick={handleLogout} style={menuItemStyle}><span>🚪</span><span>Logout</span></button></div>)}
+          {menuOpen && (
+            <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', width: '200px', zIndex: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.15)'}}>
+              <Link href="/setting" style={{textDecoration: 'none'}}><button style={menuItemStyle}><span>⚙️</span><span>Setting</span></button></Link>
+              <hr style={menuDivider}/>
+              <Link href="/about" style={{textDecoration: 'none'}}><button style={menuItemStyle}><span>ℹ️</span><span>About</span></button></Link>
+              <hr style={menuDivider}/> {/* 3. LINE BELH */}
+              <Link href="/contact" style={{textDecoration: 'none'}}><button style={menuItemStyle}><span>📞</span><span>Contact Us</span></button></Link> {/* 3. CONTACT US BELH */}
+              <hr style={menuDivider}/>
+              <button onClick={handleLogout} style={menuItemStyle}><span>🚪</span><span>Logout</span></button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 2. TABS FIX NGHEH */}
-      <div style={{flexShrink: 0, background: card, padding: '12px 16px', display: 'flex', gap: '10px', overflowX: 'auto', borderBottom: `1px solid ${border}`}}>
+      {/* 2. TABS WRAP - TUAIPHEI NGAI TAWH LO */}
+      <div style={{
+        flexShrink: 0, 
+        background: card, 
+        padding: '12px 16px', 
+        display: 'flex', 
+        gap: '10px', 
+        flexWrap: 'wrap', /* 2. HEI HI A PAWIMAWH: Tlar ah a awm ang */
+        borderBottom: `1px solid ${border}` /* 1. LINE HNUAI AH */
+      }}>
         {tabs.map(tab => (<button key={tab} onClick={()=>setActiveTab(tab)} style={tabButtonStyle(activeTab === tab)}>{tab}</button>))}
       </div>
 
