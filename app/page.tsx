@@ -115,7 +115,7 @@ export default function HomePage() {
               </svg>
             </button>
             {menuOpen && (
-              <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', width: '200px', zIndex: 20, fontWeight: '700', boxShadow: '0 4px 20px rgba(0,0,0,0.15)'}}>
+              <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', width: '200px', zIndex: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.15)'}}>
                 <Link href="/setting" style={{textDecoration: 'none'}}><button style={menuItemStyle}>⚙️ Setting</button></Link>
                 <hr style={{margin: '0', border: 'none', borderTop: `1px solid ${border}`}}/>
                 <Link href="/contact" style={{textDecoration: 'none'}}><button style={menuItemStyle}>📞 Contact Us</button></Link>
