@@ -1,18 +1,27 @@
-import Link from "next/link";
+'use client';
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function AboutPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const backTo = searchParams.get('back') || '/'; // Login hma = /, Login hnu = /chat
+
+  const bg = '#F8F9FA';
+  const card = '#FFFFFF';
+  const text = '#1A1A1A';
+  const border = '#E9ECEF';
+
   return (
-    <div style={{background: '#f5f5f5', minHeight: '100vh'}}>
-      <div style={{padding: '16px', display: 'flex', alignItems: 'center', gap: '10px', borderBottom: `1px solid #e0e0e0`}}>
-        <Link href="/" style={{display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: '#000'}}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          <h2 style={{fontSize: '20px', fontWeight: '800', margin: 0}}>About</h2>
-        </Link>
+    <div style={{background: bg, color: text, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column'}}>
+      <div style={{flexShrink: 0, background: card, padding: '16px', display: 'flex', alignItems: 'center', gap: '16px', borderBottom: `1px solid ${border}`}}>
+        <button onClick={()=>router.push(backTo)} style={{background: 'none', border: 'none', cursor: 'pointer', padding: 0}}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill={text}><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        </button>
+        <h1 style={{fontSize: '20px', fontWeight: '800', margin: 0}}>About</h1>
       </div>
-      <div style={{padding: '20px', maxWidth: '600px', margin: '0 auto'}}>
-        <div style={{background: '#fff', padding: '16px', borderRadius: '12px'}}>
-          <h3>Thawnthu V2</h3>
-          <p>Mizo thawnthu chhiarna website. Tunlai thawnthu thar leh hluite i chhiar theihna.</p>
+      <div style={{flexGrow: 1, overflowY: 'auto', padding: '16px'}}>
+        <div style={{background: card, padding: '24px', borderRadius: '20px', border: `1px solid ${border}`}}>
+          About Page content
         </div>
       </div>
     </div>
