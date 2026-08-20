@@ -29,13 +29,21 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/');
     } catch (err: any) {
-      // 3. ERROR MESSAGE ENGLISH VEK
       if(err.code === 'auth/invalid-email') setError('Invalid email format');
       else if(err.code === 'auth/user-not-found') setError('No account found with this email');
       else if(err.code === 'auth/wrong-password') setError('Incorrect password');
       else setError('Login failed. Please try again');
     }
     setLoading(false);
+  }
+
+  const handleBack = () => {
+    // 1. HISTORY AWM CHUAN BACK, AWM LOH CHUAN HOME
+    if (window.history.length > 1) {
+      router.back()
+    } else {
+      router.push('/')
+    }
   }
 
   return (
@@ -53,8 +61,11 @@ export default function LoginPage() {
         top: 0,
         zIndex: 10
       }}>
-        {/* 1. ARROW TI TE LEH */}
-        <button onClick={()=>router.back()} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex'}}>
+        {/* ARROW BUTTON - BACK FUNCTION BELH */}
+        <button
+          onClick={handleBack}
+          style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex'}}
+        >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
@@ -114,7 +125,7 @@ export default function LoginPage() {
                 <Link href="/forgot" style={{color: accent, fontSize: '14px', textDecoration: 'none', fontWeight: '600'}}>Forgot password?</Link>
               </div>
 
-              {/* 2. BUTTON "Login" */}
+              {/* LOGIN BUTTON */}
               <button
                 onClick={handleLogin}
                 disabled={loading}
@@ -123,7 +134,6 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {/* 3. TEXT ENGLISH */}
             <p style={{textAlign: 'center', marginTop: '20px', fontSize: '14px', color: subtext}}>
               Don't have an account? <Link href="/signup" style={{color: accent, fontWeight: '700', textDecoration: 'none'}}>Sign Up</Link>
             </p>
