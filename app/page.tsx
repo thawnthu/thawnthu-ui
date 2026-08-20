@@ -24,8 +24,8 @@ export default function HomePage() {
   const border = dark? '#2a2a2c' : '#e0e0e0';
   const accent = '#5865F2';
   const subtext = dark? '#a0a0a0' : '#666';
+  const iconColor = text; // white in dark mode
 
-  // TYPE ERROR FIX NA
   const menuItemStyle: React.CSSProperties = {
     padding: '12px 16px',
     border: 'none',
@@ -96,13 +96,24 @@ export default function HomePage() {
       <div style={{background: card, padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${border}`, position: 'sticky', top: 0, zIndex: 10}}>
         <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0}}>Thawnthu</h1>
 
-        <div style={{display: 'flex', gap: '16px', alignItems: 'center'}}>
-          {/* SEARCH ICON */}
-          <button onClick={()=>setSearchOpen(!searchOpen)} style={{background: 'none', border: 'none', fontSize: '22px'}}>🔍</button>
+        <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
+          {/* 1. SEARCH ICON WHITE I THAWN ANG */}
+          <button onClick={()=>setSearchOpen(!searchOpen)} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </button>
 
-          {/* DOT 3 MENU */}
+          {/* 2. DOT 3 ICON WHITE */}
           <div style={{position: 'relative'}} ref={menuRef}>
-            <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', fontSize: '24px'}}>⋮</button>
+            <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill={iconColor}>
+                <circle cx="12" cy="5" r="2"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+                <circle cx="12" cy="19" r="2"></circle>
+              </svg>
+            </button>
             {menuOpen && (
               <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', width: '200px', zIndex: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.15)'}}>
                 <Link href="/setting" style={{textDecoration: 'none'}}><button style={menuItemStyle}>⚙️ Setting</button></Link>
@@ -167,4 +178,4 @@ export default function HomePage() {
       </div>
     </div>
   )
-          }
+}
