@@ -26,7 +26,6 @@ export default function HomePage() {
   const subtext = dark? '#a0a0a0' : '#666';
   const iconColor = text;
 
-  // MENU ITEM - GAP THAWK THEI TAWH
   const menuItemStyle: React.CSSProperties = {
     padding: '12px 16px',
     border: 'none',
@@ -35,14 +34,13 @@ export default function HomePage() {
     textAlign: 'left',
     display: 'flex',
     alignItems: 'center',
-    gap: '16px', // icon leh text inkar
+    gap: '16px',
     fontSize: '15px',
     cursor: 'pointer',
     color: text,
     fontWeight: '700'
   };
 
-  // OUTSIDE CLICK AH MENU CLOSE
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current &&!menuRef.current.contains(event.target as Node)) {
@@ -99,7 +97,6 @@ export default function HomePage() {
         <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0}}>Thawnthu</h1>
 
         <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
-          {/* SEARCH ICON */}
           <button onClick={()=>setSearchOpen(!searchOpen)} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
@@ -107,7 +104,6 @@ export default function HomePage() {
             </svg>
           </button>
 
-          {/* DOT 3 MENU */}
           <div style={{position: 'relative'}} ref={menuRef}>
             <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill={iconColor}>
@@ -195,13 +191,25 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* FOOTER */}
+      {/* FOOTER - FONT 12px ATANG 14px AH KA TI LIAN */}
       <div style={{background: card, borderTop: `1px solid ${border}`, display: 'flex', justifyContent: 'space-around', position: 'fixed', bottom: 0, width: '100%'}}>
-        <Link href="/" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: accent, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', width: '100%', padding: '8px 0', fontWeight: '700'}}><span style={{fontSize: '22px'}}>🏠</span>Home</button></Link>
-        <Link href="/category" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', width: '100%', padding: '8px 0', fontWeight: '700'}}><span style={{fontSize: '22px'}}>📂</span>Category</button></Link>
-        <Link href="/chat" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', width: '100%', padding: '8px 0', fontWeight: '700'}}><span style={{fontSize: '22px'}}>💬</span>Chat</button></Link>
+        <Link href="/" style={{textDecoration: 'none', flex: 1}}>
+          <button style={{background: 'none', border: 'none', color: accent, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '14px', width: '100%', padding: '8px 0', fontWeight: '700'}}>
+            <span style={{fontSize: '22px'}}>🏠</span>Home
+          </button>
+        </Link>
+        <Link href="/category" style={{textDecoration: 'none', flex: 1}}>
+          <button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '14px', width: '100%', padding: '8px 0', fontWeight: '700'}}>
+            <span style={{fontSize: '22px'}}>📂</span>Category
+          </button>
+        </Link>
+        <Link href="/chat" style={{textDecoration: 'none', flex: 1}}>
+          <button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '14px', width: '100%', padding: '8px 0', fontWeight: '700'}}>
+            <span style={{fontSize: '22px'}}>💬</span>Chat
+          </button>
+        </Link>
         <Link href="/notification" style={{textDecoration: 'none', flex: 1}}>
-          <button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', width: '100%', padding: '8px 0', fontWeight: '700', position: 'relative'}}>
+          <button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '14px', width: '100%', padding: '8px 0', fontWeight: '700', position: 'relative'}}>
             <span style={{fontSize: '22px'}}>🔔</span>Notification
             {notifCount > 0 && <span style={{position: 'absolute', top: '4px', right: '25%', background: 'red', color: 'white', borderRadius: '50%', width: '18px', height: '18px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800'}}>{notifCount}</span>}
           </button>
