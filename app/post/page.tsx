@@ -1,67 +1,111 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from "next/navigation";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { db, auth } from "../lib/firebase";
 import Link from "next/link";
 
-const CATEGORIES = ['Pasaltha', 'Fiamthu', 'Love Story', 'Sual lam', 'Nula palai', 'General'];
-
 export default function PostPage() {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [category, setCategory] = useState(CATEGORIES[0]);
-  const [author, setAuthor] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [dark, setDark] = useState(true);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const accent = '#5865F2';
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [dark] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title ||!content) return alert("Title leh Thu kim lo");
-    setSubmitting(true);
-    await addDoc(collection(db, "posts"), { title, content, category, author: author || "Anonymous", status: "approved", createdAt: Timestamp.now() });
-    alert("I thu i thehlut e! A lang nghal e");
-    setTitle(""); setContent(""); setAuthor("");
-    setSubmitting(false);
-  };
+  const catId = searchParams.get('cat');
+  const subId = searchParams.get('sub'); // sub awm loh chuan null
 
   const bg = dark? '#0f0f10' : '#f5f5f5';
   const card = dark? '#1a1a1c' : '#ffffff';
   const text = dark? '#ffffff' : '#000';
-  const subtext = dark? '#a0a0a0' : '#555';
   const border = dark? '#2a2a2c' : '#e0e0e0';
-  const inputBg = dark? '#2a2a2c' : '#f0f0f0';
-  const toggleDark = () => setDark(!dark);
+  const accent = '#5865F2';
+  const subtext = dark? '#a0a0a0' : '#666';
+
+  // LOGIN CHECK
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged((user) => {
+      if(!user) router.push('/login');
+    });
+    return () => unsub();
+  }, []);
+
+  const handleSubmit = async () => {
+    setError('');
+    if(!title ||!content) return setError('Title leh Content a ruak thei lo');
+    if(!catId) return setError('Category thlan a ngai');
+
+    setLoading(true);
+    try {
+      await addDoc(collection(db, "posts"), {
+        title: title,
+        content: content,
+        categoryId: catId,
+        subCategoryId: subId || null, // Sub awm chuan subId, awm loh chuan null
+        authorId: auth.currentUser?.uid,
+        authorName: auth.currentUser?.displayName || "Anonymous",
+        time: Timestamp.now()
+      });
+
+      // Khawi ah nge kir leh dawn
+      if(subId) router.push(`/category/${catId}/${subId}`);
+      else router.push(`/category/${catId}`);
+
+    } catch (err: any) {
+      setError('Post siam a fuh lo: ' + err.message);
+    }
+    setLoading(false);
+  }
 
   return (
-    <div style={{background: bg, color: text, minHeight: '100vh'}}>
-      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: `1px solid ${border}`, position: 'sticky', top: 0, background: bg, zIndex: 20}}>
-        <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0}}>Thawnthu V2</h1>
-        <div style={{position: 'relative'}}>
-          <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', color: text, fontSize: '28px', cursor: 'pointer'}}>⋮</button>
-          {menuOpen && (
-            <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px 0', minWidth: '180px'}}>
-              <button onClick={toggleDark} style={{display: 'block', width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: text, textAlign: 'left', fontSize: '15px'}}>{dark? '☀️ Light Mode' : '🌙 Dark Mode'}</button>
-              <Link href="/about" style={{display: 'block', padding: '12px 16px', color: text, textDecoration: 'none', fontSize: '15px'}}>ℹ️ About</Link>
-              <Link href="/contact" style={{display: 'block', padding: '12px 16px', color: text, textDecoration: 'none', fontSize: '15px'}}>📞 Contact</Link>
-            </div>
-          )}
+    <div style={{background: bg, color: text, minHeight: '100vh', paddingBottom: '80px'}}>
+      {/* HEADER */}
+      <div style={{padding: '16px', display: 'flex', alignItems: 'center', gap: '10px'}}>
+        <button onClick={()=>router.back()} style={{background: 'none', border: 'none', fontSize: '20px'}}>←</button>
+        <h2 style={{margin: 0}}>Create Post</h2>
+      </div>
+
+      <div style={{padding: '0 16px'}}>
+        {error && <p style={{color: 'red', background: '#ffdddd', padding: '10px', borderRadius: '8px'}}>{error}</p>}
+
+        <div style={{background: card, padding: '16px', borderRadius: '12px', border: `1px solid ${border}`}}>
+          <p style={{fontSize: '12px', color: subtext, marginBottom: '16px'}}>
+            {subId? "Sub Category ah post i siam" : "Category ah post i siam"}
+          </p>
+
+          <input
+            placeholder="Post Title"
+            value={title}
+            onChange={(e)=>setTitle(e.target.value)}
+            style={{width: '100%', padding: '12px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text, marginBottom: '12px', fontSize: '16px', fontWeight: '700'}}
+          />
+
+          <textarea
+            placeholder="I thawnthu ziak rawh..."
+            value={content}
+            onChange={(e)=>setContent(e.target.value)}
+            rows={10}
+            style={{width: '100%', padding: '12px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text, marginBottom: '16px', fontSize: '15px', resize: 'vertical'}}
+          />
+
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            style={{width: '100%', background: accent, color: 'white', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: '800', fontSize: '16px'}}
+          >
+            {loading? 'Posting...' : 'Post Publish'}
+          </button>
         </div>
       </div>
-      <form onSubmit={handleSubmit} style={{padding: '20px', maxWidth: '600px', margin: '0 auto', paddingBottom: '100px'}}>
-        <h2 style={{fontSize: '22px', marginBottom: '20px'}}>Thu Thehlut</h2>
-        <input placeholder="I Hming" value={author} onChange={e=>setAuthor(e.target.value)} style={{width: '100%', padding: "12px", marginBottom: "12px", background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', color: text}}/>
-        <select value={category} onChange={e=>setCategory(e.target.value)} style={{width: '100%', padding: "12px", marginBottom: "12px", background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', color: text}}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select>
-        <input placeholder="Thawnthu Hming" value={title} onChange={e=>setTitle(e.target.value)} style={{width: '100%', padding: "12px", marginBottom: "12px", background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', color: text}}/>
-        <textarea placeholder="I thu ziak rawh..." value={content} onChange={e=>setContent(e.target.value)} rows={10} style={{width: '100%', padding: "12px", marginBottom: "12px", background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', color: text}}/>
-        <button type="submit" disabled={submitting} style={{width: '100%', padding: "14px", background: accent, color: "white", border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '16px', cursor: 'pointer'}}>{submitting? "Thehluh mek..." : "Thehlut"}</button>
-      </form>
+
+      {/* FOOTER */}
       <div style={{background: card, borderTop: `1px solid ${border}`, display: 'flex', justifyContent: 'space-around', position: 'fixed', bottom: 0, width: '100%'}}>
-        <Link href="/" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: '700', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>🏠</span>Home</button></Link>
-        <Link href="/category" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: '700', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>📂</span>Category</button></Link>
-        <Link href="/post" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: accent, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: '700', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>✍️</span>Post</button></Link>
-        <Link href="/notification" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: '700', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>🔔</span>Notify</button></Link>
+        <Link href="/" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>🏠</span>Home</button></Link>
+        <Link href="/category" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>📂</span>Category</button></Link>
+        <Link href="/chat" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>💬</span>Chat</button></Link>
+        <Link href="/notification" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>🔔</span>Notify</button></Link>
       </div>
     </div>
   )
