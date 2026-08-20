@@ -21,21 +21,21 @@ export default function LoginPage() {
   return (
     <div style={{background: '#f5f5f5', minHeight: '100vh', padding: '16px'}}>
       
-      {/* HEADER - 1. LINE RIN BELH */}
+      {/* HEADER */}
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e0e0e0', marginBottom: '20px', position: 'relative'}} ref={menuRef}>
         <h1 style={{color: '#8B5CF6', fontSize: '24px', fontWeight: '800', margin: 0}}>MzApp</h1>
         <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', cursor: 'pointer', padding: '8px'}}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="#000"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
         </button>
         
-        {/* MENU - 2. LINE RIN + 3. GAP TI ZAU + BOLD */}
+        {/* MENU - 1. GAP TI ZAU HRET */}
         {showMenu && (
           <div style={{position: 'absolute', top: '55px', right: 0, background: 'white', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: '180px', zIndex: 10, fontWeight: '700'}}>
-            <div onClick={()=>router.push('/setting?back=/')} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer'}}>⚙️ Setting</div> {/* 3. gap 14px */}
-            <hr style={{margin: '0 16px', border: 'none', borderBottom: '1px solid #f0f0f0'}}/> {/* 2. LINE */}
-            <div onClick={()=>router.push('/about?back=/')} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer'}}>ℹ️ About</div> {/* 3. gap 14px */}
-            <hr style={{margin: '0 16px', border: 'none', borderBottom: '1px solid #f0f0f0'}}/> {/* 2. LINE */}
-            <div onClick={()=>router.push('/contact?back=/')} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer'}}>📞 Contact Us</div>
+            <div onClick={()=>router.push('/setting?back=/')} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer'}}>⚙️ Setting</div> {/* 1. gap 18px */}
+            <hr style={{margin: '0 16px', border: 'none', borderBottom: '1px solid #f0f0f0'}}/>
+            <div onClick={()=>router.push('/about?back=/')} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer'}}>ℹ️ About</div> {/* 1. gap 18px */}
+            <hr style={{margin: '0 16px', border: 'none', borderBottom: '1px solid #f0f0f0'}}/>
+            <div onClick={()=>router.push('/contact?back=/')} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer'}}>📞 Contact Us</div> {/* 1. gap 18px */}
           </div>
         )}
       </div>
@@ -50,7 +50,7 @@ export default function LoginPage() {
           <input type="email" placeholder="Email" style={{border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '16px'}}/>
         </div>
 
-        {/* PASSWORD INPUT - 4. MIT LEM NALH */}
+        {/* PASSWORD INPUT */}
         <div style={{display: 'flex', alignItems: 'center', background: '#f1f1f1', borderRadius: '12px', padding: '14px 16px', marginBottom: '8px'}}>
           <span style={{marginRight: '10px', fontSize: '18px'}}>🔒</span>
           <input type={showPassword ? "text" : "password"} placeholder="Password" style={{border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '16px'}}/>
@@ -62,13 +62,15 @@ export default function LoginPage() {
           </span>
         </div>
 
+        {/* 2. FORGOT PASSWORD CLICK THEIH */}
         <div style={{textAlign: 'right', marginBottom: '20px'}}>
-          <a href="#" style={{color: '#8B5CF6', textDecoration: 'none', fontSize: '14px', fontWeight: '700'}}>Forgot password?</a> {/* 5. BOLD */}
+          <span onClick={()=>alert('Forgot Password page ah kal ang')} style={{color: '#8B5CF6', textDecoration: 'none', fontSize: '14px', fontWeight: '700', cursor: 'pointer'}}>Forgot password?</span>
         </div>
 
-        <button style={{width: '100%', padding: '16px', background: '#8B5CF6', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '700', cursor: 'pointer'}}>Login</button>
+        <button style={{width: '100%', padding: '16px', background: '#8B5CF6', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '700', cursor: 'pointer', marginBottom: '24px'}}>Login</button> {/* 3. marginBottom 24px */}
         
-        <p style={{textAlign: 'center', marginTop: '16px', color: '#888'}}>Don't have an account? <a href="#" style={{color: '#8B5CF6', fontWeight: '700'}}>Sign Up</a></p>
+        {/* 4. SIGNUP CLICK THEIH + 5. FONT NORMAL */}
+        <p style={{textAlign: 'center', margin: 0, color: '#888', fontSize: '14px'}}>Don't have an account? <span onClick={()=>alert('Sign Up page ah kal ang')} style={{color: '#8B5CF6', fontWeight: '700', cursor: 'pointer'}}>Sign Up</span></p>
       </div>
     </div>
   )
