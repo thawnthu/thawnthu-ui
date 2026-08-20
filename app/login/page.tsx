@@ -55,7 +55,7 @@ export default function LoginPage() {
       }}>
         {/* 1. ARROW TI TE LEH */}
         <button onClick={()=>router.back()} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex'}}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={text} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
         </button>
