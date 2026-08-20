@@ -1,77 +1,144 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../lib/firebase";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginPage() {
-  const [showMenu, setShowMenu] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [dark] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const bg = dark? '#0f0f10' : '#f5f5f5';
+  const card = dark? '#1a1a1c' : '#ffffff';
+  const text = dark? '#ffffff' : '#000';
+  const border = dark? '#2a2a2c' : '#e0e0e0';
+  const inputBg = dark? '#2a2a2c' : '#f0f0f0';
+  const accent = '#8B2DCE';
+  const subtext = dark? '#a0a0a0' : '#666';
+
+  const handleLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push('/');
+    } catch (err: any) {
+      if(err.code === 'auth/invalid-email') setError('Invalid email format');
+      else if(err.code === 'auth/user-not-found') setError('No account found with this email');
+      else if(err.code === 'auth/wrong-password') setError('Incorrect password');
+      else setError('Login failed. Please try again');
+    }
+    setLoading(false);
+  }
+
+  const handleBack = () => {
+    // 1. HISTORY AWM CHUAN BACK, AWM LOH CHUAN HOME
+    if (window.history.length > 1) {
+      router.back()
+    } else {
+      router.push('/')
+    }
+  }
 
   return (
-    <div style={{background: '#f5f5f5', minHeight: '100vh', padding: '16px'}}>
-      
-      {/* HEADER */}
-      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e0e0e0', marginBottom: '20px', position: 'relative'}} ref={menuRef}>
-        <h1 style={{color: '#8B5CF6', fontSize: '24px', fontWeight: '800', margin: 0}}>MzApp</h1>
-        <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', cursor: 'pointer', padding: '8px'}}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="#000"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+    <div style={{background: bg, color: text, minHeight: '100vh'}}>
+
+      {/* STICKY HEADER - ARROW 22px */}
+      <div style={{
+        background: card,
+        padding: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        borderBottom: `1px solid ${border}`,
+        position: 'sticky',
+        top: 0,
+        zIndex: 10
+      }}>
+        {/* ARROW BUTTON - BACK FUNCTION BELH */}
+        <button
+          onClick={handleBack}
+          style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex'}}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
         </button>
-        
-        {/* MENU */}
-        {showMenu && (
-          <div style={{position: 'absolute', top: '55px', right: 0, background: 'white', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: '180px', zIndex: 10, fontWeight: '700'}}>
-            <div onClick={()=>router.push('/setting?back=/')} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer'}}>⚙️ Setting</div>
-            <hr style={{margin: '0 16px', border: 'none', borderBottom: '1px solid #f0f0f0'}}/>
-            <div onClick={()=>router.push('/about?back=/')} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer'}}>ℹ️ About</div>
-            <hr style={{margin: '0 16px', border: 'none', borderBottom: '1px solid #f0f0f0'}}/>
-            <div onClick={()=>router.push('/contact?back=/')} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer'}}>📞 Contact Us</div>
-          </div>
-        )}
+        <h1 style={{fontSize: '20px', fontWeight: '800', margin: 0}}>Login</h1>
       </div>
 
-      {/* CARD */}
-      <div style={{background: 'white', padding: '24px', borderRadius: '16px'}}>
-        {/* 2. PLEASE LOGIN CHHAK HRET */}
-        <p style={{color: '#888', marginBottom: '20px', marginTop: '8px'}}>Please Login to continue</p> 
-        
-        {/* EMAIL INPUT */}
-        <div style={{display: 'flex', alignItems: 'center', background: '#f1f1f1', borderRadius: '12px', padding: '14px 16px', marginBottom: '12px'}}> 
-          <span style={{marginRight: '10px', fontSize: '18px'}}>👤</span>
-          <input type="email" placeholder="Email" style={{border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '16px'}}/>
-        </div>
+      {/* CONTENT */}
+      <div style={{display: 'flex', justifyContent: 'center', padding: '24px 20px'}}>
+        <div style={{width: '100%', maxWidth: '380px'}}>
+          <div style={{background: card, padding: '24px', borderRadius: '20px', border: `1px solid ${border}`, boxShadow: '0 8px 30px rgba(0,0,0,0.12)'}}>
 
-        {/* PASSWORD INPUT */}
-        <div style={{display: 'flex', alignItems: 'center', background: '#f1f1f1', borderRadius: '12px', padding: '14px 16px', marginBottom: '8px'}}>
-          <span style={{marginRight: '10px', fontSize: '18px'}}>🔒</span>
-          <input type={showPassword ? "text" : "password"} placeholder="Password" style={{border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '16px'}}/>
-          <span onClick={()=>setShowPassword(!showPassword)} style={{marginLeft: '10px', cursor: 'pointer'}}>
-            {showPassword ? 
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="#888"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg> : 
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="#888"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.09 2.09C10.13 7.13 11.04 7 12 7zM11.1 13H12c.55 0 1-.45 1-1v-.1l-1.9-1.9c-.45.24-.8.6-1.1 1.01l-.2-.2zM3 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 3 4.27z"/></svg>
-            }
-          </span>
-        </div>
+            <p style={{color: subtext, fontSize: '14px', marginBottom: '20px', marginTop: 0}}>Please Login to continue</p>
 
-        {/* 1. FORGOT PASSWORD PAGE AH KAL */}
-        <div style={{textAlign: 'right', marginBottom: '20px'}}>
-          <span onClick={()=>router.push('/forgot-password')} style={{color: '#8B5CF6', textDecoration: 'none', fontSize: '14px', fontWeight: '700', cursor: 'pointer'}}>Forgot password?</span>
-        </div>
+            {error && <p style={{color: 'red', fontSize: '14px', marginBottom: '12px'}}>{error}</p>}
 
-        <button style={{width: '100%', padding: '16px', background: '#8B5CF6', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '700', cursor: 'pointer', marginBottom: '24px'}}>Login</button>
-        
-        {/* 1. SIGN UP PAGE AH KAL */}
-        <p style={{textAlign: 'center', margin: 0, color: '#888', fontSize: '14px'}}>Don't have an account? <span onClick={()=>router.push('/signup')} style={{color: '#8B5CF6', fontWeight: '700', cursor: 'pointer'}}>Sign Up</span></p>
+            <div style={{display: 'flex', flexDirection: 'column', gap: '14px'}}>
+
+              {/* EMAIL INPUT */}
+              <div style={{position: 'relative'}}>
+                <span style={{position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '20px', zIndex: 1}}>👤</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e)=>setEmail(e.target.value)}
+                  placeholder="Email"
+                  style={{width: '100%', padding: '14px 14px 14px 45px', borderRadius: '12px', border: `1px solid ${border}`, background: inputBg, color: text, fontSize: '15px', outline: 'none', boxSizing: 'border-box'}}
+                />
+              </div>
+
+              {/* PASSWORD INPUT */}
+              <div style={{position: 'relative'}}>
+                <span style={{position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '20px', zIndex: 1}}>🔒</span>
+                <input
+                  type={showPass? "text" : "password"}
+                  value={password}
+                  onChange={(e)=>setPassword(e.target.value)}
+                  placeholder="Password"
+                  style={{width: '100%', padding: '14px 45px 14px 45px', borderRadius: '12px', border: `1px solid ${border}`, background: inputBg, color: text, fontSize: '15px', outline: 'none', boxSizing: 'border-box'}}
+                />
+                {/* MIT THAI ICON */}
+                <button onClick={()=>setShowPass(!showPass)} style={{position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', zIndex: 2, display: 'flex'}}>
+                  {showPass? (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill={accent}>
+                      <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                    </svg>
+                  ) : (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                  )}
+                </button>
+              </div>
+
+              <div style={{display: 'flex', justifyContent: 'flex-end'}}>
+                <Link href="/forgot" style={{color: accent, fontSize: '14px', textDecoration: 'none', fontWeight: '600'}}>Forgot password?</Link>
+              </div>
+
+              {/* LOGIN BUTTON */}
+              <button
+                onClick={handleLogin}
+                disabled={loading}
+                style={{background: accent, color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: '800', fontSize: '16px', cursor: 'pointer', marginTop: '4px', boxShadow: `0 4px 15px ${accent}40`}}>
+                {loading? "Loading..." : "Login"}
+              </button>
+            </div>
+
+            <p style={{textAlign: 'center', marginTop: '20px', fontSize: '14px', color: subtext}}>
+              Don't have an account? <Link href="/signup" style={{color: accent, fontWeight: '700', textDecoration: 'none'}}>Sign Up</Link>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )
