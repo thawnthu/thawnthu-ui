@@ -1,71 +1,76 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, addDoc, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import Link from "next/link";
 
-const CATEGORIES = ['Pasaltha', 'Fiamthu', 'Love Story', 'Sual lam', 'Nula palai', 'General'];
+type Category = { id: string; name: string; parentId: string | null }
 
 export default function CategoryPage() {
-  const [categories, setCategories] = useState<any[]>([]);
-  const [dark, setDark] = useState(true);
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const fetchCounts = async () => {
-      const snapshot = await getDocs(collection(db, "posts"));
-      const posts = snapshot.docs.map(doc => doc.data());
-      const data = CATEGORIES.map((name, index) => ({
-        name,
-        number: index + 1,
-        count: posts.filter((p: any) => p.category === name).length
-      }));
-      setCategories(data);
-    };
-    fetchCounts();
-  }, []);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [dark] = useState(false);
 
   const bg = dark? '#0f0f10' : '#f5f5f5';
   const card = dark? '#1a1a1c' : '#ffffff';
   const text = dark? '#ffffff' : '#000';
-  const subtext = dark? '#a0a0a0' : '#555';
   const border = dark? '#2a2a2c' : '#e0e0e0';
   const accent = '#5865F2';
-  const toggleDark = () => setDark(!dark);
+
+  useEffect(() => {
+    fetchCats();
+  }, []);
+
+  const fetchCats = async () => {
+    const q = query(collection(db, "categories"), where("parentId", "==", null));
+    const snap = await getDocs(q);
+    setCategories(snap.docs.map(d => ({id: d.id,...d.data()})) as Category[]);
+  }
+
+  const createCategory = async () => {
+    if(!newCatName) return;
+    await addDoc(collection(db, "categories"), {name: newCatName, parentId: null});
+    setNewCatName('');
+    setShowModal(false);
+    fetchCats();
+  }
 
   return (
     <div style={{background: bg, color: text, minHeight: '100vh'}}>
-      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: `1px solid ${border}`, position: 'sticky', top: 0, background: bg, zIndex: 20}}>
-        <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0}}>Thawnthu V2</h1>
-        <div style={{position: 'relative'}}>
-          <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', color: text, fontSize: '28px', cursor: 'pointer'}}>⋮</button>
-          {menuOpen && (
-            <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px 0', minWidth: '180px'}}>
-              <button onClick={toggleDark} style={{display: 'block', width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: text, textAlign: 'left', fontSize: '15px'}}>{dark? '☀️ Light Mode' : '🌙 Dark Mode'}</button>
-              <Link href="/about" style={{display: 'block', padding: '12px 16px', color: text, textDecoration: 'none', fontSize: '15px'}}>ℹ️ About</Link>
-              <Link href="/contact" style={{display: 'block', padding: '12px 16px', color: text, textDecoration: 'none', fontSize: '15px'}}>📞 Contact</Link>
-            </div>
-          )}
-        </div>
+      <div style={{padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+        <h1 style={{fontSize: '24px', fontWeight: '800'}}>Category</h1>
+        <button onClick={()=>setShowModal(true)} style={{background: accent, color: 'white', border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: '700'}}> + Create Category</button>
       </div>
 
-      <div style={{padding: '12px', paddingBottom: '80px'}}>
-        <h2 style={{fontSize: '20px', fontWeight: '700', margin: '16px 0'}}>Category</h2>
-        {categories.map((c,i)=>(
-          <Link key={i} href={`/category/${encodeURIComponent(c.name)}`} style={{textDecoration: 'none'}}>
-            <div style={{background: card, margin: '10px 0', padding: '16px', borderRadius: '12px', border: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer'}}>
-              <span style={{fontSize: '16px', fontWeight: '700'}}>{c.number}. {c.name}</span>
-              <span style={{fontSize: '14px', color: subtext}}>({c.count})</span>
+      <div style={{padding: '0 16px 80px 16px'}}>
+        {categories.map(cat => (
+          <Link href={`/category/${cat.id}`} key={cat.id} style={{textDecoration: 'none'}}>
+            <div style={{background: card, padding: '16px', borderRadius: '12px', border: `1px solid ${border}`, marginBottom: '12px'}}>
+              <h3 style={{margin: 0, color: text}}>{cat.name}</h3>
             </div>
           </Link>
         ))}
       </div>
 
+      {/* CREATE CATEGORY MODAL */}
+      {showModal && (
+        <div onClick={()=>setShowModal(false)} style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100}}>
+          <div onClick={(e)=>e.stopPropagation()} style={{background: card, padding: '20px', borderRadius: '16px', width: '90%', maxWidth: '400px'}}>
+            <h3>Create New Category</h3>
+            <input value={newCatName} onChange={(e)=>setNewCatName(e.target.value)} placeholder="Category hming" style={{width: '100%', padding: '12px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text, marginBottom: '12px'}}/>
+            <div style={{display: 'flex', gap: '8px'}}>
+              <button onClick={createCategory} style={{flex: 1, background: accent, color: 'white', border: 'none', padding: '12px', borderRadius: '8px'}}>Create</button>
+              <button onClick={()=>setShowModal(false)} style={{flex: 1, background: border, color: text, border: 'none', padding: '12px', borderRadius: '8px'}}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BOTTOM NAV */}
       <div style={{background: card, borderTop: `1px solid ${border}`, display: 'flex', justifyContent: 'space-around', position: 'fixed', bottom: 0, width: '100%'}}>
-        <Link href="/" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: '700', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>🏠</span>Home</button></Link>
-        <Link href="/category" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: accent, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: '700', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>📂</span>Category</button></Link>
-        <Link href="/post" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: '700', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>✍️</span>Post</button></Link>
-        <Link href="/notification" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', fontWeight: '700', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>🔔</span>Notify</button></Link>
+        <Link href="/" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: '#555', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>🏠</span>Home</button></Link>
+        <Link href="/category" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: accent, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', width: '100%', padding: '8px 0'}}><span style={{fontSize: '22px'}}>📂</span>Category</button></Link>
       </div>
     </div>
   )
