@@ -26,6 +26,7 @@ export default function HomePage() {
   const subtext = dark? '#a0a0a0' : '#666';
   const iconColor = text;
 
+  // 1. MENU ITEM BOLD BELH
   const menuItemStyle: React.CSSProperties = {
     padding: '12px 16px',
     border: 'none',
@@ -37,8 +38,8 @@ export default function HomePage() {
     gap: '12px',
     fontSize: '15px',
     cursor: 'pointer',
-    color: text
-    fontWeight: '700'
+    color: text,
+    fontWeight: '700' // BOLD
   };
 
   // OUTSIDE CLICK AH MENU CLOSE
@@ -134,7 +135,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 1. SEARCH BAR A TAWI TAWH */}
+      {/* SEARCH BAR */}
       {searchOpen && (
         <div style={{padding: '12px 16px', background: card, borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'center'}}>
           <input
@@ -167,7 +168,7 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* FOOTER BOLD + NOTIF BADGE */}
+      {/* FOOTER */}
       <div style={{background: card, borderTop: `1px solid ${border}`, display: 'flex', justifyContent: 'space-around', position: 'fixed', bottom: 0, width: '100%'}}>
         <Link href="/" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: accent, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', width: '100%', padding: '8px 0', fontWeight: '700'}}><span style={{fontSize: '22px'}}>🏠</span>Home</button></Link>
         <Link href="/category" style={{textDecoration: 'none', flex: 1}}><button style={{background: 'none', border: 'none', color: subtext, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '12px', width: '100%', padding: '8px 0', fontWeight: '700'}}><span style={{fontSize: '22px'}}>📂</span>Category</button></Link>
