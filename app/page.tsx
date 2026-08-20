@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import { useRouter } from "next/navigation";
@@ -12,6 +12,8 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [dark] = useState(false);
+  const [showMenu, setShowMenu] = useState(false); // 1. DOT 3 MENU
+  const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   const bg = dark? '#0f0f10' : '#f5f5f5';
@@ -21,6 +23,16 @@ export default function LoginPage() {
   const inputBg = dark? '#2a2a2c' : '#f0f0f0';
   const accent = '#8B2DCE';
   const subtext = dark? '#a0a0a0' : '#666';
+
+  useEffect(() => { // 1. MENU PIAH LAM CLICK IN A HIDE NAN
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current &&!menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -37,40 +49,44 @@ export default function LoginPage() {
     setLoading(false);
   }
 
-  const handleBack = () => {
-    // 1. HISTORY AWM CHUAN BACK, AWM LOH CHUAN HOME
-    if (window.history.length > 1) {
-      router.back()
-    } else {
-      router.push('/')
-    }
-  }
-
   return (
     <div style={{background: bg, color: text, minHeight: '100vh'}}>
 
-      {/* STICKY HEADER - ARROW 22px */}
+      {/* 1. STICKY HEADER - ARROW PAIH A DOT 3 DAH */}
       <div style={{
         background: card,
         padding: '16px',
         display: 'flex',
         alignItems: 'center',
-        gap: '12px',
+        justifyContent: 'space-between', // 1. MzApp leh Dot 3 inkar ti zau
         borderBottom: `1px solid ${border}`,
         position: 'sticky',
         top: 0,
         zIndex: 10
-      }}>
-        {/* ARROW BUTTON - BACK FUNCTION BELH */}
-        <button
-          onClick={handleBack}
-          style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex'}}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
+      }} ref={menuRef}>
+        <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0, color: accent}}>MzApp</h1> {/* 1. MzApp */}
+
+        {/* 1. DOT 3 BUTTON */}
+        <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', cursor: 'pointer', padding: '8px'}}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill={text}><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2.9-2 2.9 2 2 2zm0 2c-1.1 0-2.9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2.9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
         </button>
-        <h1 style={{fontSize: '20px', fontWeight: '800', margin: 0}}>Login</h1>
+
+        {/* 1. DOT 3 MENU + 2. LINE DAH VEK */}
+        {showMenu && (
+          <div style={{position: 'absolute', top: '60px', right: '16px', background: card, borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '190px', zIndex: 20, border: `1px solid ${border}`}}>
+            <span onClick={()=>{router.push('/setting?back=/'); setShowMenu(false)}} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer', fontWeight: '700', color: text}}> {/* 1. gap 18px */}
+              <span style={{fontSize: '20px'}}>⚙️</span> Setting
+            </span>
+            <hr style={{margin: '0 16px', border: 'none', borderBottom: `1px solid ${border}`}}/> {/* 2. LINE */}
+            <span onClick={()=>{router.push('/about?back=/'); setShowMenu(false)}} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer', fontWeight: '700', color: text}}> {/* 1. gap 18px */}
+              <span style={{fontSize: '20px'}}>ℹ️</span> About
+            </span>
+            <hr style={{margin: '0 16px', border: 'none', borderBottom: `1px solid ${border}`}}/> {/* 2. LINE */}
+            <span onClick={()=>{router.push('/contact?back=/'); setShowMenu(false)}} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer', fontWeight: '700', color: text}}> {/* 1. gap 18px */}
+              <span style={{fontSize: '20px'}}>📞</span> Contact Us
+            </span>
+          </div>
+        )}
       </div>
 
       {/* CONTENT */}
@@ -78,7 +94,7 @@ export default function LoginPage() {
         <div style={{width: '100%', maxWidth: '380px'}}>
           <div style={{background: card, padding: '24px', borderRadius: '20px', border: `1px solid ${border}`, boxShadow: '0 8px 30px rgba(0,0,0,0.12)'}}>
 
-            <p style={{color: subtext, fontSize: '14px', marginBottom: '20px', marginTop: 0}}>Please Login to continue</p>
+            <p style={{color: subtext, fontSize: '14px', marginBottom: '20px', marginTop: '8px'}}>Please Login to continue</p> {/* marginTop ka belh hret */}
 
             {error && <p style={{color: 'red', fontSize: '14px', marginBottom: '12px'}}>{error}</p>}
 
@@ -142,4 +158,4 @@ export default function LoginPage() {
       </div>
     </div>
   )
-}
+                    }
