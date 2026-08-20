@@ -1,9 +1,8 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { collection, getDocs, orderBy, query, doc, getDoc, updateDoc } from "firebase/firestore";
-import { db, auth, storage } from "../lib/firebase";
+import { collection, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
+import { db, auth } from "../lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -22,7 +21,7 @@ export default function ChatPage() {
   const card = dark? '#1a1a1c' : '#ffffff';
   const text = dark? '#ffffff' : '#000';
   const border = dark? '#2a2a2c' : '#e0e0e0';
-  const accent = '#8B2DCE'; // i duh ang var uk
+  const accent = '#8B2DCE'; // var uk
   const subtext = dark? '#a0a0a0' : '#666';
   const iconColor = text;
 
@@ -37,7 +36,12 @@ export default function ChatPage() {
     return () => unsub();
   }, []);
 
-  if(loading) return <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>Loading...</div>
+  const handleLogout = async () => {
+    await signOut(auth);
+    setMenuOpen(false);
+  }
+
+  if(loading) return <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: bg, color: text}}>Loading...</div>
 
   const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({
     padding: '10px 16px',
@@ -51,23 +55,69 @@ export default function ChatPage() {
     whiteSpace: 'nowrap'
   });
 
+  const menuItemStyle: React.CSSProperties = {
+    padding: '12px 16px',
+    border: 'none',
+    background: 'none',
+    width: '100%',
+    textAlign: 'left',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    fontSize: '15px',
+    cursor: 'pointer',
+    color: text,
+    fontWeight: '700'
+  };
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current &&!menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuRef]);
+
   return (
     <div style={{background: bg, color: text, minHeight: '100vh', paddingBottom: '80px'}}>
 
       {/* HEADER - THAWNTHU + SEARCH + DOT3 */}
       <div style={{background: card, padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${border}`, position: 'sticky', top: 0, zIndex: 10}}>
         <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0}}>Thawnthu</h1>
-        <div style={{display: 'flex', gap: '20px'}}>
+        <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
           <button onClick={()=>setSearchOpen(!searchOpen)} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </button>
-          <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill={iconColor}><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
-          </button>
+          <div style={{position: 'relative'}} ref={menuRef}>
+            <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill={iconColor}><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+            </button>
+            {menuOpen && (
+              <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', width: '200px', zIndex: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.15)'}}>
+                <Link href="/setting" style={{textDecoration: 'none'}}><button style={menuItemStyle}><span>⚙️</span><span>Setting</span></button></Link>
+                <hr style={{margin: '0', border: 'none', borderTop: `1px solid ${border}`}}/>
+                <Link href="/contact" style={{textDecoration: 'none'}}><button style={menuItemStyle}><span>📞</span><span>Contact Us</span></button></Link>
+                <hr style={{margin: '0', border: 'none', borderTop: `1px solid ${border}`}}/>
+                <Link href="/about" style={{textDecoration: 'none'}}><button style={menuItemStyle}><span>ℹ️</span><span>About</span></button></Link>
+                <hr style={{margin: '0', border: 'none', borderTop: `1px solid ${border}`}}/>
+                {user? (<button onClick={handleLogout} style={menuItemStyle}><span>🚪</span><span>Logout</span></button>) :
+                (<Link href="/login" style={{textDecoration: 'none'}}><button onClick={()=>setMenuOpen(false)} style={menuItemStyle}><span>🔑</span><span>Login</span></button></Link>)}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* 2. TAB BUTTONS - COMMENT BUTTON STYLE */}
+      {/* SEARCH BAR */}
+      {searchOpen && (
+        <div style={{padding: '12px 16px', background: card, borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'center'}}>
+          <input placeholder="Chat zawng rawh..." style={{width: '100%', maxWidth: '400px', padding: '12px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text, outline: 'none'}}/>
+        </div>
+      )}
+
+      {/* TAB BUTTONS - COMMENT BUTTON STYLE */}
       <div style={{background: card, padding: '12px 16px', borderBottom: `1px solid ${border}`, display: 'flex', gap: '10px', overflowX: 'auto'}}>
         {tabs.map(tab => (
           <button key={tab} onClick={()=>setActiveTab(tab)} style={tabButtonStyle(activeTab === tab)}>
@@ -78,10 +128,10 @@ export default function ChatPage() {
 
       {/* CONTENT AREA */}
       <div style={{padding: '16px'}}>
-        {activeTab === 'Profile' && <ProfileTab user={user} card={card} border={border} accent={accent} text={text} subtext={subtext}/>}
+        {activeTab === 'Profile' && <ProfileTab user={user} card={card} border={border} accent={accent} text={text} subtext={subtext} bg={bg}/>}
         {activeTab === 'User' && <UserTab card={card} border={border} text={text}/>}
         {activeTab === 'Online (0)' && <OnlineTab card={card} border={border} text={text}/>}
-        {activeTab === 'Status' && <StatusTab card={card} border={border} text={text} accent={accent}/>}
+        {activeTab === 'Status' && <StatusTab card={card} border={border} text={text} accent={accent} subtext={subtext}/>}
         {activeTab === 'Group' && <GroupTab card={card} border={border} text={text} accent={accent}/>}
       </div>
 
@@ -96,48 +146,48 @@ export default function ChatPage() {
   )
 }
 
-// 3. PROFILE TAB
-function ProfileTab({user, card, border, accent, text, subtext}: any) {
+// 1. PROFILE TAB
+function ProfileTab({user, card, border, accent, text, subtext, bg}: any) {
   const [name, setName] = useState(user?.displayName || '');
   const [bio, setBio] = useState('');
-  const [photoURL, setPhotoURL] = useState(user?.photoURL || '');
 
-  const handleUpload = async (e: any) => {
-    const file = e.target.files[0];
-    const storageRef = ref(storage, `profile/${user.uid}`);
-    await uploadBytes(storageRef, file);
-    const url = await getDownloadURL(storageRef);
-    setPhotoURL(url);
-    await updateDoc(doc(db, "users", user.uid), {photoURL: url, name});
+  const handleUpload = () => {
+    alert("Storage kan la on lo. Nakinah kan ti dawn nia boss")
+  }
+
+  const handleSave = async () => {
+    await updateDoc(doc(db, "users", user.uid), {name, bio});
+    alert("Profile update tawh")
   }
 
   return (
     <div style={{background: card, padding: '20px', borderRadius: '16px', border: `1px solid ${border}`}}>
       <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px'}}>
         <label style={{cursor: 'pointer'}}>
-          <img src={photoURL || 'https://i.pravatar.cc/100'} style={{width: '100px', height: '100px', borderRadius: '50%', objectFit: 'cover', border: `3px solid ${accent}`}}/>
+          <img src={user?.photoURL || 'https://i.pravatar.cc/100'} style={{width: '100px', height: '100px', borderRadius: '50%', objectFit: 'cover', border: `3px solid ${accent}`}}/>
           <input type="file" onChange={handleUpload} style={{display: 'none'}}/>
         </label>
         <input value={name} onChange={(e)=>setName(e.target.value)} placeholder="I hming" style={{padding: '10px', borderRadius: '8px', border: `1px solid ${border}`, width: '100%', background: bg, color: text}}/>
         <textarea value={bio} onChange={(e)=>setBio(e.target.value)} placeholder="Bio dah rawh" style={{padding: '10px', borderRadius: '8px', border: `1px solid ${border}`, width: '100%', height: '80px', background: bg, color: text}}/>
-        <button onClick={()=>updateDoc(doc(db, "users", user.uid), {name, bio})} style={{background: accent, color: 'white', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: '700', width: '100%'}}>Save Profile</button>
+        <button onClick={handleSave} style={{background: accent, color: 'white', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: '700', width: '100%'}}>Save Profile</button>
       </div>
     </div>
   )
 }
 
-// 4. USER TAB - USER ZAWNG ZAWNG
+// 2. USER TAB - USER ZAWNG ZAWNG
 function UserTab({card, border, text}: any) {
   const [users, setUsers] = useState<any[]>([]);
-  useEffect(()=>{ getDocs(collection(db, "users")).then(snap=>setUsers(snap.docs.map(d=>d.data()))) },[]);
+  useEffect(()=>{ getDocs(collection(db, "users")).then(snap=>setUsers(snap.docs.map(d=>({id: d.id,...d.data()})))) },[]);
 
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-      {users.map(u=>(
-        <Link href={`/chat/private/${u.uid}`} key={u.uid} style={{textDecoration: 'none'}}>
+      {users.length === 0 && <p style={{textAlign: 'center'}}>User an la awm lo</p>}
+      {users.map((u: any)=>(
+        <Link href={`/chat/private/${u.id}`} key={u.id} style={{textDecoration: 'none'}}>
           <div style={{background: card, padding: '12px', borderRadius: '12px', border: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: '12px'}}>
             <img src={u.photoURL || 'https://i.pravatar.cc/50'} style={{width: '50px', height: '50px', borderRadius: '50%'}}/>
-            <span style={{color: text, fontWeight: '700'}}>{u.name}</span>
+            <span style={{color: text, fontWeight: '700'}}>{u.name || 'No Name'}</span>
           </div>
         </Link>
       ))}
@@ -145,13 +195,13 @@ function UserTab({card, border, text}: any) {
   )
 }
 
-// 5. ONLINE TAB
+// 3. ONLINE TAB
 function OnlineTab({card, border, text}: any) {
-  return <div style={{background: card, padding: '20px', borderRadius: '16px', border: `1px solid ${border}`}}>Online (89) - Hetah online list a lang ang. UserTab ang chiah</div>
+  return <div style={{background: card, padding: '20px', borderRadius: '16px', border: `1px solid ${border}`, textAlign: 'center'}}>Online (0) - Hetah online list a lang ang</div>
 }
 
-// 6. STATUS TAB - WHATSAPP ANG
-function StatusTab({card, border, text, accent}: any) {
+// 4. STATUS TAB - WHATSAPP ANG
+function StatusTab({card, border, text, accent, subtext}: any) {
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
       <div style={{background: card, padding: '16px', borderRadius: '12px', border: `1px solid ${border}`, borderLeft: `4px solid ${accent}`}}>
@@ -165,7 +215,7 @@ function StatusTab({card, border, text, accent}: any) {
   )
 }
 
-// 7. GROUP TAB
+// 5. GROUP TAB
 function GroupTab({card, border, text, accent}: any) {
   return (
     <div>
@@ -173,4 +223,4 @@ function GroupTab({card, border, text, accent}: any) {
       <div style={{background: card, padding: '20px', borderRadius: '16px', border: `1px solid ${border}`}}>I siam tawh group te an lang ang</div>
     </div>
   )
-}
+          }
