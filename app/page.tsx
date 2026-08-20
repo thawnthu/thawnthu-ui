@@ -35,7 +35,7 @@ export default function HomePage() {
     textAlign: 'left',
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: '16px',
     fontSize: '15px',
     cursor: 'pointer',
     color: text,
