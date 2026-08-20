@@ -1,10 +1,11 @@
 'use client';
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function AboutPage() {
+function AboutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const backTo = searchParams.get('back') || '/'; // Login hma = /, Login hnu = /chat
+  const backTo = searchParams.get('back') || '/';
 
   const bg = '#F8F9FA';
   const card = '#FFFFFF';
@@ -21,9 +22,18 @@ export default function AboutPage() {
       </div>
       <div style={{flexGrow: 1, overflowY: 'auto', padding: '16px'}}>
         <div style={{background: card, padding: '24px', borderRadius: '20px', border: `1px solid ${border}`}}>
-          About Page content
+          <h3 style={{marginTop: 0}}>MZ App chungchang</h3>
+          <p>Heihi kan app thar ber a ni. Mizo tawng a hman nuam ber turin kan siam a ni.</p>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AboutPage() {
+  return (
+    <Suspense fallback={<div style={{padding:20}}>Loading...</div>}>
+      <AboutContent />
+    </Suspense>
   )
 }
