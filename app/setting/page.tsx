@@ -29,7 +29,7 @@ export default function SettingPage() {
       {/* HEADER */}
       <div style={{padding: '16px', display: 'flex', alignItems: 'center', gap: '10px', borderBottom: `1px solid ${border}`, background: bg, position: 'sticky', top: 0}}>
         <Link href="/" style={{display: 'flex', alignItems: 'center', textDecoration: 'none', color: text}}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </Link>
         <h2 style={{fontSize: '20px', fontWeight: '800', margin: 0}}>Setting</h2>
       </div>
