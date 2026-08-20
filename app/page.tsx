@@ -24,7 +24,7 @@ export default function HomePage() {
   const border = dark? '#2a2a2c' : '#e0e0e0';
   const accent = '#5865F2';
   const subtext = dark? '#a0a0a0' : '#666';
-  const iconColor = text; // white in dark mode
+  const iconColor = text;
 
   const menuItemStyle: React.CSSProperties = {
     padding: '12px 16px',
@@ -97,7 +97,7 @@ export default function HomePage() {
         <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0}}>Thawnthu</h1>
 
         <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
-          {/* 1. SEARCH ICON WHITE I THAWN ANG */}
+          {/* SEARCH ICON */}
           <button onClick={()=>setSearchOpen(!searchOpen)} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
@@ -105,7 +105,7 @@ export default function HomePage() {
             </svg>
           </button>
 
-          {/* 2. DOT 3 ICON WHITE */}
+          {/* DOT 3 MENU */}
           <div style={{position: 'relative'}} ref={menuRef}>
             <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill={iconColor}>
@@ -117,9 +117,11 @@ export default function HomePage() {
             {menuOpen && (
               <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', width: '200px', zIndex: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.15)'}}>
                 <Link href="/setting" style={{textDecoration: 'none'}}><button style={menuItemStyle}>⚙️ Setting</button></Link>
+                <hr style={{margin: '0', border: 'none', borderTop: `1px solid ${border}`}}/>
                 <Link href="/contact" style={{textDecoration: 'none'}}><button style={menuItemStyle}>📞 Contact Us</button></Link>
+                <hr style={{margin: '0', border: 'none', borderTop: `1px solid ${border}`}}/>
                 <Link href="/about" style={{textDecoration: 'none'}}><button style={menuItemStyle}>ℹ️ About</button></Link>
-                <hr style={{margin: '4px 0', border: 'none', borderTop: `1px solid ${border}`}}/>
+                <hr style={{margin: '0', border: 'none', borderTop: `1px solid ${border}`}}/>
                 {user? (
                   <button onClick={handleLogout} style={menuItemStyle}>🚪 Logout</button>
                 ) : (
@@ -131,15 +133,15 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* SEARCH BAR */}
+      {/* 1. SEARCH BAR A TAWI TAWH */}
       {searchOpen && (
-        <div style={{padding: '12px 16px', background: card, borderBottom: `1px solid ${border}`}}>
+        <div style={{padding: '12px 16px', background: card, borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'center'}}>
           <input
             value={searchText}
             onChange={(e)=>setSearchText(e.target.value)}
             placeholder="Thawnthu zawng rawh..."
             autoFocus
-            style={{width: '100%', padding: '12px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text, outline: 'none'}}
+            style={{width: '100%', maxWidth: '400px', padding: '12px', borderRadius: '8px', border: `1px solid ${border}`, background: bg, color: text, outline: 'none'}}
           />
         </div>
       )}
