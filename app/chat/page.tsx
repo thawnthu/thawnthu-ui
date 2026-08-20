@@ -3,11 +3,10 @@ import { useState, useEffect, useRef } from 'react';
 import { collection, getDocs } from "firebase/firestore";
 import { db, auth } from "../lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function ChatPage() {
-  const [activeTab, setActiveTab] = useState('Chat');
+  const [activeTab, setActiveTab] = useState('Home'); // 1. LOGIN ZAWHAH HOME
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -21,7 +20,8 @@ export default function ChatPage() {
   const accent = '#8B2DCE';
   const subtext = '#6C757D';
 
-  const tabs = ['Home', 'Chat', 'Online(98)', 'Notification(45)', 'Users', 'Group', 'Category', 'Profile'];
+  // 2. USERS HI ONLINE(98) HNU AH KAN DAH - DELETE AWM LO
+  const tabs = ['Home', 'Chat', 'Online(98)', 'Users', 'Notification(45)', 'Group', 'Category', 'Profile'];
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -32,6 +32,7 @@ export default function ChatPage() {
   }, [router]);
 
   const handleLogout = async () => { await signOut(auth); setMenuOpen(false); }
+  const goToChat = () => { setMenuOpen(false); router.push('/chat'); } // 3. DOT3 ATANGA CHAT AH LET
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -43,37 +44,29 @@ export default function ChatPage() {
 
   if(loading) return <div style={{padding: '20px'}}>Loading...</div>
 
-  const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({ 
-    padding: '10px 16px', 
-    borderRadius: '20px', 
-    border: 'none', 
-    background: isActive? accent : '#F1F3F5', 
-    color: isActive? 'white' : text, 
-    fontWeight: '700', 
-    fontSize: '14px', 
-    cursor: 'pointer', 
-    whiteSpace: 'nowrap',
-    flexShrink: 0
+  const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({
+    padding: '10px 16px', borderRadius: '20px', border: 'none',
+    background: isActive? accent : '#F1F3F5', color: isActive? 'white' : text,
+    fontWeight: '700', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0
   });
-  
   const menuItemStyle: React.CSSProperties = { padding: '12px 16px', border: 'none', background: 'none', width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '16px', fontSize: '15px', cursor: 'pointer', color: text, fontWeight: '700' };
   const menuDivider: React.CSSProperties = { margin: '0', border: 'none', borderTop: `1px solid ${border}` };
 
   return (
     <div style={{background: bg, color: text, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column'}}>
 
-      {/* 1. HEADER FIX NGHEH */}
-      <div style={{flexShrink: 0, background: card, padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${border}`}}> {/* 1. LINE HNUAI AH */}
+      {/* HEADER */}
+      <div style={{flexShrink: 0, background: card, padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${border}`}}>
         <h1 style={{fontSize: '22px', fontWeight: '800', margin: 0, color: accent}}>MzApp</h1>
         <div style={{position: 'relative'}} ref={menuRef}>
           <button onClick={()=>setMenuOpen(!menuOpen)} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}><svg width="24" height="24" viewBox="0 0 24 24" fill={text}><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
           {menuOpen && (
             <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', width: '200px', zIndex: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.15)'}}>
-              <Link href="/setting" style={{textDecoration: 'none'}}><button style={menuItemStyle}><span>⚙️</span><span>Setting</span></button></Link>
+              <button onClick={goToChat} style={menuItemStyle}><span>⚙️</span><span>Setting</span></button>
               <hr style={menuDivider}/>
-              <Link href="/about" style={{textDecoration: 'none'}}><button style={menuItemStyle}><span>ℹ️</span><span>About</span></button></Link>
-              <hr style={menuDivider}/> {/* 3. LINE BELH */}
-              <Link href="/contact" style={{textDecoration: 'none'}}><button style={menuItemStyle}><span>📞</span><span>Contact Us</span></button></Link> {/* 3. CONTACT US BELH */}
+              <button onClick={goToChat} style={menuItemStyle}><span>ℹ️</span><span>About</span></button>
+              <hr style={menuDivider}/>
+              <button onClick={goToChat} style={menuItemStyle}><span>📞</span><span>Contact Us</span></button>
               <hr style={menuDivider}/>
               <button onClick={handleLogout} style={menuItemStyle}><span>🚪</span><span>Logout</span></button>
             </div>
@@ -81,26 +74,18 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* 2. TABS WRAP - TUAIPHEI NGAI TAWH LO */}
-      <div style={{
-        flexShrink: 0, 
-        background: card, 
-        padding: '12px 16px', 
-        display: 'flex', 
-        gap: '10px', 
-        flexWrap: 'wrap', /* 2. HEI HI A PAWIMAWH: Tlar ah a awm ang */
-        borderBottom: `1px solid ${border}` /* 1. LINE HNUAI AH */
-      }}>
+      {/* TABS WRAP - TLAR 2 AH A LENG KIM */}
+      <div style={{flexShrink: 0, background: card, padding: '12px 16px', display: 'flex', gap: '10px', flexWrap: 'wrap', borderBottom: `1px solid ${border}`}}>
         {tabs.map(tab => (<button key={tab} onClick={()=>setActiveTab(tab)} style={tabButtonStyle(activeTab === tab)}>{tab}</button>))}
       </div>
 
-      {/* 3. CONTENT CHIAH SCROLL THEIH */}
+      {/* CONTENT */}
       <div style={{flexGrow: 1, overflowY: 'auto', padding: '16px'}}>
         {activeTab === 'Home' && <PageCard title="Home Page" card={card} border={border}/>}
         {activeTab === 'Chat' && <ChatTab card={card} border={border} text={text} subtext={subtext}/>}
         {activeTab === 'Online(98)' && <PageCard title="Online(98)" card={card} border={border}/>}
-        {activeTab === 'Notification(45)' && <PageCard title="Notification(45)" card={card} border={border}/>}
         {activeTab === 'Users' && <UsersTab card={card} border={border} text={text}/>}
+        {activeTab === 'Notification(45)' && <PageCard title="Notification(45)" card={card} border={border}/>}
         {activeTab === 'Group' && <PageCard title="Group Page" card={card} border={border}/>}
         {activeTab === 'Category' && <PageCard title="Category Page" card={card} border={border}/>}
         {activeTab === 'Profile' && <ProfileTab user={user} card={card} border={border} accent={accent} text={text}/>}
