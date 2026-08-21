@@ -72,17 +72,18 @@ export default function RootLayout({
         color: text,
         fontSize: fontSizeMap[fontSize],
         margin: 0,
-        padding: 0,
+        padding: 0, // <-- padding ka remove
         fontFamily: 'system-ui, -apple-system, sans-serif',
         transition: 'background 0.3s, color 0.3s, font-size 0.2s'
       }}>
 
-        {/* 3. LOGIN TAWH CHUAN CHIAH HEADER + MENU LANG TUR */}
+        {/* 3. LOGIN TAWH CHUAN CHIAH HEADER + MENU LANG TUR - FULL WIDTH */}
         {isLoggedIn && (
           <>
             <div style={{
+              width: '100%', // <-- Full width
               background: card,
-              padding: '16px',
+              padding: '16px 20px', // <-- side padding belh
               borderBottom: `1px solid ${border}`,
               position: 'sticky',
               top: 0,
@@ -90,6 +91,7 @@ export default function RootLayout({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
+              boxSizing: 'border-box', // <-- pawimawh
               transition: '0.3s'
             }}>
               <h1 style={{color: accent, fontSize: '28px', fontWeight: '800', margin: 0}}>MzApp</h1>
@@ -99,15 +101,17 @@ export default function RootLayout({
             </div>
 
             <div style={{
+              width: '100%', // <-- Full width
               display: 'flex',
               gap: '8px',
-              padding: '12px 16px',
+              padding: '12px 20px', // <-- side padding belh
               background: card,
               borderBottom: `1px solid ${border}`,
               overflowX: 'auto',
               position: 'sticky',
-              top: '69px',
+              top: '69px', // header sang zawng
               zIndex: 9,
+              boxSizing: 'border-box', // <-- pawimawh
               transition: '0.3s'
             }}>
               {tabs.map(tab => {
@@ -135,10 +139,15 @@ export default function RootLayout({
           </>
         )}
 
-        <div style={{padding: '16px'}}>
+        {/* 4. CONTENT CHIAH HEI HI CARD ANG IN KAN KUNG ANG */}
+        <div style={{
+          padding: '16px',
+          maxWidth: '600px', // <-- phone ah a nalh
+          margin: '0 auto' // <-- a laiah dah
+        }}>
           {children}
         </div>
       </body>
     </html>
   );
-                      }
+}
