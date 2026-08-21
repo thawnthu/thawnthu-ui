@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, Suspense } from 'react'; // Suspense belh
 import { confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
-import { auth } from "../lib/firebase";
+import { auth } from "@/lib/firebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
