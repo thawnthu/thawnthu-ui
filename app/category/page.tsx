@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, query, where } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { db } from "@/lib/firebase";
 import Link from "next/link";
 
 type Category = { id: string; name: string; parentId: string | null }
