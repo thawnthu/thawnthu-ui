@@ -21,11 +21,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 2. Users leh Setting a inthlak. Setting a tawp ber
+  // Group hi line 2 na a hmasa berah
   const tabs = ['Home', 'Chat', 'Online(98)', 'Notification(98)', 'Group', 'Category', 'Profile', 'Users', 'Setting'];
 
-  const currentTab = pathname.split('/')[2] || 'home';
-  const activeTab = currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
+  // 1. Setting click a orange theih nan: pathname zawng zawng check
+  const currentPath = pathname.split('/')[1] || 'home';
+  const activeTab = currentPath === ''? 'Home' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1);
 
   const handleTab = (tab: string) => {
     const route = tab.toLowerCase().replace('(98)','');
@@ -68,7 +69,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      {/* 1. Search input ti tawi */}
       {showSearch && (
         <div style={{padding: '8px 16px', background: card, borderBottom: `1px solid ${border}`}}>
           <input
@@ -76,8 +76,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             placeholder="Search..."
             autoFocus
             style={{
-              width: '90%', // 100% atang 90% ah ka ti tawi
-              maxWidth: '400px', // a len lutuk loh nan
+              width: '90%',
+              maxWidth: '400px',
               padding: '10px 14px',
               borderRadius: '8px',
               border: `1px solid ${border}`,
@@ -91,7 +91,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       <div style={{display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 16px 4px 16px', background: card}}>
-        {/* 2. Line 1 ah 5 chiah. Thai phei a ngai tawh lo */}
         <div style={{display: 'flex', gap: '16px', overflowX: 'auto'}}>
           {tabs.slice(0,5).map(tab => {
             const tabName = tab.replace('(98)','');
@@ -104,7 +103,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   padding: '6px 2px',
                   border: 'none',
                   background: 'none',
-                  // 3. Click lai chiah orange
                   color: isActive? activeColor : accent,
                   fontWeight: '700',
                   cursor: 'pointer',
@@ -117,7 +115,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )
           })}
         </div>
-        {/* Line 2 ah 4 chiah. Setting a tawp ber */}
+        {/* 2. Group hi a hmasa ber */}
         <div style={{display: 'flex', gap: '16px', overflowX: 'auto'}}>
           {tabs.slice(5,9).map(tab => {
             const tabName = tab.replace('(98)','');
@@ -147,4 +145,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div style={{padding: '16px'}}>{children}</div>
     </div>
   )
-}
+                                                                   }
