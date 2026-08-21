@@ -100,7 +100,7 @@ export default function ForgotPage() {
             </div>
 
             <p style={{textAlign: 'center', marginTop: '20px', fontSize: '14px', color: subtext}}>
-              Remember password? <Link href="/login" style={{color: accent, fontWeight: '700', textDecoration: 'none'}}>Login</Link>
+              Remember password? <Link href="/page" style={{color: accent, fontWeight: '700', textDecoration: 'none'}}>Login</Link>
             </p>
           </div>
         </div>
