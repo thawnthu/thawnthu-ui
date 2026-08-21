@@ -44,7 +44,8 @@ export default function LoginPage() {
     setError('');
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/');
+      setLoading(false);
+      router.push('/chat'); // HEI HI A PAWIMAWH BER - /chat ah kan thawn
     } catch (err: any) {
       console.log("FIREBASE ERROR:", err.code, err.message); 
       const errorCode = err.code;
@@ -54,7 +55,6 @@ export default function LoginPage() {
         setError('Please enter a valid email address');
       } 
       else if (errorCode === 'auth/invalid-credential') {
-        // PASSWORD DIK LO EM AWM LO EM KAN THEN HRANG
         if (errorMessage.includes('password')) {
           setError('Incorrect password');
         } else {
@@ -70,8 +70,8 @@ export default function LoginPage() {
       else {
         setError('Login failed. Please try again');
       }
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (
@@ -172,7 +172,7 @@ export default function LoginPage() {
                 <button
                   onClick={handleLogin}
                   disabled={loading}
-                  style={{background: accent, color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: '800', fontSize: '16px', cursor: 'pointer', marginTop: '4px', boxShadow: `0 4px 15px ${accent}40`}}>
+                  style={{background: accent, color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: '800', fontSize: '16px', cursor: 'pointer', marginTop: '4px', boxShadow: `0 4px 15px ${accent}40`, opacity: loading? 0.7 : 1}}>
                   {loading? "Loading..." : "Login"}
                 </button>
               </div>
