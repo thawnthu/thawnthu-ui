@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 export default function HomePage() {
   const router = useRouter();
   const pathname = usePathname();
+  const [dark] = useState(false); // i dark mode i neih chuan true/false ah dah la
 
   const tabs = ['Home', 'Chat', 'Online(98)', 'Users', 'Notification(45)', 'Group', 'Category', 'Profile'];
 
@@ -17,18 +18,18 @@ export default function HomePage() {
   }
 
   const accent = '#2563eb'; // BLUE
-  const inactiveText = '#555';
-  const card = '#ffffff';
-  const border = '#e0e0e0';
+  const inactiveText = dark? '#aaa' : '#666';
+  const card = dark? '#1a1a1c' : '#ffffff';
+  const border = dark? '#2a2a2c' : '#e0e0e0';
 
   return (
-    <div>
+    <div style={{background: dark? '#0f0f10' : '#f5f5f5', minHeight: '100vh'}}>
       {/* MENU - TEXT ANG */}
       <div style={{
         width: '100%',
         display: 'flex',
-        gap: '20px',
-        padding: '12px 16px',
+        gap: '24px', // inkar zau
+        padding: '14px 20px',
         background: card,
         borderBottom: `1px solid ${border}`,
         overflowX: 'auto',
@@ -42,15 +43,16 @@ export default function HomePage() {
               key={tab}
               onClick={()=>handleTab(tabName)}
               style={{
-                padding: '8px 0',
+                padding: '6px 0',
                 border: 'none',
-                background: 'none',
-                color: isActive? accent : inactiveText,
+                background: 'none', // background bo
+                color: isActive? accent : inactiveText, // active blue, dang grey
                 fontWeight: isActive? '700' : '500',
                 whiteSpace: 'nowrap',
                 cursor: 'pointer',
                 fontSize: '15px',
-                borderBottom: isActive? `2px solid ${accent}` : '2px solid transparent',
+                borderBottom: isActive? `3px solid ${accent}` : '3px solid transparent', // hnuai ah line chhah
+                transition: '0.2s'
               }}>
               {tab}
             </button>
@@ -67,7 +69,8 @@ export default function HomePage() {
           textAlign: 'center',
           fontSize: '18px',
           fontWeight: '600',
-          border: `1px solid ${border}`
+          border: `1px solid ${border}`,
+          color: dark? '#fff' : '#000'
         }}>
           Home Page
         </div>
