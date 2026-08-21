@@ -21,10 +21,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Group hi line 2 na a hmasa berah
+  // Group hi line 2 hmasa ber
   const tabs = ['Home', 'Chat', 'Online(98)', 'Notification(98)', 'Group', 'Category', 'Profile', 'Users', 'Setting'];
 
-  // 1. Setting click a orange theih nan: pathname zawng zawng check
   const currentPath = pathname.split('/')[1] || 'home';
   const activeTab = currentPath === ''? 'Home' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1);
 
@@ -41,6 +40,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{background: dark? '#0f0f10' : '#f5f5f5', minHeight: '100vh', fontFamily: 'Inter, sans-serif'}}>
 
+      {/* HEADER */}
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: card, borderBottom: `2px solid ${border}`, position: 'sticky', top: 0, zIndex: 20}}>
         <div style={{fontSize: '22px', fontWeight: '800', color: accent, letterSpacing: '-0.5px'}}>MzApp</div>
 
@@ -69,6 +69,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
+      {/* SEARCH */}
       {showSearch && (
         <div style={{padding: '8px 16px', background: card, borderBottom: `1px solid ${border}`}}>
           <input
@@ -90,9 +91,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
+      {/* MENU */}
       <div style={{display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 16px 4px 16px', background: card}}>
+        {/* Line 1 */}
         <div style={{display: 'flex', gap: '16px', overflowX: 'auto'}}>
-          {tabs.slice(0,5).map(tab => {
+          {tabs.slice(0,4).map(tab => {
             const tabName = tab.replace('(98)','');
             const isActive = activeTab === tabName;
             return (
@@ -115,9 +118,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )
           })}
         </div>
-        {/* 2. Group hi a hmasa ber */}
+        {/* Line 2 - Group a hmasa ber */}
         <div style={{display: 'flex', gap: '16px', overflowX: 'auto'}}>
-          {tabs.slice(5,9).map(tab => {
+          {tabs.slice(4,9).map(tab => {
             const tabName = tab.replace('(98)','');
             const isActive = activeTab === tabName;
             return (
@@ -145,4 +148,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div style={{padding: '16px'}}>{children}</div>
     </div>
   )
-                                                                   }
+}
