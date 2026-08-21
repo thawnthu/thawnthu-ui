@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense } from 'react'; // Suspense belh
 import { useSearchParams, useRouter } from "next/navigation";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
-import { db, auth } from "../lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import Link from "next/link";
 
 // HEI HI POST FORM CHHUNG TAK
