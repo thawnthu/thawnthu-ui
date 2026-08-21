@@ -1,16 +1,16 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Search, MessageCircle, Circle } from 'lucide-react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { Search, MessageCircle } from 'lucide-react';
+import { collection, getDocs, onSnapshot } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase';
 
 type User = {
   id: string;
+  uid: string;
   name: string;
   email: string;
   online?: boolean;
-  photo?: string;
 };
 
 export default function UsersPage() {
@@ -19,79 +19,70 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // Demo data - Firestore la awm loh pawn a lang ang
-  const demoUsers: User[] = [
-    { id: '1', name: 'Rema Chhangte', email: 'rema@gmail.com', online: true },
-    { id: '2', name: 'Zuali Hmar', email: 'zuali@gmail.com', online: true },
-    { id: '3', name: 'Lalruata', email: 'ruata@gmail.com', online: false },
-    { id: '4', name: 'Msi Pachuau', email: 'msi@gmail.com', online: true },
-    { id: '5', name: 'Rintei Ralte', email: 'rintei@gmail.com', online: false },
-    { id: '6', name: 'Muana Khawlhring', email: 'muana@gmail.com', online: true },
-  ];
-
+  // 6. Users signup tawh ho lakna - Firestore atang
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        // I users collection atang a lak i duh chuan hemi hi uncomment rawh
-        // const snap = await getDocs(collection(db, "users"));
-        // const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as User));
-        // setUsers(list);
+    // Realtime a update tur
+    const unsub = onSnapshot(collection(db, "users"), (snap) => {
+      const list = snap.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+      } as User));
+      
+      // Mahni account paih
+      const filteredList = list.filter(u => u.uid !== auth.currentUser?.uid);
+      setUsers(filteredList);
+      setLoading(false);
+    }, (err) => {
+      console.log("Users fetch error:", err);
+      setLoading(false);
+    });
 
-        setUsers(demoUsers); // Tunah chuan demo kan hmang rih
-      } catch (e) {
-        console.log(e);
-        setUsers(demoUsers);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUsers();
+    return () => unsub();
   }, []);
 
   const filtered = users.filter(u => 
-    u.name.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase())
+    u.name?.toLowerCase().includes(search.toLowerCase()) ||
+    u.email?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const getInitial = (name: string) => name.charAt(0).toUpperCase();
+  const getInitial = (name: string) => name?.charAt(0).toUpperCase() || '?';
   const getColor = (name: string) => {
-    const colors = ['#8d31ce', '#2563eb', '#ff6b35', '#10b981', '#ef4444', '#f59e0b'];
-    return colors[name.length % colors.length];
+    const colors = ['#2563eb', '#ef4444', '#ff6b35', '#f59e0b', '#8d31ce'];
+    return colors[(name?.length || 0) % colors.length];
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
-      {/* HEADER */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#fff', borderBottom: '1px solid #e0e0e0' }}>
-        <button onClick={() => router.back()} style={{ background: 'none', border: 'none', padding: '6px', cursor: 'pointer', display: 'flex' }}>
-          <ArrowLeft size={22} color="#000" />
-        </button>
-        <h1 style={{ fontSize: '20px', fontWeight: '800', margin: 0 }}>Users</h1>
-        <span style={{ marginLeft: '6px', background: '#8d31ce', color: '#fff', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: '700' }}>
-          {users.length}
-        </span>
-      </div>
-
-      {/* SEARCH */}
-      <div style={{ padding: '12px 16px', background: '#fff' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f0f0f0', padding: '10px 14px', borderRadius: '12px' }}>
-          <Search size={18} color="#666" />
+    <div style={{ minHeight: '100vh', background: '#ffffff' }}>
+      
+      {/* 2. SEARCH - Card chhung a awm lo, a sang zawk */}
+      <div style={{ padding: '10px 12px', background: '#fff' }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '10px', 
+          background: '#f0f0f0', 
+          padding: '16px 16px', // THLAK: 10px atang 16px ah (a chung hnuai lian zawk)
+          borderRadius: '12px' 
+        }}>
+          <Search size={20} color="#888" />
           <input
             type="text"
             placeholder="Search users..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '15px' }}
+            style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '16px' }}
           />
         </div>
       </div>
 
-      {/* USER LIST */}
-      <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {/* 3. CARD - A var in a luah zau zawk, gap tlem zawk */}
+      <div style={{ padding: '0 8px 12px 8px', display: 'flex', flexDirection: 'column', gap: '2px', background: '#fff' }}>
         {loading ? (
-          <p style={{ textAlign: 'center', color: '#666', marginTop: '20px' }}>Loading users...</p>
+          <p style={{ textAlign: 'center', color: '#666', marginTop: '30px' }}>Loading users...</p>
         ) : filtered.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#666', marginTop: '20px' }}>No users found</p>
+          <p style={{ textAlign: 'center', color: '#666', marginTop: '30px' }}>
+            {users.length === 0 ? 'Tumah an la signup lo / users collection ah data a awm lo' : 'No users found'}
+          </p>
         ) : (
           filtered.map((user) => (
             <div
@@ -101,14 +92,15 @@ export default function UsersPage() {
                 alignItems: 'center',
                 gap: '12px',
                 background: '#fff',
-                padding: '14px 16px',
-                borderRadius: '14px',
-                border: '1px solid #e0e0e0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                padding: '14px 10px',
+                borderBottom: '1px solid #f0f0f0', // border chauh, card shadow awm lo
               }}
             >
               {/* AVATAR */}
-              <div style={{ position: 'relative' }}>
+              <div 
+                style={{ position: 'relative', cursor: 'pointer' }}
+                onClick={() => router.push(`/profile/${user.uid || user.id}`)} // 4. Profile ah kal
+              >
                 <div
                   style={{
                     width: '48px',
@@ -120,29 +112,32 @@ export default function UsersPage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '20px',
-                    fontWeight: '800',
+                    fontWeight: '700',
                   }}
                 >
                   {getInitial(user.name)}
                 </div>
                 {user.online && (
-                  <div style={{ position: 'absolute', bottom: '0', right: '0', width: '12px', height: '12px', background: '#10b981', borderRadius: '50%', border: '2px solid #fff' }}></div>
+                  <div style={{ position: 'absolute', bottom: '1px', right: '1px', width: '12px', height: '12px', background: '#10b981', borderRadius: '50%', border: '2px solid #fff' }}></div>
                 )}
               </div>
 
-              {/* INFO */}
-              <div style={{ flex: 1, overflow: 'hidden' }}>
+              {/* 4. HMING CLICK CHUAN PROFILE */}
+              <div 
+                style={{ flex: 1, overflow: 'hidden', cursor: 'pointer' }}
+                onClick={() => router.push(`/profile/${user.uid || user.id}`)}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <p style={{ margin: 0, fontSize: '16px', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</p>
-                  {user.online && <Circle size={8} fill="#10b981" color="#10b981" />}
+                  <p style={{ margin: 0, fontSize: '15px', fontWeight: '600', color: '#000' }}>{user.name}</p>
+                  {user.online && <span style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', display: 'inline-block' }}></span>}
                 </div>
-                <p style={{ margin: '2px 0 0 0', fontSize: '13px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email}</p>
+                <p style={{ margin: '1px 0 0 0', fontSize: '13px', color: '#666' }}>{user.email}</p>
               </div>
 
-              {/* ACTION */}
+              {/* 5. CHAT CLICK CHUAN CHAT */}
               <button
-                onClick={() => router.push(`/chat/${user.id}`)}
-                style={{ background: '#f0f0ff', border: 'none', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                onClick={() => router.push(`/chat/${user.uid || user.id}`)}
+                style={{ background: '#f5f0ff', border: 'none', width: '38px', height: '38px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
               >
                 <MessageCircle size={20} color="#8d31ce" />
               </button>
@@ -152,4 +147,4 @@ export default function UsersPage() {
       </div>
     </div>
   );
-                      }
+}
