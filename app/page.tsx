@@ -46,29 +46,8 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/');
     } catch (err: any) {
-      console.log(err); // Debug nan
-      const errorCode = err.code;
-      const errorMessage = err.message;
-
-      // 1. IF ELSE IN CHECK CHAR CHAR
-      if (errorCode === 'auth/invalid-email' || errorMessage.includes('invalid-email')) {
-        setError('Please enter a valid email address');
-      } 
-      else if (errorCode === 'auth/user-not-found' || errorMessage.includes('user-not-found')) {
-        setError('No account found with this email');
-      } 
-      else if (errorCode === 'auth/wrong-password' || errorMessage.includes('wrong-password')) {
-        setError('Incorrect password. Please try again');
-      } 
-      else if (errorCode === 'auth/too-many-requests' || errorMessage.includes('too-many-requests')) {
-        setError('Too many failed attempts. Please try again later');
-      }
-      else if (errorCode === 'auth/network-request-failed' || errorMessage.includes('network-request-failed')) {
-        setError('Network error. Please check your internet connection');
-      }
-      else {
-        setError('Login failed. Please try again');
-      }
+      console.log("FIREBASE ERROR:", err); // DEBUG NAN
+      setError(err.message); // ERROR DIK TAK LANG
     }
     setLoading(false);
   }
@@ -188,4 +167,4 @@ export default function LoginPage() {
       </div>
     </>
   )
-                                                   }
+                                            }
