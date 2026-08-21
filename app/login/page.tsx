@@ -27,7 +27,8 @@ export default function LoginPage() {
     setError('');
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/');
+      localStorage.setItem('isLoggedIn', 'true'); // <-- login status save
+      router.push('/home'); // <-- HEI HI /home ah ka thlak
     } catch (err: any) {
       if(err.code === 'auth/invalid-email') setError('Invalid email format');
       else if(err.code === 'auth/user-not-found') setError('No account found with this email');
