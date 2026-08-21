@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -20,6 +20,16 @@ export default function LoginPage() {
     const saved = localStorage.getItem('darkMode');
     setDark(saved === 'true');
   }, []);
+
+  // THLAK 1: Login tawh chu Home ah kir tir nghal (Back a kir lo nan)
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.replace('/home');
+      }
+    });
+    return () => unsub();
+  }, [router]);
 
   const bg = dark? '#0f0f10' : '#f5f5f5';
   const card = dark? '#1a1a1c' : '#ffffff';
@@ -45,17 +55,17 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       setLoading(false);
-      router.push('/home');
+      router.replace('/home'); // THLAK 2: push aiah replace
     } catch (err: any) {
-      console.log("FIREBASE ERROR:", err.code); 
+      console.log("FIREBASE ERROR:", err.code);
       const errorCode = err.code;
 
       if (errorCode === 'auth/invalid-email') {
         setError('Please enter a valid email address');
-      } 
+      }
       else if (errorCode === 'auth/invalid-credential') {
-        setError('Incorrect email or password'); // HEI HI THLAK
-      } 
+        setError('Incorrect email or password');
+      }
       else if (errorCode === 'auth/too-many-requests') {
         setError('Too many failed attempts. Please try again later');
       }
@@ -74,7 +84,7 @@ export default function LoginPage() {
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&display=swap');
       `}</style>
-      
+
       <div style={{background: bg, color: text, minHeight: '100vh', transition: '0.3s'}}>
 
         <div style={{
@@ -181,4 +191,4 @@ export default function LoginPage() {
       </div>
     </>
   )
-      }
+                          }
