@@ -16,22 +16,19 @@ export default function RootLayout({
   const router = useRouter();
   const pathname = usePathname();
 
-  // 1. A tir ah localStorage atangin kan la chhuak
   useEffect(() => {
     const savedDark = localStorage.getItem('darkMode');
     const savedFont = localStorage.getItem('fontSize');
-    const savedLogin = localStorage.getItem('isLoggedIn'); // Login check belh
+    const savedLogin = localStorage.getItem('isLoggedIn');
 
     if(savedDark!== null) setDark(JSON.parse(savedDark));
     if(savedFont) setFontSize(JSON.parse(savedFont));
     if(savedLogin) setIsLoggedIn(JSON.parse(savedLogin));
 
-    // Active tab path atangin set
     const currentTab = pathname.split('/')[1] || 'home';
     setActiveTab(currentTab.charAt(0).toUpperCase() + currentTab.slice(1));
   }, [pathname]);
 
-  // 2. Setting page dang ah a inthlak chuan he tah pawhin a hre nghal
   useEffect(() => {
     const handleStorage = () => {
       setDark(JSON.parse(localStorage.getItem('darkMode') || 'false'));
@@ -72,78 +69,87 @@ export default function RootLayout({
         color: text,
         fontSize: fontSizeMap[fontSize],
         margin: 0,
-        padding: 0, // <-- padding ka remove
+        padding: 0,
         fontFamily: 'system-ui, -apple-system, sans-serif',
         transition: 'background 0.3s, color 0.3s, font-size 0.2s'
       }}>
 
-        {/* 3. LOGIN TAWH CHUAN CHIAH HEADER + MENU LANG TUR - FULL WIDTH */}
-        {isLoggedIn && (
-          <>
-            <div style={{
-              width: '100%', // <-- Full width
-              background: card,
-              padding: '16px 20px', // <-- side padding belh
-              borderBottom: `1px solid ${border}`,
-              position: 'sticky',
-              top: 0,
-              zIndex: 10,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              boxSizing: 'border-box', // <-- pawimawh
-              transition: '0.3s'
-            }}>
-              <h1 style={{color: accent, fontSize: '28px', fontWeight: '800', margin: 0}}>MzApp</h1>
-              <button style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill={text}><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
-              </button>
-            </div>
+        {/* HEADER - LOGIN TAWH LO PAWH IN A LANG ANG, FULL WIDTH */}
+        <div style={{
+          width: '100%',
+          background: card,
+          padding: '16px 20px',
+          borderBottom: `1px solid ${border}`,
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxSizing: 'border-box',
+          transition: '0.3s'
+        }}>
+          <h1 style={{color: accent, fontSize: '28px', fontWeight: '800', margin: 0}}>MzApp</h1>
+          <button style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            background: dark? '#2a2a2c' : '#f1f1f1',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill={text}><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+          </button>
+        </div>
 
-            <div style={{
-              width: '100%', // <-- Full width
-              display: 'flex',
-              gap: '8px',
-              padding: '12px 20px', // <-- side padding belh
-              background: card,
-              borderBottom: `1px solid ${border}`,
-              overflowX: 'auto',
-              position: 'sticky',
-              top: '69px', // header sang zawng
-              zIndex: 9,
-              boxSizing: 'border-box', // <-- pawimawh
-              transition: '0.3s'
-            }}>
-              {tabs.map(tab => {
-                const tabName = tab.replace('(98)','').replace('(45)','');
-                return (
-                  <button
-                    key={tab}
-                    onClick={()=>handleTab(tabName)}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: '20px',
-                      border: 'none',
-                      background: activeTab === tabName? accent : (dark? '#2a2a2c' : '#f0f0f0'),
-                      color: activeTab === tabName? 'white' : text,
-                      fontWeight: '700',
-                      whiteSpace: 'nowrap',
-                      cursor: 'pointer',
-                      transition: '0.2s'
-                    }}>
-                    {tab}
-                  </button>
-                )
-              })}
-            </div>
-          </>
+        {/* MENU - LOGIN TAWH CHUAN CHIAH A LANG ANG */}
+        {isLoggedIn && (
+          <div style={{
+            width: '100%',
+            display: 'flex',
+            gap: '8px',
+            padding: '12px 20px',
+            background: card,
+            borderBottom: `1px solid ${border}`,
+            overflowX: 'auto',
+            position: 'sticky',
+            top: '70px', // header sang zawng
+            zIndex: 9,
+            boxSizing: 'border-box',
+            transition: '0.3s'
+          }}>
+            {tabs.map(tab => {
+              const tabName = tab.replace('(98)','').replace('(45)','');
+              return (
+                <button
+                  key={tab}
+                  onClick={()=>handleTab(tabName)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    border: 'none',
+                    background: activeTab === tabName? accent : (dark? '#2a2a2c' : '#f0f0f0'),
+                    color: activeTab === tabName? 'white' : text,
+                    fontWeight: '700',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    transition: '0.2s'
+                  }}>
+                  {tab}
+                </button>
+              )
+            })}
+          </div>
         )}
 
-        {/* 4. CONTENT CHIAH HEI HI CARD ANG IN KAN KUNG ANG */}
+        {/* CONTENT - HEI HI CARD ANG IN A LAIAH KAN DAH ANG */}
         <div style={{
-          padding: '16px',
-          maxWidth: '600px', // <-- phone ah a nalh
-          margin: '0 auto' // <-- a laiah dah
+          padding: '20px 16px',
+          maxWidth: '500px', // <-- i screenshot a card sang zawng
+          margin: '20px auto 0 auto' // <-- a laiah + chung hlek
         }}>
           {children}
         </div>
