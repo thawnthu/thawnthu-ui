@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, collection, getDocs, addDoc, query, where } from "firebase/firestore";
-import { db } from "../../../lib/firebase";
+import { db } from "@/lib/firebase";
 import Link from "next/link";
 
 type Category = { id: string; name: string; parentId: string }
