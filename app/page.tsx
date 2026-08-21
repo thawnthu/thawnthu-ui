@@ -46,22 +46,42 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/');
     } catch (err: any) {
-      console.log("FIREBASE ERROR:", err); // DEBUG NAN
-      setError(err.message); // ERROR DIK TAK LANG
+      console.log("FIREBASE ERROR:", err.code, err.message); 
+      const errorCode = err.code;
+      const errorMessage = err.message.toLowerCase();
+
+      if (errorCode === 'auth/invalid-email') {
+        setError('Please enter a valid email address');
+      } 
+      else if (errorCode === 'auth/invalid-credential') {
+        // PASSWORD DIK LO EM AWM LO EM KAN THEN HRANG
+        if (errorMessage.includes('password')) {
+          setError('Incorrect password');
+        } else {
+          setError('Email not found');
+        }
+      } 
+      else if (errorCode === 'auth/too-many-requests') {
+        setError('Too many failed attempts. Please try again later');
+      }
+      else if (errorCode === 'auth/network-request-failed') {
+        setError('Network error. Please check your internet connection');
+      }
+      else {
+        setError('Login failed. Please try again');
+      }
     }
     setLoading(false);
   }
 
   return (
     <>
-      {/* GOOGLE FONT POPPINS */}
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&display=swap');
       `}</style>
       
       <div style={{background: bg, color: text, minHeight: '100vh', transition: '0.3s'}}>
 
-        {/* HEADER */}
         <div style={{
           background: card,
           padding: '16px 20px',
@@ -101,14 +121,13 @@ export default function LoginPage() {
           )}
         </div>
 
-        {/* CONTENT */}
         <div style={{display: 'flex', justifyContent: 'center', padding: '24px 20px'}}>
           <div style={{width: '100%', maxWidth: '380px'}}>
             <div style={{background: card, padding: '24px', borderRadius: '20px', border: `1px solid ${border}`, boxShadow: '0 8px 30px rgba(0,0,0,0.12)', transition: '0.3s'}}>
 
               <p style={{color: subtext, fontSize: '14px', marginBottom: '20px', marginTop: '8px'}}>Please Login to continue</p>
 
-              {error && <p style={{color: 'red', fontSize: '14px', marginBottom: '12px'}}>{error}</p>}
+              {error && <p style={{color: 'red', fontSize: '14px', marginBottom: '12px', wordBreak: 'break-word'}}>{error}</p>}
 
               <div style={{display: 'flex', flexDirection: 'column', gap: '14px'}}>
 
@@ -167,4 +186,4 @@ export default function LoginPage() {
       </div>
     </>
   )
-                                            }
+}
