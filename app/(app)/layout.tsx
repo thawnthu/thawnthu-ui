@@ -58,7 +58,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <Mail size={20}/> Contact us
                 </button>
                 <div style={{height: '1px', background: border, margin: '4px 0'}}></div>
-                <button onClick={()=>router.push('/')} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: 'red', fontWeight: '700'}}>
+                <button onClick={()=>router.push('/')} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: 'red', fontWeight: '700', fontSize: '16px'}}>
                   <LogOut size={20}/> Log out
                 </button>
               </div>
