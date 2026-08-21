@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db, auth } from "../lib/firebase"; // i firebase file path en la
 import { useRouter } from 'next/navigation';
 
 type User = {
@@ -13,23 +13,37 @@ type User = {
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const querySnapshot = await getDocs(collection(db, "users"));
-      const usersList: User[] = [];
-      querySnapshot.forEach((doc) => {
-        usersList.push(doc.data() as User);
-      });
-      setUsers(usersList);
+      try {
+        // Keimahni lo chu midang chiah lak chhuah nan
+        const currentUser = auth.currentUser;
+        const q = query(collection(db, "users"), where("uid", "!=", currentUser?.uid));
+        const querySnapshot = await getDocs(q);
+        
+        const usersList: User[] = [];
+        querySnapshot.forEach((doc) => {
+          usersList.push(doc.data() as User);
+        });
+        setUsers(usersList);
+      } catch (error) {
+        console.log("Error fetching users:", error);
+      } finally {
+        setLoading(false);
+      }
     }
     fetchUsers();
   }, []);
 
   const openChat = (userId: string) => {
-    router.push(`/chat/${userId}`); // Chat page ah a kal
+    router.push(`/chat/${userId}`);
   }
+
+  if(loading) return <p style={{textAlign: 'center'}}>Loading users...</p>
+  if(users.length === 0) return <p style={{textAlign: 'center'}}>User dang an la awm lo</p>
 
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
@@ -37,11 +51,11 @@ export default function UsersPage() {
         <div key={user.uid} onClick={()=>openChat(user.uid)}
           style={{
             display: 'flex', alignItems: 'center', gap: '12px', 
-            background: 'white', padding: '12px', borderRadius: '12px',
-            cursor: 'pointer', border: '1px solid #e0e0e0'
+            background: dark? '#1a1a1c' : 'white', padding: '12px', borderRadius: '12px',
+            cursor: 'pointer', border: `1px solid ${dark? '#2a2a2c' : '#e0e0e0'}`
           }}>
           <img 
-            src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} 
+            src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=8B2DCE&color=fff`} 
             alt={user.displayName}
             style={{width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover'}} // bial
           />
