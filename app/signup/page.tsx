@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react'; // 4,5 atan useEffect belh
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { useState, useEffect } from 'react';
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "firebase/auth"; // 2. atan belh
 import { auth } from "../lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -13,45 +13,39 @@ export default function SignupPage() {
   const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(''); // 4. atan belh
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [dark, setDark] = useState(false); // 5. atan setDark belh
+  const [dark, setDark] = useState(false);
   const router = useRouter();
 
-  // 5. DARK MODE + AUTO LOGIN CHECK
   useEffect(() => {
     const saved = localStorage.getItem('darkMode');
     setDark(saved === 'true');
-
-    // Kan lo login tawh chuan chat ah a thawn nghal
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        router.push('/chat');
-      }
-    });
-    return () => unsubscribe();
-  }, [router]);
+  }, []);
 
   const bg = dark? '#0f0f10' : '#f5f5f5';
   const card = dark? '#1a1a1c' : '#ffffff';
   const text = dark? '#ffffff' : '#000';
   const border = dark? '#2a2a2c' : '#e0e0e0';
   const inputBg = dark? '#2a2a2c' : '#f0f0f0';
-  const accent = '#8B2DCE'; // Login nen a in ang
+  const accent = '#8B2DCE';
   const subtext = dark? '#a0a0a0' : '#666';
 
-  // 2. EMAIL VALID CHECK TAN
   const validateEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
   const handleSignup = async () => {
     setError('');
-    setSuccess(''); // 4. atan
+    setSuccess('');
 
-    // 1. NAME REQUIRED KAN LAWS - CHUVANGIN HEI HI KAN DELETE
+    // 1. NAME FILLUP GEI GEI TUR
+    if (name.trim() === '') {
+      setError('Please enter your name');
+      return;
+    }
 
-    // 2. EMAIL VALID NI LO CHUAN BLOCK
+    // 2. EMAIL VALID CHECK
     if (!validateEmail(email)) {
       setError('Please enter a valid email address');
       return;
@@ -71,8 +65,11 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName: name });
 
-      // 4. LOGIN PAGE AH KAL NGHAL LO IN MESSAGE KAN LANG TIR
-      setSuccess('Signup Successful! Please Login');
+      // 2. EMAIL VERIFICATION THAWN - Email nung chiah in a hmuh theih
+      await sendEmailVerification(userCredential.user);
+
+      // 3. LOGIN NGHAL LO IN MESSAGE LANG PHWT
+      setSuccess('Signup Successful! Please check your email and Login');
       setEmail('');
       setPassword('');
       setName('');
@@ -88,7 +85,6 @@ export default function SignupPage() {
   return (
     <div style={{background: bg, color: text, minHeight: '100vh', transition: '0.3s'}}>
 
-      {/* STICKY HEADER - LOGIN ANG CHIAH */}
       <div style={{
         background: card,
         padding: '16px',
@@ -109,7 +105,6 @@ export default function SignupPage() {
         <h1 style={{fontSize: '20px', fontWeight: '800', margin: 0}}>Sign Up</h1>
       </div>
 
-      {/* CONTENT */}
       <div style={{display: 'flex', justifyContent: 'center', padding: '24px 20px'}}>
         <div style={{width: '100%', maxWidth: '380px'}}>
           <div style={{background: card, padding: '24px', borderRadius: '20px', border: `1px solid ${border}`, boxShadow: '0 8px 30px rgba(0,0,0,0.12)', transition: '0.3s'}}>
@@ -117,23 +112,21 @@ export default function SignupPage() {
             <p style={{color: subtext, fontSize: '14px', marginBottom: '20px', marginTop: 0}}>Create your account to continue</p>
 
             {error && <p style={{color: 'red', fontSize: '14px', marginBottom: '12px'}}>{error}</p>}
-            {success && <p style={{color: '#22c55e', fontSize: '14px', marginBottom: '12px', fontWeight: '700'}}>{success}</p>} {/* 4. SUCCESS MSG */}
+            {success && <p style={{color: '#22c55e', fontSize: '14px', marginBottom: '12px', fontWeight: '700'}}>{success}</p>}
 
             <div style={{display: 'flex', flexDirection: 'column', gap: '14px'}}>
 
-              {/* NAME INPUT */}
               <div style={{position: 'relative'}}>
                 <span style={{position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '20px', zIndex: 1}}>👤</span>
                 <input
                   type="text"
                   value={name}
                   onChange={(e)=>setName(e.target.value)}
-                  placeholder="Full Name" // 1. REQUIRED AWM TAWH LO
+                  placeholder="Full Name *"
                   style={{width: '100%', padding: '14px 14px 14px 45px', borderRadius: '12px', border: `1px solid ${border}`, background: inputBg, color: text, fontSize: '15px', outline: 'none', boxSizing: 'border-box'}}
                 />
               </div>
 
-              {/* EMAIL INPUT */}
               <div style={{position: 'relative'}}>
                 <span style={{position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '20px', zIndex: 1}}>✉️</span>
                 <input
@@ -145,7 +138,6 @@ export default function SignupPage() {
                 />
               </div>
 
-              {/* PASSWORD INPUT */}
               <div style={{position: 'relative'}}>
                 <span style={{position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '20px', zIndex: 1}}>🔒</span>
                 <input
@@ -164,7 +156,6 @@ export default function SignupPage() {
                 </button>
               </div>
 
-              {/* CONFIRM PASSWORD INPUT */}
               <div style={{position: 'relative'}}>
                 <span style={{position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '20px', zIndex: 1}}>🔒</span>
                 <input
@@ -183,7 +174,6 @@ export default function SignupPage() {
                 </button>
               </div>
 
-              {/* BUTTON PURPLE - 3. CREATE ACCOUNT -> SIGNUP */}
               <button
                 onClick={handleSignup}
                 disabled={loading}
@@ -193,11 +183,11 @@ export default function SignupPage() {
             </div>
 
             <p style={{textAlign: 'center', marginTop: '20px', fontSize: '14px', color: subtext}}>
-              Already have an account? <Link href="/" style={{color: accent, fontWeight: '700', textDecoration: 'none'}}>Login</Link> {/* 4. /login -> / */}
+              Already have an account? <Link href="/" style={{color: accent, fontWeight: '700', textDecoration: 'none'}}>Login</Link>
             </p>
           </div>
         </div>
       </div>
     </div>
   )
-                                                                     }
+}
