@@ -1,70 +1,97 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase"; // i firebase file path en la
-import { useRouter } from 'next/navigation';
+"use client";
 
-type User = {
-  uid: string;
-  displayName: string;
-  photoURL: string;
+import { useEffect, useState } from "react";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+type UserData = {
+  id: string;
+  name: string;
   email: string;
-}
+  photoURL?: string;
+  createdAt?: any;
+};
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const [dark, setDark] = useState(false); // <-- heihi i error siam tu
 
+  // Dark mode detect automatic
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    setDark(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setDark(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // Firebase atangin user la chhuak
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        // Keimahni lo chu midang chiah lak chhuah nan
-        const currentUser = auth.currentUser;
-        const q = query(collection(db, "users"), where("uid", "!=", currentUser?.uid));
-        const querySnapshot = await getDocs(q);
-        
-        const usersList: User[] = [];
-        querySnapshot.forEach((doc) => {
-          usersList.push(doc.data() as User);
-        });
-        setUsers(usersList);
-      } catch (error) {
-        console.log("Error fetching users:", error);
+        const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
+        const snapshot = await getDocs(q);
+        const userList: UserData[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as UserData[];
+        setUsers(userList);
+      } catch (err) {
+        console.error("Error fetching users:", err);
       } finally {
         setLoading(false);
       }
-    }
+    };
+
     fetchUsers();
   }, []);
 
-  const openChat = (userId: string) => {
-    router.push(`/chat/${userId}`);
-  }
-
-  if(loading) return <p style={{textAlign: 'center'}}>Loading users...</p>
-  if(users.length === 0) return <p style={{textAlign: 'center'}}>User dang an la awm lo</p>
-
   return (
-    <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-      {users.map(user => (
-        <div key={user.uid} onClick={()=>openChat(user.uid)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '12px', 
-            background: dark? '#1a1a1c' : 'white', padding: '12px', borderRadius: '12px',
-            cursor: 'pointer', border: `1px solid ${dark? '#2a2a2c' : '#e0e0e0'}`
-          }}>
-          <img 
-            src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=8B2DCE&color=fff`} 
-            alt={user.displayName}
-            style={{width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover'}} // bial
-          />
-          <div>
-            <p style={{margin: 0, fontWeight: '700', fontSize: '16px'}}>{user.displayName}</p>
-            <p style={{margin: 0, fontSize: '13px', color: '#666'}}>{user.email}</p>
-          </div>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: dark ? "#121212" : "#f9f9f9",
+        color: dark ? "white" : "black",
+        padding: "20px",
+      }}
+    >
+      <h1 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "20px" }}>
+        Users List
+      </h1>
+
+      {loading ? (
+        <p>Loading users...</p>
+      ) : users.length === 0 ? (
+        <p>No users found in Firestore.</p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          {users.map((user) => (
+            <div
+              key={user.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                background: dark ? "#1e1e1e" : "white",
+                padding: "12px",
+                borderRadius: "8px",
+                border: `1px solid ${dark ? "#333" : "#ddd"}`,
+              }}
+            >
+              <img
+                src={user.photoURL || "https://via.placeholder.com/40"}
+                alt={user.name}
+                style={{ width: "40px", height: "40px", borderRadius: "50%" }}
+              />
+              <div>
+                <p style={{ fontWeight: "600" }}>{user.name || "No Name"}</p>
+                <p style={{ fontSize: "14px", opacity: 0.7 }}>{user.email}</p>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
-  )
+  );
 }
