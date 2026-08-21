@@ -21,7 +21,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const tabs = ['Home', 'Chat', 'Online(98)', 'Notification(98)', 'Users', 'Group', 'Category', 'Profile', 'Setting'];
+  // 2. Users leh Setting a inthlak. Setting a tawp ber
+  const tabs = ['Home', 'Chat', 'Online(98)', 'Notification(98)', 'Group', 'Category', 'Profile', 'Users', 'Setting'];
 
   const currentTab = pathname.split('/')[2] || 'home';
   const activeTab = currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
@@ -32,16 +33,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   const accent = '#2563eb';
+  const activeColor = '#ff6b35'; // orange
   const card = dark? '#1a1a1c' : '#ffffff';
   const border = dark? '#2a2a2c' : '#e0e0e0';
 
   return (
     <div style={{background: dark? '#0f0f10' : '#f5f5f5', minHeight: '100vh', fontFamily: 'Inter, sans-serif'}}>
 
-      {/* HEADER */}
-      {/* 1. Line ti lian solid 2px */}
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: card, borderBottom: `2px solid ${border}`, position: 'sticky', top: 0, zIndex: 20}}>
-
         <div style={{fontSize: '22px', fontWeight: '800', color: accent, letterSpacing: '-0.5px'}}>MzApp</div>
 
         <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
@@ -69,6 +68,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
+      {/* 1. Search input ti tawi */}
       {showSearch && (
         <div style={{padding: '8px 16px', background: card, borderBottom: `1px solid ${border}`}}>
           <input
@@ -76,7 +76,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             placeholder="Search..."
             autoFocus
             style={{
-              width: '100%',
+              width: '90%', // 100% atang 90% ah ka ti tawi
+              maxWidth: '400px', // a len lutuk loh nan
               padding: '10px 14px',
               borderRadius: '8px',
               border: `1px solid ${border}`,
@@ -89,9 +90,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* MENU */}
-      {/* 2. Line lian ka bo tawh */}
       <div style={{display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 16px 4px 16px', background: card}}>
+        {/* 2. Line 1 ah 5 chiah. Thai phei a ngai tawh lo */}
         <div style={{display: 'flex', gap: '16px', overflowX: 'auto'}}>
           {tabs.slice(0,5).map(tab => {
             const tabName = tab.replace('(98)','');
@@ -104,8 +104,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   padding: '6px 2px',
                   border: 'none',
                   background: 'none',
-                  // 3. Zawng zawng blue sa vek, click chiah kha accent dang
-                  color: isActive? '#ff6b35' : accent,
+                  // 3. Click lai chiah orange
+                  color: isActive? activeColor : accent,
                   fontWeight: '700',
                   cursor: 'pointer',
                   fontSize: '15px',
@@ -117,6 +117,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )
           })}
         </div>
+        {/* Line 2 ah 4 chiah. Setting a tawp ber */}
         <div style={{display: 'flex', gap: '16px', overflowX: 'auto'}}>
           {tabs.slice(5,9).map(tab => {
             const tabName = tab.replace('(98)','');
@@ -129,7 +130,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   padding: '6px 2px',
                   border: 'none',
                   background: 'none',
-                  color: isActive? '#ff6b35' : accent,
+                  color: isActive? activeColor : accent,
                   fontWeight: '700',
                   cursor: 'pointer',
                   fontSize: '15px',
@@ -146,4 +147,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div style={{padding: '16px'}}>{children}</div>
     </div>
   )
-              }
+}
