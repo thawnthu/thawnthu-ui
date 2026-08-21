@@ -39,7 +39,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{background: dark? '#0f0f10' : '#f5f5f5', minHeight: '100vh', fontFamily: 'Inter, sans-serif'}}>
 
-      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: card, borderBottom: `2px solid ${border}`, position: 'sticky', top: 0, zIndex: 20}}>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 16px', background: card, borderBottom: `2px solid ${border}`, position: 'sticky', top: 0, zIndex: 20}}>
         <div style={{fontSize: '22px', fontWeight: '800', color: accent, letterSpacing: '-0.5px'}}>MzApp</div>
 
         <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
