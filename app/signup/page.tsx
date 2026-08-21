@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"; // email verification ka delete
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -65,6 +66,15 @@ export default function SignupPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName: name });
+
+      // EDIT: Users collection ah dah - Users page a lan nan
+      await setDoc(doc(db, "users", userCredential.user.uid), {
+        uid: userCredential.user.uid,
+        name: name.trim(),
+        email: email.trim(),
+        online: true,
+        createdAt: new Date()
+      });
 
       // 3. LOGIN NGHAL LO IN SUCCESS MSG LANG PHWT
       setSuccess('Signup Successful! Please Login');
@@ -178,7 +188,7 @@ export default function SignupPage() {
                 {loading? "Loading..." : "Signup"}
               </button>
 
-              {success && <p style={{color: '#22c55e', fontSize: '14px', marginTop: '4px', marginBottom: '0', fontWeight: '700', textAlign: 'center'}}>{success}</p>} {/* 3. HEI HI BUTTON HNUAI AH KAN DAH */}
+              {success && <p style={{color: '#22c55e', fontSize: '14px', marginTop: '4px', marginBottom: '0', fontWeight: '700', textAlign: 'center'}}>{success}</p>}
             </div>
 
             <p style={{textAlign: 'center', marginTop: '20px', fontSize: '14px', color: subtext}}>
