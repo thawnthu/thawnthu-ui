@@ -40,7 +40,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div style={{background: dark? '#0f0f10' : '#f5f5f5', minHeight: '100vh', fontFamily: 'Inter, sans-serif'}}>
 
       {/* EDIT 1 & 2: Gradient + Sir lam ah dah phei */}
-      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 4px 6px 16px', background: 'linear-gradient(90deg, #2563eb 0%, #7c3aed 50%, #ff6b35 100%)', borderBottom: `2px solid ${border}`, position: 'sticky', top: 0, zIndex: 20}}>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 4px 6px 16px', background: 'linear-gradient(90deg, #8d31ce 0%, #8d31ce 50%, #8d31ce 100%)', borderBottom: `2px solid ${border}`, position: 'sticky', top: 0, zIndex: 20}}>
         <div style={{fontSize: '22px', fontWeight: '800', color: '#fff', letterSpacing: '-0.5px'}}>MzApp</div>
 
         <div style={{display: 'flex', alignItems: 'center', gap: '0px'}}>
