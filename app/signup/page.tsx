@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "firebase/auth"; // 2. atan belh
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"; // email verification ka delete
 import { auth } from "../lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -45,7 +45,8 @@ export default function SignupPage() {
       return;
     }
 
-    // 2. EMAIL VALID CHECK
+    // 2. EMAIL FORMAT DIK CHIAH BLOCK - Email awm tak tak nge ni lo chu Firebase in a check thei lo
+    // Forgot password ah link a kal loh chuan chu mi ah khan a in hre dawn
     if (!validateEmail(email)) {
       setError('Please enter a valid email address');
       return;
@@ -65,11 +66,8 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName: name });
 
-      // 2. EMAIL VERIFICATION THAWN - Email nung chiah in a hmuh theih
-      await sendEmailVerification(userCredential.user);
-
-      // 3. LOGIN NGHAL LO IN MESSAGE LANG PHWT
-      setSuccess('Signup Successful! Please check your email and Login');
+      // 3. LOGIN NGHAL LO IN SUCCESS MSG LANG PHWT
+      setSuccess('Signup Successful! Please Login');
       setEmail('');
       setPassword('');
       setName('');
@@ -112,7 +110,6 @@ export default function SignupPage() {
             <p style={{color: subtext, fontSize: '14px', marginBottom: '20px', marginTop: 0}}>Create your account to continue</p>
 
             {error && <p style={{color: 'red', fontSize: '14px', marginBottom: '12px'}}>{error}</p>}
-            {success && <p style={{color: '#22c55e', fontSize: '14px', marginBottom: '12px', fontWeight: '700'}}>{success}</p>}
 
             <div style={{display: 'flex', flexDirection: 'column', gap: '14px'}}>
 
@@ -180,6 +177,8 @@ export default function SignupPage() {
                 style={{background: accent, color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: '800', fontSize: '16px', cursor: 'pointer', marginTop: '4px', boxShadow: `0 4px 15px ${accent}40`, opacity: loading? 0.7 : 1}}>
                 {loading? "Loading..." : "Signup"}
               </button>
+
+              {success && <p style={{color: '#22c55e', fontSize: '14px', marginTop: '4px', marginBottom: '0', fontWeight: '700', textAlign: 'center'}}>{success}</p>} {/* 3. HEI HI BUTTON HNUAI AH KAN DAH */}
             </div>
 
             <p style={{textAlign: 'center', marginTop: '20px', fontSize: '14px', color: subtext}}>
