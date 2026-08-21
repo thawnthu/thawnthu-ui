@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // 4,5 atan useEffect belh
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import { useRouter } from "next/navigation";
@@ -13,9 +13,24 @@ export default function SignupPage() {
   const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(''); // 4. atan belh
   const [loading, setLoading] = useState(false);
-  const [dark] = useState(false);
+  const [dark, setDark] = useState(false); // 5. atan setDark belh
   const router = useRouter();
+
+  // 5. DARK MODE + AUTO LOGIN CHECK
+  useEffect(() => {
+    const saved = localStorage.getItem('darkMode');
+    setDark(saved === 'true');
+
+    // Kan lo login tawh chuan chat ah a thawn nghal
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        router.push('/chat');
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
 
   const bg = dark? '#0f0f10' : '#f5f5f5';
   const card = dark? '#1a1a1c' : '#ffffff';
@@ -25,8 +40,23 @@ export default function SignupPage() {
   const accent = '#8B2DCE'; // Login nen a in ang
   const subtext = dark? '#a0a0a0' : '#666';
 
+  // 2. EMAIL VALID CHECK TAN
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
   const handleSignup = async () => {
     setError('');
+    setSuccess(''); // 4. atan
+
+    // 1. NAME REQUIRED KAN LAWS - CHUVANGIN HEI HI KAN DELETE
+
+    // 2. EMAIL VALID NI LO CHUAN BLOCK
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
     if(password!== confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -40,7 +70,13 @@ export default function SignupPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName: name });
-      router.push('/');
+
+      // 4. LOGIN PAGE AH KAL NGHAL LO IN MESSAGE KAN LANG TIR
+      setSuccess('Signup Successful! Please Login');
+      setEmail('');
+      setPassword('');
+      setName('');
+      setConfirmPassword('');
     } catch (err: any) {
       if(err.code === 'auth/email-already-in-use') setError('Email already in use');
       else if(err.code === 'auth/invalid-email') setError('Invalid email format');
@@ -50,7 +86,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div style={{background: bg, color: text, minHeight: '100vh'}}>
+    <div style={{background: bg, color: text, minHeight: '100vh', transition: '0.3s'}}>
 
       {/* STICKY HEADER - LOGIN ANG CHIAH */}
       <div style={{
@@ -62,7 +98,8 @@ export default function SignupPage() {
         borderBottom: `1px solid ${border}`,
         position: 'sticky',
         top: 0,
-        zIndex: 10
+        zIndex: 10,
+        transition: '0.3s'
       }}>
         <button onClick={()=>router.back()} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex'}}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -75,11 +112,12 @@ export default function SignupPage() {
       {/* CONTENT */}
       <div style={{display: 'flex', justifyContent: 'center', padding: '24px 20px'}}>
         <div style={{width: '100%', maxWidth: '380px'}}>
-          <div style={{background: card, padding: '24px', borderRadius: '20px', border: `1px solid ${border}`, boxShadow: '0 8px 30px rgba(0,0,0,0.12)'}}>
+          <div style={{background: card, padding: '24px', borderRadius: '20px', border: `1px solid ${border}`, boxShadow: '0 8px 30px rgba(0,0,0,0.12)', transition: '0.3s'}}>
 
             <p style={{color: subtext, fontSize: '14px', marginBottom: '20px', marginTop: 0}}>Create your account to continue</p>
 
             {error && <p style={{color: 'red', fontSize: '14px', marginBottom: '12px'}}>{error}</p>}
+            {success && <p style={{color: '#22c55e', fontSize: '14px', marginBottom: '12px', fontWeight: '700'}}>{success}</p>} {/* 4. SUCCESS MSG */}
 
             <div style={{display: 'flex', flexDirection: 'column', gap: '14px'}}>
 
@@ -90,7 +128,7 @@ export default function SignupPage() {
                   type="text"
                   value={name}
                   onChange={(e)=>setName(e.target.value)}
-                  placeholder="Full Name"
+                  placeholder="Full Name" // 1. REQUIRED AWM TAWH LO
                   style={{width: '100%', padding: '14px 14px 14px 45px', borderRadius: '12px', border: `1px solid ${border}`, background: inputBg, color: text, fontSize: '15px', outline: 'none', boxSizing: 'border-box'}}
                 />
               </div>
@@ -145,21 +183,21 @@ export default function SignupPage() {
                 </button>
               </div>
 
-              {/* BUTTON PURPLE - LOGIN ANG CHIAH */}
+              {/* BUTTON PURPLE - 3. CREATE ACCOUNT -> SIGNUP */}
               <button
                 onClick={handleSignup}
                 disabled={loading}
-                style={{background: accent, color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: '800', fontSize: '16px', cursor: 'pointer', marginTop: '4px', boxShadow: `0 4px 15px ${accent}40`}}>
-                {loading? "Creating..." : "Create Account"}
+                style={{background: accent, color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: '800', fontSize: '16px', cursor: 'pointer', marginTop: '4px', boxShadow: `0 4px 15px ${accent}40`, opacity: loading? 0.7 : 1}}>
+                {loading? "Loading..." : "Signup"}
               </button>
             </div>
 
             <p style={{textAlign: 'center', marginTop: '20px', fontSize: '14px', color: subtext}}>
-              Already have an account? <Link href="/login" style={{color: accent, fontWeight: '700', textDecoration: 'none'}}>Login</Link>
+              Already have an account? <Link href="/" style={{color: accent, fontWeight: '700', textDecoration: 'none'}}>Login</Link> {/* 4. /login -> / */}
             </p>
           </div>
         </div>
       </div>
     </div>
   )
-}
+                                                                     }
