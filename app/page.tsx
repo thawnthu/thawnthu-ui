@@ -45,21 +45,16 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       setLoading(false);
-      router.push('/chat'); // HEI HI A PAWIMAWH BER - /chat ah kan thawn
+      router.push('/chat');
     } catch (err: any) {
-      console.log("FIREBASE ERROR:", err.code, err.message); 
+      console.log("FIREBASE ERROR:", err.code); 
       const errorCode = err.code;
-      const errorMessage = err.message.toLowerCase();
 
       if (errorCode === 'auth/invalid-email') {
         setError('Please enter a valid email address');
       } 
       else if (errorCode === 'auth/invalid-credential') {
-        if (errorMessage.includes('password')) {
-          setError('Incorrect password');
-        } else {
-          setError('Email not found');
-        }
+        setError('Incorrect email or password'); // HEI HI THLAK
       } 
       else if (errorCode === 'auth/too-many-requests') {
         setError('Too many failed attempts. Please try again later');
