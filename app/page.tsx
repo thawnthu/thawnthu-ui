@@ -11,10 +11,16 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [dark] = useState(false);
+  const [dark, setDark] = useState(false); // 1. FALSE FIX ATANGIN STATE AH KA THLAK
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  // 2. PAGE LOAD IN LOCALSTORAGE ATANGIN DARK MODE CHHIAR
+  useEffect(() => {
+    const saved = localStorage.getItem('darkMode');
+    setDark(saved === 'true');
+  }, []);
 
   const bg = dark? '#0f0f10' : '#f5f5f5';
   const card = dark? '#1a1a1c' : '#ffffff';
@@ -50,9 +56,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{background: bg, color: text, minHeight: '100vh'}}>
+    <div style={{background: bg, color: text, minHeight: '100vh', transition: '0.3s'}}>
 
-      {/* HEADER - STICKY PAIH + DOT 3 TI LANG CHIANG */}
+      {/* HEADER */}
       <div style={{
         background: card,
         padding: '16px 20px',
@@ -60,15 +66,15 @@ export default function LoginPage() {
         alignItems: 'center',
         justifyContent: 'space-between',
         borderBottom: `1px solid ${border}`,
-        position: 'relative', // sticky paih
+        position: 'relative',
         top: 0,
-        zIndex: 10
+        zIndex: 10,
+        transition: '0.3s'
       }} ref={menuRef}>
         <h1 style={{fontSize: '24px', fontWeight: '800', margin: 0, color: accent}}>MzApp</h1>
 
-        {/* DOT 3 BUTTON - LANG CHIANG TUR IN CIRCLE BG KA BELH */}
-        <button onClick={()=>setShowMenu(!showMenu)} style={{background: '#f0f0f0', border: 'none', cursor: 'pointer', padding: '10px', borderRadius: '50%', display: 'flex'}}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round"> {/* 32px -> 24px + stroke */}
+        <button onClick={()=>setShowMenu(!showMenu)} style={{background: dark? '#2a2a2c' : '#f0f0f0', border: 'none', cursor: 'pointer', padding: '10px', borderRadius: '50%', display: 'flex'}}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={text} strokeWidth="2.5" strokeLinecap="round">
             <circle cx="12" cy="12" r="1"/>
             <circle cx="12" cy="5" r="1"/>
             <circle cx="12" cy="19" r="1"/>
@@ -77,7 +83,7 @@ export default function LoginPage() {
 
         {/* MENU */}
         {showMenu && (
-          <div style={{position: 'absolute', top: '60px', right: '16px', background: card, borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '190px', zIndex: 20, border: `1px solid ${border}`}}>
+          <div style={{position: 'absolute', top: '60px', right: '16px', background: card, borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '190px', zIndex: 20, border: `1px solid ${border}`, transition: '0.3s'}}>
             <span onClick={()=>{router.push('/setting?back=/'); setShowMenu(false)}} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer', fontWeight: '700', color: text}}>
               <span style={{fontSize: '20px'}}>⚙️</span> Setting
             </span>
@@ -96,7 +102,7 @@ export default function LoginPage() {
       {/* CONTENT */}
       <div style={{display: 'flex', justifyContent: 'center', padding: '24px 20px'}}>
         <div style={{width: '100%', maxWidth: '380px'}}>
-          <div style={{background: card, padding: '24px', borderRadius: '20px', border: `1px solid ${border}`, boxShadow: '0 8px 30px rgba(0,0,0,0.12)'}}>
+          <div style={{background: card, padding: '24px', borderRadius: '20px', border: `1px solid ${border}`, boxShadow: '0 8px 30px rgba(0,0,0,0.12)', transition: '0.3s'}}>
 
             <p style={{color: subtext, fontSize: '14px', marginBottom: '20px', marginTop: '8px'}}>Please Login to continue</p>
 
@@ -112,7 +118,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e)=>setEmail(e.target.value)}
                   placeholder="Email"
-                  style={{width: '100%', padding: '14px 14px 14px 45px', borderRadius: '12px', border: `1px solid ${border}`, background: inputBg, color: text, fontSize: '15px', outline: 'none', boxSizing: 'border-box'}}
+                  style={{width: '100%', padding: '14px 14px 14px 45px', borderRadius: '12px', border: `1px solid ${border}`, background: inputBg, color: text, fontSize: '15px', outline: 'none', boxSizing: 'border-box', transition: '0.3s'}}
                 />
               </div>
 
@@ -124,7 +130,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e)=>setPassword(e.target.value)}
                   placeholder="Password"
-                  style={{width: '100%', padding: '14px 45px 14px 45px', borderRadius: '12px', border: `1px solid ${border}`, background: inputBg, color: text, fontSize: '15px', outline: 'none', boxSizing: 'border-box'}}
+                  style={{width: '100%', padding: '14px 45px 14px 45px', borderRadius: '12px', border: `1px solid ${border}`, background: inputBg, color: text, fontSize: '15px', outline: 'none', boxSizing: 'border-box', transition: '0.3s'}}
                 />
                 {/* MIT THAI ICON */}
                 <button onClick={()=>setShowPass(!showPass)} style={{position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', zIndex: 2, display: 'flex'}}>
@@ -162,4 +168,4 @@ export default function LoginPage() {
       </div>
     </div>
   )
-      }
+}
