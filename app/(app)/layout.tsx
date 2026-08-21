@@ -39,17 +39,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{background: dark? '#0f0f10' : '#f5f5f5', minHeight: '100vh', fontFamily: 'Inter, sans-serif'}}>
 
-      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 16px', background: card, borderBottom: `2px solid ${border}`, position: 'sticky', top: 0, zIndex: 20}}>
-        <div style={{fontSize: '22px', fontWeight: '800', color: accent, letterSpacing: '-0.5px'}}>MzApp</div>
+      {/* EDIT 1 & 2: Gradient + Sir lam ah dah phei */}
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 4px 6px 16px', background: 'linear-gradient(90deg, #2563eb 0%, #7c3aed 50%, #ff6b35 100%)', borderBottom: `2px solid ${border}`, position: 'sticky', top: 0, zIndex: 20}}>
+        <div style={{fontSize: '22px', fontWeight: '800', color: '#fff', letterSpacing: '-0.5px'}}>MzApp</div>
 
-        <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: '0px'}}>
           <button onClick={()=>setShowSearch(!showSearch)} style={{background: 'none', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}>
-            <Search size={22} color='#000'/>
+            <Search size={22} color='#fff'/>
           </button>
 
           <div style={{position: 'relative'}} ref={menuRef}>
             <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}>
-              <MoreVertical size={22} color='#000'/>
+              <MoreVertical size={22} color='#fff'/>
             </button>
 
             {showMenu && (
@@ -90,7 +91,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* MENU */}
       <div style={{display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 16px 4px 16px', background: card}}>
-        {/* 1. justifyContent: space-between dah - space in ang vek nan */}
         <div style={{display: 'flex', justifyContent: 'space-between', gap: '8px', overflowX: 'auto'}}>
           {tabs.slice(0,4).map(tab => {
             const tabName = tab.replace('(98)','');
@@ -106,7 +106,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   color: isActive? activeColor : accent,
                   fontWeight: '700',
                   cursor: 'pointer',
-                  // 2. Font ti lian hret 15px atang 16px ah
                   fontSize: '16px',
                   whiteSpace: 'nowrap'
                 }}
@@ -131,7 +130,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   color: isActive? activeColor : accent,
                   fontWeight: '700',
                   cursor: 'pointer',
-                  fontSize: '16px', // 15px atang 16px ah
+                  fontSize: '16px',
                   whiteSpace: 'nowrap'
                 }}
               >
