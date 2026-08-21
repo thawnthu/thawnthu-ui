@@ -8,9 +8,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [dark] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showSearch, setShowSearch] = useState(false); // 2. Search na tan
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // pawn hmet a close thei nan
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current &&!menuRef.current.contains(event.target as Node)) {
@@ -44,9 +44,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         <div style={{fontSize: '22px', fontWeight: '800', color: accent, letterSpacing: '-0.5px'}}>MzApp</div>
 
-        {/* 1. Search leh Dot 3 thlalak pakhata dah */}
         <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
-          <button onClick={()=>alert('Search click')} style={{background: 'none', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}>
+          {/* 2. Search click a hmet theih + search box rawn chhuak */}
+          <button onClick={()=>setShowSearch(!showSearch)} style={{background: 'none', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}>
             <Search size={22} color='#000'/>
           </button>
 
@@ -57,7 +57,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             {showMenu && (
               <div style={{position: 'absolute', right: 0, top: '44px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px', width: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}>
-                {/* 2. Font Bold */}
                 <button onClick={()=>router.push('/contact')} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: inactiveText, fontWeight: '700'}}>
                   <Mail size={16}/> Contact us
                 </button>
@@ -71,8 +70,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
+      {/* 2. Search box */}
+      {showSearch && (
+        <div style={{padding: '8px 16px', background: card, borderBottom: `1px solid ${border}`}}>
+          <input
+            type="text"
+            placeholder="Search..."
+            autoFocus
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              border: `1px solid ${border}`,
+              background: dark? '#2a2a2c' : '#f5f5f5',
+              color: dark? '#fff' : '#000',
+              fontSize: '15px',
+              outline: 'none'
+            }}
+          />
+        </div>
+      )}
+
       {/* MENU */}
-      <div style={{display: 'flex', flexDirection: 'column', gap: '4px', padding: '8px 16px', background: card, borderBottom: `1px solid ${border}`}}> {/* 4. inkar ti zim */}
+      {/* 1. borderBottom ti chhah + 3. gap ti zim */}
+      <div style={{display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 16px 4px 16px', background: card, borderBottom: `3px solid ${border}`}}>
         <div style={{display: 'flex', gap: '16px', overflowX: 'auto'}}>
           {tabs.slice(0,5).map(tab => {
             const tabName = tab.replace('(98)','');
@@ -85,7 +106,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   padding: '6px 2px',
                   border: 'none',
                   background: 'none',
-                  // 3. Click a piang a colour in thlak
                   color: isActive? accent : inactiveText,
                   fontWeight: '700',
                   cursor: 'pointer',
@@ -127,4 +147,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div style={{padding: '16px'}}>{children}</div>
     </div>
   )
-}
+                                                                 }
