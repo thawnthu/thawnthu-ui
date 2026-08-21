@@ -54,12 +54,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             {showMenu && (
               <div style={{position: 'absolute', right: 0, top: '44px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px', width: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}>
-                <button onClick={()=>router.push('/contact')} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: '#666', fontWeight: '700'}}>
-                  <Mail size={16}/> Contact us
+                <button onClick={()=>router.push('/contact')} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: '#666', fontWeight: '700', fontSize: '16px'}}>
+                  <Mail size={20}/> Contact us
                 </button>
                 <div style={{height: '1px', background: border, margin: '4px 0'}}></div>
                 <button onClick={()=>router.push('/')} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: 'red', fontWeight: '700'}}>
-                  <LogOut size={16}/> Log out
+                  <LogOut size={20}/> Log out
                 </button>
               </div>
             )}
