@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from "next/navigation";
 import { collection, getDocs, addDoc, query, where } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+import { db } from "@/lib/firebase";
 import Link from "next/link";
 
 export default function CategoryDetail() {
