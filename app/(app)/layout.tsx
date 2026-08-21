@@ -2,6 +2,8 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { Search, MoreVertical, LogOut, Mail } from 'lucide-react';
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -28,6 +30,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const handleTab = (tab: string) => {
     const route = tab.toLowerCase().replace('(98)','');
     router.push(`/${route}`);
+  }
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.replace('/');
+    } catch (e) {
+      console.log("Logout error", e);
+    }
   }
 
   const accent = '#2563eb';
@@ -58,7 +69,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     <Mail size={20}/> Contact us
                   </button>
                   <div style={{height: '1px', background: border, margin: '4px 0'}}></div>
-                  <button onClick={()=>router.push('/')} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: 'red', fontWeight: '700', fontSize: '16px'}}>
+                  <button onClick={handleLogout} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: 'red', fontWeight: '700', fontSize: '16px'}}>
                     <LogOut size={20}/> Log out
                   </button>
                 </div>
@@ -100,4 +111,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div style={{padding: '16px'}}>{children}</div>
     </div>
   )
-}
+        }
