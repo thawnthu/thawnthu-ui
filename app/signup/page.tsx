@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"; // email verification ka delete
+import { createUserWithEmailAndPassword, updateProfile, signOut } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
@@ -40,14 +40,11 @@ export default function SignupPage() {
     setError('');
     setSuccess('');
 
-    // 1. NAME FILLUP GEI GEI TUR
     if (name.trim() === '') {
       setError('Please enter your name');
       return;
     }
 
-    // 2. EMAIL FORMAT DIK CHIAH BLOCK - Email awm tak tak nge ni lo chu Firebase in a check thei lo
-    // Forgot password ah link a kal loh chuan chu mi ah khan a in hre dawn
     if (!validateEmail(email)) {
       setError('Please enter a valid email address');
       return;
@@ -67,7 +64,6 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName: name });
 
-      // EDIT: Users collection ah dah - Users page a lan nan
       await setDoc(doc(db, "users", userCredential.user.uid), {
         uid: userCredential.user.uid,
         name: name.trim(),
@@ -76,7 +72,8 @@ export default function SignupPage() {
         createdAt: new Date()
       });
 
-      // 3. LOGIN NGHAL LO IN SUCCESS MSG LANG PHWT
+      await signOut(auth);
+
       setSuccess('Signup Successful! Please Login');
       setEmail('');
       setPassword('');
