@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, MessageCircle } from 'lucide-react';
-import { collection, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 
 type User = {
@@ -19,24 +19,13 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // 6. Users signup tawh ho lakna - Firestore atang
   useEffect(() => {
-    // Realtime a update tur
     const unsub = onSnapshot(collection(db, "users"), (snap) => {
-      const list = snap.docs.map(d => ({
-        id: d.id,
-        ...d.data()
-      } as User));
-      
-      // Mahni account paih
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as User));
       const filteredList = list.filter(u => u.uid !== auth.currentUser?.uid);
       setUsers(filteredList);
       setLoading(false);
-    }, (err) => {
-      console.log("Users fetch error:", err);
-      setLoading(false);
     });
-
     return () => unsub();
   }, []);
 
@@ -52,17 +41,18 @@ export default function UsersPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#ffffff' }}>
+    <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
       
-      {/* 2. SEARCH - Card chhung a awm lo, a sang zawk */}
-      <div style={{ padding: '10px 12px', background: '#fff' }}>
+      {/* SEARCH */}
+      <div style={{ padding: '12px 12px 12px 12px' }}>
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
           gap: '10px', 
-          background: '#f0f0f0', 
-          padding: '16px 16px', // THLAK: 10px atang 16px ah (a chung hnuai lian zawk)
-          borderRadius: '12px' 
+          background: '#fff', 
+          padding: '16px 16px',
+          borderRadius: '14px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
         }}>
           <Search size={20} color="#888" />
           <input
@@ -75,14 +65,18 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* 3. CARD - A var in a luah zau zawk, gap tlem zawk */}
-      <div style={{ padding: '0 8px 12px 8px', display: 'flex', flexDirection: 'column', gap: '2px', background: '#fff' }}>
+      {/* THLAKNA: SIR KIL KUAL - search input ang chiah */}
+      <div style={{ 
+        margin: '0 12px', 
+        background: '#fff', 
+        borderRadius: '14px',  // HEI HI A KUAL NA - search ang tho
+        overflow: 'hidden',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+      }}>
         {loading ? (
-          <p style={{ textAlign: 'center', color: '#666', marginTop: '30px' }}>Loading users...</p>
+          <p style={{ textAlign: 'center', color: '#666', padding: '30px' }}>Loading users...</p>
         ) : filtered.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#666', marginTop: '30px' }}>
-            {users.length === 0 ? 'Tumah an la signup lo / users collection ah data a awm lo' : 'No users found'}
-          </p>
+          <p style={{ textAlign: 'center', color: '#666', padding: '30px' }}>No users found</p>
         ) : (
           filtered.map((user) => (
             <div
@@ -92,29 +86,20 @@ export default function UsersPage() {
                 alignItems: 'center',
                 gap: '12px',
                 background: '#fff',
-                padding: '14px 10px',
-                borderBottom: '1px solid #f0f0f0', // border chauh, card shadow awm lo
+                padding: '14px 14px',
+                borderBottom: '1px solid #f0f0f0',
               }}
             >
-              {/* AVATAR */}
               <div 
                 style={{ position: 'relative', cursor: 'pointer' }}
-                onClick={() => router.push(`/profile/${user.uid || user.id}`)} // 4. Profile ah kal
+                onClick={() => router.push(`/profile/${user.uid || user.id}`)}
               >
-                <div
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '50%',
-                    background: getColor(user.name),
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '20px',
-                    fontWeight: '700',
-                  }}
-                >
+                <div style={{
+                    width: '48px', height: '48px', borderRadius: '50%',
+                    background: getColor(user.name), color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '20px', fontWeight: '700',
+                  }}>
                   {getInitial(user.name)}
                 </div>
                 {user.online && (
@@ -122,7 +107,6 @@ export default function UsersPage() {
                 )}
               </div>
 
-              {/* 4. HMING CLICK CHUAN PROFILE */}
               <div 
                 style={{ flex: 1, overflow: 'hidden', cursor: 'pointer' }}
                 onClick={() => router.push(`/profile/${user.uid || user.id}`)}
@@ -134,7 +118,6 @@ export default function UsersPage() {
                 <p style={{ margin: '1px 0 0 0', fontSize: '13px', color: '#666' }}>{user.email}</p>
               </div>
 
-              {/* 5. CHAT CLICK CHUAN CHAT */}
               <button
                 onClick={() => router.push(`/chat/${user.uid || user.id}`)}
                 style={{ background: '#f5f0ff', border: 'none', width: '38px', height: '38px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
