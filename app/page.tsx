@@ -16,7 +16,6 @@ export default function LoginPage() {
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // PAGE LOAD IN LOCALSTORAGE ATANGIN DARK MODE CHHIAR
   useEffect(() => {
     const saved = localStorage.getItem('darkMode');
     setDark(saved === 'true');
@@ -47,25 +46,28 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/');
     } catch (err: any) {
-      // 1. ERROR HO ZAWNG ZAWNG ENGLISH VEK IN KA DAH
-      switch(err.code) {
-        case 'auth/invalid-email':
-          setError('Please enter a valid email address');
-          break;
-        case 'auth/user-not-found':
-          setError('No account found with this email');
-          break;
-        case 'auth/wrong-password':
-          setError('Incorrect password. Please try again');
-          break;
-        case 'auth/too-many-requests':
-          setError('Too many failed attempts. Please try again later');
-          break;
-        case 'auth/network-request-failed':
-          setError('Network error. Please check your internet connection');
-          break;
-        default:
-          setError('Login failed. Please try again');
+      console.log(err); // Debug nan
+      const errorCode = err.code;
+      const errorMessage = err.message;
+
+      // 1. IF ELSE IN CHECK CHAR CHAR
+      if (errorCode === 'auth/invalid-email' || errorMessage.includes('invalid-email')) {
+        setError('Please enter a valid email address');
+      } 
+      else if (errorCode === 'auth/user-not-found' || errorMessage.includes('user-not-found')) {
+        setError('No account found with this email');
+      } 
+      else if (errorCode === 'auth/wrong-password' || errorMessage.includes('wrong-password')) {
+        setError('Incorrect password. Please try again');
+      } 
+      else if (errorCode === 'auth/too-many-requests' || errorMessage.includes('too-many-requests')) {
+        setError('Too many failed attempts. Please try again later');
+      }
+      else if (errorCode === 'auth/network-request-failed' || errorMessage.includes('network-request-failed')) {
+        setError('Network error. Please check your internet connection');
+      }
+      else {
+        setError('Login failed. Please try again');
       }
     }
     setLoading(false);
@@ -73,7 +75,7 @@ export default function LoginPage() {
 
   return (
     <>
-      {/* 2. GOOGLE FONT POPPINS BELH */}
+      {/* GOOGLE FONT POPPINS */}
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&display=swap');
       `}</style>
@@ -93,7 +95,6 @@ export default function LoginPage() {
           zIndex: 10,
           transition: '0.3s'
         }} ref={menuRef}>
-          {/* MzApp FONT THLAK */}
           <h1 style={{fontSize: '26px', fontWeight: '800', margin: 0, color: accent, fontFamily: 'Poppins, sans-serif', letterSpacing: '0.5px'}}>MzApp</h1>
 
           <button onClick={()=>setShowMenu(!showMenu)} style={{background: dark? '#2a2a2c' : '#f0f0f0', border: 'none', cursor: 'pointer', padding: '10px', borderRadius: '50%', display: 'flex'}}>
@@ -104,7 +105,6 @@ export default function LoginPage() {
             </svg>
           </button>
 
-          {/* MENU */}
           {showMenu && (
             <div style={{position: 'absolute', top: '60px', right: '16px', background: card, borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '190px', zIndex: 20, border: `1px solid ${border}`, transition: '0.3s'}}>
               <span onClick={()=>{router.push('/setting?back=/'); setShowMenu(false)}} style={{padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '18px', cursor: 'pointer', fontWeight: '700', color: text}}>
@@ -133,7 +133,6 @@ export default function LoginPage() {
 
               <div style={{display: 'flex', flexDirection: 'column', gap: '14px'}}>
 
-                {/* EMAIL INPUT */}
                 <div style={{position: 'relative'}}>
                   <span style={{position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '20px', zIndex: 1}}>👤</span>
                   <input
@@ -145,7 +144,6 @@ export default function LoginPage() {
                   />
                 </div>
 
-                {/* PASSWORD INPUT */}
                 <div style={{position: 'relative'}}>
                   <span style={{position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '20px', zIndex: 1}}>🔒</span>
                   <input
@@ -155,7 +153,6 @@ export default function LoginPage() {
                     placeholder="Password"
                     style={{width: '100%', padding: '14px 45px 14px 45px', borderRadius: '12px', border: `1px solid ${border}`, background: inputBg, color: text, fontSize: '15px', outline: 'none', boxSizing: 'border-box', transition: '0.3s'}}
                   />
-                  {/* MIT THAI ICON */}
                   <button onClick={()=>setShowPass(!showPass)} style={{position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', zIndex: 2, display: 'flex'}}>
                     {showPass? (
                       <svg width="22" height="22" viewBox="0 0 24 24" fill={accent}>
@@ -174,7 +171,6 @@ export default function LoginPage() {
                   <Link href="/forgot" style={{color: accent, fontSize: '14px', textDecoration: 'none', fontWeight: '600'}}>Forgot password?</Link>
                 </div>
 
-                {/* LOGIN BUTTON */}
                 <button
                   onClick={handleLogin}
                   disabled={loading}
@@ -192,4 +188,4 @@ export default function LoginPage() {
       </div>
     </>
   )
-}
+                                                   }
