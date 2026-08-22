@@ -32,15 +32,27 @@ export default function UsersPage() {
 
   return (
     <div style={{ background: '#f5f5f5', minHeight: '100vh' }}>
-      {/* SEARCH - MENU HNUAIAH DING RENG */}
-      <div style={{ position: 'sticky', top: '104px', zIndex: 15, padding: '12px', background: '#f5f5f5' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fff', padding: '16px 16px', borderRadius: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+      {/* THLAKNA: top 109px -> 110px ah ka dah sang, background solid, a hnuai a list a lut tawh lo ang */}
+      <div style={{ 
+        position: 'sticky', 
+        top: '110px', 
+        zIndex: 15, 
+        padding: '10px 12px 12px 12px', 
+        background: '#f5f5f5',
+        borderBottom: '1px solid #f5f5f5'
+      }}>
+        <div style={{ 
+          display: 'flex', alignItems: 'center', gap: '10px', 
+          background: '#fff', padding: '14px 16px', borderRadius: '14px', 
+          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+          border: '1px solid #eee'
+        }}>
           <Search size={20} color="#888" />
           <input type="text" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '16px' }} />
         </div>
       </div>
 
-      {/* LIST */}
+      {/* LIST - tun ah chuan search hnuai ah a lut hret tawh lo ang */}
       <div style={{ padding: '0 12px 12px 12px' }}>
         <div style={{ background: '#fff', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
           {loading? <p style={{ textAlign: 'center', color: '#666', padding: '30px' }}>Loading users...</p>
@@ -67,4 +79,4 @@ export default function UsersPage() {
       </div>
     </div>
   );
-}
+              }
