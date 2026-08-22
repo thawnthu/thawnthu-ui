@@ -18,7 +18,6 @@ export default function ChatDetailPage() {
   const [showMenu, setShowMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQ, setSearchQ] = useState('');
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -52,11 +51,12 @@ export default function ChatDetailPage() {
     const unsub = onSnapshot(q, snap => {
       const msgs = snap.docs.map(d => ({ id: d.id,...d.data() as any }));
       msgs.sort((a: any, b: any) => {
-        const ta = a.timestamp?.toDate? a.timestamp.toDate().getTime() : (a.timestamp? new Date(a.timestamp).getTime() : (a.senderId === currentUser.uid? Date.now() : 0));
-        const tb = b.timestamp?.toDate? b.timestamp.toDate().getTime() : (b.timestamp? new Date(b.timestamp).getTime() : (b.senderId === currentUser.uid? Date.now() : 0));
+        const ta = a.timestamp?.toDate? a.timestamp.toDate().getTime() : (a.timestamp? new Date(a.timestamp).getTime() : 0);
+        const tb = b.timestamp?.toDate? b.timestamp.toDate().getTime() : (b.timestamp? new Date(b.timestamp).getTime() : 0);
         return ta - tb;
       });
       setMessages(msgs);
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }), 100);
     });
     return () => unsub();
   }, [currentUser, otherUid]);
@@ -88,7 +88,6 @@ export default function ChatDetailPage() {
         [`seen.${currentUser.uid}`]: serverTimestamp(),
         [`unread.${currentUser.uid}`]: 0
       }, { merge: true }).catch(()=>{});
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, currentUser, otherUid]);
 
@@ -96,7 +95,7 @@ export default function ChatDetailPage() {
     if (!user?.online ||!user?.lastSeen) return false;
     try {
       const last = user.lastSeen.toDate? user.lastSeen.toDate() : new Date(user.lastSeen);
-      return Date.now() - last.getTime() < 120 * 1000;
+      return Date.now() - last.getTime() < 180 * 1000;
     } catch { return false; }
   };
 
@@ -105,17 +104,6 @@ export default function ChatDetailPage() {
     const text = newMsg.trim();
     setNewMsg('');
     const chatId = getChatId(currentUser.uid, otherUid);
-
-    const tempId = 'temp_' + Date.now();
-    setMessages(prev => [...prev, {
-      id: tempId,
-      text: text,
-      senderId: currentUser.uid,
-      receiverId: otherUid,
-      timestamp: new Date(),
-    }]);
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-
     try {
       await setDoc(doc(db, "chats", chatId), {
         participants: [currentUser.uid, otherUid],
@@ -133,9 +121,9 @@ export default function ChatDetailPage() {
         receiverId: otherUid,
         timestamp: serverTimestamp(),
       });
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } catch (e: any) {
       setNewMsg(text);
-      setMessages(prev => prev.filter(m => m.id!== tempId));
     }
   };
 
@@ -151,7 +139,7 @@ export default function ChatDetailPage() {
 
   const getInitial = (name: string) => name?.charAt(0).toUpperCase() || 'T';
   const formatMsgTime = (ts: any) => {
-    if (!ts) return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    if (!ts) return '';
     try {
       const d = ts.toDate? ts.toDate() : new Date(ts);
       return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -179,13 +167,13 @@ export default function ChatDetailPage() {
     } catch { return false; }
   };
 
-  // GREEN FIX 100% - a reply tawh chuan GREEN
+  // FINAL GREEN LOGIC - pahnih ah a inang vek tur
   const renderTick = (msg: any, isMe: boolean, allMsgs: any[]) => {
     if (!isMe) return null;
 
     const msgTime = msg.timestamp?.toDate? msg.timestamp.toDate().getTime() : (msg.timestamp? new Date(msg.timestamp).getTime() : Date.now());
 
-    // 1. Midangin he message hnua a rawn reply tawh chuan GREEN - 100% read
+    // 1. A reply tawh chuan GREEN - 100%
     const hasReplyAfter = allMsgs.some((m: any) => {
       if (m.senderId!== otherUid) return false;
       const t = m.timestamp?.toDate? m.timestamp.toDate().getTime() : (m.timestamp? new Date(m.timestamp).getTime() : 0);
@@ -195,17 +183,31 @@ export default function ChatDetailPage() {
       return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
 
-    // 2. Seen a awm a unread 0 a nih chuan GREEN - open tawh
-    if (chatData?.seen?.[otherUid] && chatData?.unread?.[otherUid] === 0) {
-      return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
+    // 2. Seen a awm chuan GREEN - open tawh
+    if (chatData?.seen?.[otherUid]) {
+      try {
+        const seenDate = chatData.seen[otherUid].toDate? chatData.seen[otherUid].toDate() : new Date(chatData.seen[otherUid]);
+        if (seenDate.getTime() >= msgTime - 5000) {
+          return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
+        }
+      } catch {
+        // seen awm chuan green tho
+        return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
+      }
     }
 
-    // 3. Online chuan 2 tick white
+    // 3. Message server ah a thleng tawh chuan 2 tick white - delivery
+    // chatData a awm chuan deliver tawh tihna - single tick bo
+    if (chatData) {
+      return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
+    }
+
+    // 4. Online chuan 2 white
     if (isReallyOnline(otherUser)) {
       return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
 
-    // 4. Offline - 1 tick
+    // 5. Chauh a la thleng lo - 1 tick
     return <Check size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
   };
 
@@ -269,71 +271,76 @@ export default function ChatDetailPage() {
       </div>
 
       <div
-        ref={messagesContainerRef}
         style={{
           flex: 1,
           overflowY: 'auto',
           overflowX: 'hidden',
-          padding: '10px 18px 12px 18px',
           background: '#e5ddd5',
           WebkitOverflowScrolling: 'touch',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        {filteredMessages.map((msg, idx) => {
-          const isMe = msg.senderId === currentUser?.uid;
-          const prev = idx > 0? filteredMessages[idx - 1] : null;
-          const showDate = shouldShowDate(msg, prev);
-          return (
-            <div key={msg.id}>
-              {showDate && (
-                <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0' }}>
-                  <span style={{ background: '#fff', color: '#54656f', fontSize: '11px', padding: '3px 9px', borderRadius: '8px', boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)', fontWeight: '500' }}>
-                    {formatDateLabel(msg.timestamp)}
-                  </span>
-                </div>
-              )}
-              <div style={{ display: 'flex', justifyContent: isMe? 'flex-end' : 'flex-start', marginBottom: '4px', paddingLeft: isMe? '20px' : '0', paddingRight: isMe? '0' : '20px' }}>
-                <div style={{
-                  maxWidth: '74%',
-                  padding: '6px 8px 4px 10px',
-                  borderRadius: isMe? '8px 8px 0 8px' : '8px 8px 8px 0',
-                  background: isMe? '#8d31ce' : '#fff',
-                  color: isMe? '#fff' : '#111b21',
-                  boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)',
-                  position: 'relative',
-                  minWidth: '90px'
-                }}>
-                  <span style={{ fontSize: '15px', lineHeight: '19px', fontWeight: '400', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
-                    {msg.text}
-                  </span>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    alignItems: 'center',
-                    gap: '2px',
-                    marginTop: '2px',
-                    float: 'right',
-                    marginLeft: '12px',
-                    paddingTop: '3px'
-                  }}>
-                    <span style={{
-                      fontSize: '10.5px',
-                      color: isMe? 'rgba(255,255,255,0.85)' : '#667781',
-                      fontWeight: '400',
-                      lineHeight: '10px',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {formatMsgTime(msg.timestamp)}
+        {/* Message hniam turin - a chung ah spacer */}
+        <div style={{ flex: 1 }}></div>
+
+        <div style={{ padding: '10px 18px 10px 18px' }}>
+          {filteredMessages.map((msg, idx) => {
+            const isMe = msg.senderId === currentUser?.uid;
+            const prev = idx > 0? filteredMessages[idx - 1] : null;
+            const showDate = shouldShowDate(msg, prev);
+            return (
+              <div key={msg.id}>
+                {showDate && (
+                  <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0' }}>
+                    <span style={{ background: '#fff', color: '#54656f', fontSize: '11px', padding: '3px 9px', borderRadius: '8px', boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)', fontWeight: '500' }}>
+                      {formatDateLabel(msg.timestamp)}
                     </span>
-                    {renderTick(msg, isMe, filteredMessages)}
                   </div>
-                  <div style={{ clear: 'both' }}></div>
+                )}
+                <div style={{ display: 'flex', justifyContent: isMe? 'flex-end' : 'flex-start', marginBottom: '4px', paddingLeft: isMe? '20px' : '0', paddingRight: isMe? '0' : '20px' }}>
+                  <div style={{
+                    maxWidth: '74%',
+                    padding: '6px 8px 4px 10px',
+                    borderRadius: isMe? '8px 8px 0 8px' : '8px 8px 8px 0',
+                    background: isMe? '#8d31ce' : '#fff',
+                    color: isMe? '#fff' : '#111b21',
+                    boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)',
+                    position: 'relative',
+                    minWidth: '90px'
+                  }}>
+                    <span style={{ fontSize: '15px', lineHeight: '19px', fontWeight: '400', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                      {msg.text}
+                    </span>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'flex-end',
+                      alignItems: 'center',
+                      gap: '2px',
+                      marginTop: '2px',
+                      float: 'right',
+                      marginLeft: '12px',
+                      paddingTop: '3px'
+                    }}>
+                      <span style={{
+                        fontSize: '10.5px',
+                        color: isMe? 'rgba(255,255,255,0.85)' : '#667781',
+                        fontWeight: '400',
+                        lineHeight: '10px',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {formatMsgTime(msg.timestamp)}
+                      </span>
+                      {renderTick(msg, isMe, filteredMessages)}
+                    </div>
+                    <div style={{ clear: 'both' }}></div>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-        <div ref={messagesEndRef} style={{ height: '10px' }} />
+            );
+          })}
+          <div ref={messagesEndRef} style={{ height: '2px' }} />
+        </div>
       </div>
 
       <div style={{
@@ -379,4 +386,4 @@ export default function ChatDetailPage() {
 
     </div>
   );
-            }
+              }
