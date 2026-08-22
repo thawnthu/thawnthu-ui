@@ -114,7 +114,6 @@ export default function ChatListPage() {
     } catch { return text; }
   };
 
-  // EDIT 1: Thar ber chung ah - sort
   const filtered = chats
    .filter(c => {
       if (!search) return true;
@@ -147,12 +146,11 @@ export default function ChatListPage() {
                 <div style={{ flex: 1, overflow: 'hidden' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <p style={{ margin: 0, fontSize: '16px', fontWeight: unread>0? '700' : '600', color: '#000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>{highlightText(chat.otherUser?.name || 'Unknown', search)}</p>
-                    {/* EDIT 2 & 3: Time bul ah bial - WhatsApp ang */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                       <span style={{ fontSize: '12px', color: unread>0? '#25d366' : '#888', fontWeight: unread>0? '700' : '400' }}>{formatTime(chat.lastTimestamp || chat.updatedAt)}</span>
                       {unread>0 && (
                         <span style={{ background: '#25d366', color: '#fff', fontSize: '11px', fontWeight: '700', minWidth: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>
-                          {unread>9? '9+' : unread}
+                          {unread}
                         </span>
                       )}
                     </div>
@@ -191,4 +189,4 @@ export default function ChatListPage() {
       )}
     </div>
   );
-}
+  }
