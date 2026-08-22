@@ -70,15 +70,18 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, [currentUser, otherUid]);
 
-  useEffect(() => {
-    if (!currentUser?.uid ||!otherUid) return;
-    const chatId = getChatId(currentUser.uid, otherUid);
-    setDoc(doc(db, "chats", chatId), {
-      [`seen.${currentUser.uid}`]: serverTimestamp(),
-      [`unread.${currentUser.uid}`]: 0
-    }, { merge: true }).catch(()=>{});
-  }, [currentUser, otherUid]);
+  // EDIT - Hei hi ka paih, hei vangin Chat(0) a ni nghal zel
+  // WhatsApp ang chuan message a hmuh chiah in chauh 0 ni tur
+  // useEffect(() => {
+  // if (!currentUser?.uid ||!otherUid) return;
+  // const chatId = getChatId(currentUser.uid, otherUid);
+  // setDoc(doc(db, "chats", chatId), {
+  // [`seen.${currentUser.uid}`]: serverTimestamp(),
+  // [`unread.${currentUser.uid}`]: 0
+  // }, { merge: true }).catch(()=>{});
+  // }, [currentUser, otherUid]);
 
+  // Hei chiah hi awm tur - message a hmuh chiah in 0
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid || messages.length === 0) return;
     const last = messages[messages.length - 1];
@@ -171,13 +174,10 @@ export default function ChatDetailPage() {
     } catch { return false; }
   };
 
-  // FIXED TICK LOGIC - 1 gray, 2 gray, 2 green
   const renderTick = (msg: any, isMe: boolean, allMsgs: any[]) => {
     if (!isMe) return null;
     const msgTime = msg.timestamp?.toDate? msg.timestamp.toDate().getTime() : (msg.timestamp? new Date(msg.timestamp).getTime() : 0);
     if (!msgTime) return <Check size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-
-    // 1. Reply a awm tawh chuan GREEN (seen chiang)
     const hasReplyAfter = allMsgs.some((m: any) => {
       if (m.senderId!== otherUid) return false;
       const t = m.timestamp?.toDate? m.timestamp.toDate().getTime() : (m.timestamp? new Date(m.timestamp).getTime() : 0);
@@ -186,8 +186,6 @@ export default function ChatDetailPage() {
     if (hasReplyAfter) {
       return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
-
-    // 2. Seen timestamp >= message time chuan GREEN
     if (chatData?.seen?.[otherUid]) {
       try {
         const seenDate = chatData.seen[otherUid].toDate? chatData.seen[otherUid].toDate() : new Date(chatData.seen[otherUid]);
@@ -196,24 +194,15 @@ export default function ChatDetailPage() {
         }
       } catch {}
     }
-
-    // 3. Unread[otherUid] > 0 chuan DELIVERED - 2 tick gray
-    // Unread a awm tawh chuan server ah a thleng tawh tihna
     if (chatData?.unread && typeof chatData.unread[otherUid] === 'number' && chatData.unread[otherUid] > 0) {
       return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
-
-    // 4. Unread 0 tawh leh seen la awm loh chuan a seen tawh - GREEN (case thenkhat)
     if (chatData?.unread && chatData.unread[otherUid] === 0 && chatData?.seen?.[otherUid]) {
       return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
-
-    // 5. ChatData a awm tawh chuan at least delivered - 2 gray
     if (chatData) {
       return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
-
-    // 6. Thawn chiah, server a la thleng lo - 1 tick
     return <Check size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
   };
 
@@ -343,4 +332,4 @@ export default function ChatDetailPage() {
       </div>
     </div>
   );
-   }
+}
