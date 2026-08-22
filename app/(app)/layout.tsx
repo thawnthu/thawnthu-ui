@@ -76,7 +76,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, []);
 
-  // FIXED - WhatsApp ang chiah - chat open hma chu Chat(1) reng
   useEffect(() => {
     let unsubChats: any = null;
     const unsubAuth = onAuthStateChanged(auth, (user) => {
@@ -131,8 +130,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{background: dark? '#0f0f10' : '#f5f5f5', minHeight: '100vh', fontFamily: 'Inter, sans-serif'}}>
-
-      {/* HEADER */}
       <div style={{position: 'sticky', top: 0, zIndex: 30, background: '#8d31ce', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 4px 8px 16px'}}>
         <div style={{fontSize: '22px', fontWeight: '800', color: '#fff', letterSpacing: '-0.5px'}}>MzApp</div>
         <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
@@ -157,7 +154,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </div>
-
       <div style={{position: 'sticky', top: '52px', zIndex: 20, background: card, display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 16px 4px 16px', borderBottom: `2px solid ${border}`, boxShadow: '0 2px 4px rgba(0,0,0,0.05)'}}>
         <div style={{display: 'flex', justifyContent: 'space-between', gap: '8px', overflowX: 'auto'}}>
           {tabs.slice(0,4).map(tab => {
@@ -174,8 +170,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </div>
-
       <div style={{padding: '0px'}}>{children}</div>
     </div>
   )
-  }
+                             }
