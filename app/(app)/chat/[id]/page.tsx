@@ -53,25 +53,61 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, [currentUser, otherUid]);
 
+  const isReallyOnline = (user: any) => {
+    if (!user?.online ||!user?.lastSeen) return false;
+    try {
+      const last = user.lastSeen.toDate? user.lastSeen.toDate() : new Date(user.lastSeen);
+      return Date.now() - last.getTime() < 2 * 60 * 1000;
+    } catch { return false; }
+  };
+
+  // FIX BER: TICK SEEN LOGIC
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid || messages.length === 0) return;
     const chatId = getChatId(currentUser.uid, otherUid);
     const batch = writeBatch(db);
     let hasUpdate = false;
+
     messages.forEach(m => {
-      if (m.receiverId === currentUser.uid && m.status === 'sent') {
-        batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'delivered' });
-        hasUpdate = true;
-      }
-      if (m.receiverId === currentUser.uid && (m.status === 'sent' || m.status === 'delivered')) {
+      // 1. Min rawn thawn a ka hmuh chuan READ ah
+      if (m.receiverId === currentUser.uid && m.status!== 'read') {
         batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'read' });
         hasUpdate = true;
       }
+      // 2. Ka thawn a, Thara a online chuan DELIVERED ah (2 tick grey)
+      if (m.senderId === currentUser.uid && m.status === 'sent' && isReallyOnline(otherUser)) {
+        batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'delivered' });
+        hasUpdate = true;
+      }
     });
+
     if (hasUpdate) batch.commit().catch(()=>{});
-    if (currentUser.uid) {
-      setDoc(doc(db, "chats", chatId), { [`unread.${currentUser.uid}`]: 0 }, { merge: true }).catch(()=>{});
-    }
+
+    // Ka unread 0 ah
+    setDoc(doc(db, "chats", chatId), { [`unread.${currentUser.uid}`]: 0 }, { merge: true }).catch(()=>{});
+  }, [messages, currentUser, otherUid, otherUser]);
+
+  // Ka thawn message te chu Thara'n a chat a hawn chuan READ (blue tick) ah ka dah ang - Thara lam atanga update a rawn thleng hunah auto in lang ang
+  useEffect(() => {
+    if (!currentUser?.uid ||!otherUid) return;
+    const chatId = getChatId(currentUser.uid, otherUid);
+    const unsub = onSnapshot(doc(db, "chats", chatId), (snap) => {
+      const data = snap.data() as any;
+      if (!data) return;
+      // Thara'n a unread a 0 chuan ka thawn zawng zawng kha a hmu tawh tihna = READ
+      if (data.unread && data.unread[otherUid] === 0) {
+        const batch = writeBatch(db);
+        let has = false;
+        messages.forEach(m => {
+          if (m.senderId === currentUser.uid && m.status!== 'read') {
+            batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'read' });
+            has = true;
+          }
+        });
+        if (has) batch.commit().catch(()=>{});
+      }
+    });
+    return () => unsub();
   }, [messages, currentUser, otherUid]);
 
   useEffect(() => {
@@ -113,14 +149,6 @@ export default function ChatDetailPage() {
     });
     setShowMenu(false);
     router.push('/users');
-  };
-
-  const isReallyOnline = (user: any) => {
-    if (!user?.online ||!user?.lastSeen) return false;
-    try {
-      const last = user.lastSeen.toDate? user.lastSeen.toDate() : new Date(user.lastSeen);
-      return Date.now() - last.getTime() < 2 * 60 * 1000;
-    } catch { return false; }
   };
 
   const getInitial = (name: string) => name?.charAt(0).toUpperCase() || 'T';
@@ -173,7 +201,6 @@ export default function ChatDetailPage() {
   const filteredMessages = searchQ? messages.filter(m => m.text?.toLowerCase().includes(searchQ.toLowerCase())) : messages;
 
   return (
-    // FIX BER: Position fixed - he page chhungah hian message chiah a tawlh ang, header leh input a tawlh lo ang
     <div style={{
       position: 'fixed',
       top: '135px',
@@ -187,7 +214,6 @@ export default function ChatDetailPage() {
       zIndex: 5,
     }}>
 
-      {/* HEADER - FIXED, A TAWLH LO ANG */}
       <div style={{
         background: '#8d31ce',
         display: 'flex',
@@ -231,13 +257,13 @@ export default function ChatDetailPage() {
         </div>
       </div>
 
-      {/* MESSAGES CHIAH HI A TAWLH THEIH - HEI CHIAH */}
+      {/* FIX: SIR SPACE TI ZAU - 14px left right */}
       <div
         style={{
           flex: 1,
           overflowY: 'auto',
           overflowX: 'hidden',
-          padding: '10px 8px 6px 8px',
+          padding: '10px 14px 6px 14px',
           background: '#e5ddd5',
           WebkitOverflowScrolling: 'touch',
         }}
@@ -255,10 +281,10 @@ export default function ChatDetailPage() {
                   </span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: isMe? 'flex-end' : 'flex-start', marginBottom: '2px' }}>
+              <div style={{ display: 'flex', justifyContent: isMe? 'flex-end' : 'flex-start', marginBottom: '3px' }}>
                 <div style={{
-                  maxWidth: '78%',
-                  padding: '5px 6px 3px 8px',
+                  maxWidth: '76%',
+                  padding: '5px 7px 3px 9px',
                   borderRadius: isMe? '8px 8px 0 8px' : '8px 8px 8px 0',
                   background: isMe? '#8d31ce' : '#fff',
                   color: isMe? '#fff' : '#111b21',
@@ -299,10 +325,9 @@ export default function ChatDetailPage() {
         <div ref={messagesEndRef} style={{ height: '2px' }} />
       </div>
 
-      {/* INPUT - FIXED, A TAWLH LO ANG */}
       <div style={{
         background: '#e5ddd5',
-        padding: '4px 6px 6px 6px',
+        padding: '4px 10px 8px 10px',
         display: 'flex',
         alignItems: 'center',
         gap: '6px',
@@ -342,4 +367,4 @@ export default function ChatDetailPage() {
 
     </div>
   );
-    }
+                     }
