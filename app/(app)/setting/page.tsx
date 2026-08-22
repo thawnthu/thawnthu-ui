@@ -1,28 +1,35 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { User, Lock, Moon, Sun, ShieldBan, Save, Eye, EyeOff, Type } from 'lucide-react';
+import { User, Mail, Lock, Moon, ShieldBan, X, Edit3, ChevronRight, Type, Eye, EyeOff } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { updateProfile, updatePassword, updateEmail, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { doc, onSnapshot, getDoc, setDoc, collection, deleteDoc, updateDoc } from 'firebase/firestore';
 
 export default function SettingPage() {
   const [name, setName] = useState('');
+  const [newName, setNewName] = useState('');
   const [email, setEmail] = useState('');
+  const [newEmail, setNewEmail] = useState('');
   const [darkMode, setDarkMode] = useState(false);
   const [fontSize, setFontSize] = useState('16');
   const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
   const [showBlockList, setShowBlockList] = useState(false);
   const [saving, setSaving] = useState(false);
+
   const [currentPass, setCurrentPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
   const [showPass, setShowPass] = useState(false);
 
+  const [modal, setModal] = useState<'name' | 'email' | 'password' | null>(null);
+
   useEffect(() => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
-    setName(auth.currentUser?.displayName || '');
-    setEmail(auth.currentUser?.email || '');
+    const dName = auth.currentUser?.displayName || '';
+    const dEmail = auth.currentUser?.email || '';
+    setName(dName); setNewName(dName);
+    setEmail(dEmail); setNewEmail(dEmail);
     setDarkMode(localStorage.getItem('darkMode') === 'true');
     setFontSize(localStorage.getItem('fontSize') || '16');
 
@@ -41,42 +48,47 @@ export default function SettingPage() {
     if (uid) setDoc(doc(db, "users", uid), { darkMode: isDark, fontSize: fSize }, { merge: true });
   };
 
-  const handleDarkToggle = () => applyAndSave(!darkMode, fontSize);
-  const handleFontChange = (size: string) => applyAndSave(darkMode, size);
-
   const handleSaveName = async () => {
+    if (!newName.trim()) return alert("Name empty");
     setSaving(true);
     try {
       if (auth.currentUser) {
-        await updateProfile(auth.currentUser, { displayName: name });
-        await setDoc(doc(db, "users", auth.currentUser.uid), { name }, { merge: true });
-        alert("Name updated!");
+        await updateProfile(auth.currentUser, { displayName: newName });
+        await setDoc(doc(db, "users", auth.currentUser.uid), { name: newName }, { merge: true });
+        setName(newName); setModal(null); alert("Name updated!");
       }
     } catch (e:any){ alert(e.message); } setSaving(false);
   };
+
   const handleSaveEmail = async () => {
     if (!currentPass) return alert("Current password dah rawh");
     setSaving(true);
     try {
-      const user = auth.currentUser!; const cred = EmailAuthProvider.credential(user.email!, currentPass);
+      const user = auth.currentUser!; 
+      const cred = EmailAuthProvider.credential(user.email!, currentPass);
       await reauthenticateWithCredential(user, cred);
-      await updateEmail(user, email);
-      await setDoc(doc(db, "users", user.uid), { email }, { merge: true });
+      await updateEmail(user, newEmail);
+      await setDoc(doc(db, "users", user.uid), { email: newEmail }, { merge: true });
+      setEmail(newEmail); setModal(null); setCurrentPass('');
       alert("Email updated!");
     } catch (e:any){ alert(e.message); } setSaving(false);
   };
+
   const handleChangePassword = async () => {
     if (newPass!== confirmPass) return alert("Password inmil lo");
     if (newPass.length < 6) return alert("6+ char");
     if (!currentPass) return alert("Current password dah rawh");
     setSaving(true);
     try {
-      const user = auth.currentUser!; const cred = EmailAuthProvider.credential(user.email!, currentPass);
+      const user = auth.currentUser!; 
+      const cred = EmailAuthProvider.credential(user.email!, currentPass);
       await reauthenticateWithCredential(user, cred);
       await updatePassword(user, newPass);
-      alert("Password changed!"); setCurrentPass(''); setNewPass(''); setConfirmPass('');
+      setModal(null); setCurrentPass(''); setNewPass(''); setConfirmPass('');
+      alert("Password changed!");
     } catch (e:any){ alert(e.message); } setSaving(false);
   };
+
   const handleUnblock = async (id: string) => {
     const uid = auth.currentUser?.uid; if (!uid) return;
     await deleteDoc(doc(db, "users", uid, "blocked", id));
@@ -84,64 +96,112 @@ export default function SettingPage() {
     if (data?.blocked) await updateDoc(doc(db, "users", uid), { blocked: data.blocked.filter((x:string)=>x!==id) });
   };
 
-  const card = { background: darkMode? '#1a1a1c' : '#fff', borderRadius: '14px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: `1px solid ${darkMode? '#2a2a2c' : '#eee'}` };
-  const inputStyle = { width: '100%', padding: '12px 14px', borderRadius: '10px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: darkMode? '#222' : '#f9f9f9', color: darkMode? '#fff' : '#000', outline: 'none', fontSize: '1rem' };
+  const card = { background: darkMode? '#1a1a1c' : '#fff', borderRadius: '16px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${darkMode? '#2a2a2c' : '#eee'}` };
+  const inputStyle = { width: '100%', padding: '14px', borderRadius: '12px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: darkMode? '#222' : '#f9f9f9', color: darkMode? '#fff' : '#000', outline: 'none', fontSize: '1rem' };
+  const rowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 4px', cursor: 'pointer' };
 
   return (
     <div style={{ background: darkMode? '#0f0f10' : '#f5f5f5', minHeight: '100vh', padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px', color: darkMode? '#fff' : '#000' }}>
+
+      {/* PROFILE SETTINGS - CLASS 1 AH VEK */}
       <div style={card}>
-        <h3 style={{ margin: '0 0 12px 0', fontSize: '1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}><User size={18}/> Profile Settings</h3>
-        <label style={{ fontSize: '0.85rem', opacity: 0.7 }}>Name</label>
-        <div style={{ display: 'flex', gap: '8px', margin: '6px 0 12px 0' }}>
-          <input value={name} onChange={e=>setName(e.target.value)} style={{...inputStyle, flex: 1 }} />
-          <button onClick={handleSaveName} style={{ background: '#8d31ce', color: '#fff', border: 'none', borderRadius: '10px', padding: '0 16px', cursor: 'pointer' }}><Save size={18}/></button>
+        <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}><User size={20}/> Profile Settings</h3>
+        <p style={{ fontSize: '0.85rem', opacity: 0.5, margin: '0 0 8px 28px' }}>{name} • {email}</p>
+
+        <div style={{ marginTop: '8px' }}>
+          {/* Change Name */}
+          <div onClick={()=>{setNewName(name); setModal('name')}} style={rowStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Edit3 size={20} color="#6366f1"/></div>
+              <div><div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Change Name</div><div style={{ fontSize: '0.8rem', opacity: 0.6 }}>{name}</div></div>
+            </div>
+            <ChevronRight size={20} color="#aaa"/>
+          </div>
+          <div style={{ height: '1px', background: darkMode? '#2a2a2c' : '#f0f0f0', marginLeft: '54px' }}></div>
+
+          {/* Change Email */}
+          <div onClick={()=>{setNewEmail(email); setModal('email')}} style={rowStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Mail size={20} color="#f59e0b"/></div>
+              <div><div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Change Email</div><div style={{ fontSize: '0.8rem', opacity: 0.6 }}>{email}</div></div>
+            </div>
+            <ChevronRight size={20} color="#aaa"/>
+          </div>
+          <div style={{ height: '1px', background: darkMode? '#2a2a2c' : '#f0f0f0', marginLeft: '54px' }}></div>
+
+          {/* Change Password */}
+          <div onClick={()=>setModal('password')} style={rowStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Lock size={20} color="#ef4444"/></div>
+              <div><div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Change Password</div><div style={{ fontSize: '0.8rem', opacity: 0.6 }}>••••••••</div></div>
+            </div>
+            <ChevronRight size={20} color="#aaa"/>
+          </div>
         </div>
-        <label style={{ fontSize: '0.85rem', opacity: 0.7 }}>Email</label>
-        <div style={{ display: 'flex', gap: '8px', margin: '6px 0 12px 0' }}>
-          <input value={email} onChange={e=>setEmail(e.target.value)} style={{...inputStyle, flex: 1 }} />
-          <button onClick={handleSaveEmail} style={{ background: '#8d31ce', color: '#fff', border: 'none', borderRadius: '10px', padding: '0 16px', cursor: 'pointer' }}><Save size={18}/></button>
-        </div>
-        <input type={showPass? "text" : "password"} value={currentPass} onChange={e=>setCurrentPass(e.target.value)} style={inputStyle} placeholder="Current password (Email/Pass change atan)"/>
       </div>
 
-      <div style={card}>
-        <h3 style={{ margin: '0 0 12px 0', fontSize: '1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}><Lock size={18}/> Change Password</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ position: 'relative' }}>
-            <input type={showPass? "text" : "password"} value={newPass} onChange={e=>setNewPass(e.target.value)} style={inputStyle} placeholder="New password"/>
-            <button onClick={()=>setShowPass(!showPass)} style={{ position: 'absolute', right: '10px', top: '10px', background: 'none', border: 'none', cursor: 'pointer', color: darkMode? '#fff' : '#000' }}>{showPass? <EyeOff size={18}/> : <Eye size={18}/>}</button>
+      {/* MODALS */}
+      {modal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={()=>setModal(null)}>
+          <div onClick={e=>e.stopPropagation()} style={{ width: '100%', maxWidth: '380px', background: darkMode? '#1e1e1e' : '#fff', borderRadius: '20px', padding: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontWeight: 800 }}>{modal==='name'? 'Change Name' : modal==='email'? 'Change Email' : 'Change Password'}</h3>
+              <button onClick={()=>setModal(null)} style={{ background: darkMode? '#2a2a2c' : '#f0f0f0', border: 'none', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18}/></button>
+            </div>
+
+            {modal==='name' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <input value={newName} onChange={e=>setNewName(e.target.value)} style={inputStyle} placeholder="New name"/>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={()=>setModal(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: 'none', color: darkMode? '#fff' : '#000', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={handleSaveName} disabled={saving} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#6366f1', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving? 'Saving...' : 'Change Name'}</button>
+                </div>
+              </div>
+            )}
+
+            {modal==='email' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <input value={newEmail} onChange={e=>setNewEmail(e.target.value)} style={inputStyle} placeholder="New email"/>
+                <input type={showPass? "text" : "password"} value={currentPass} onChange={e=>setCurrentPass(e.target.value)} style={inputStyle} placeholder="Current password"/>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={()=>setModal(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: 'none', color: darkMode? '#fff' : '#000', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={handleSaveEmail} disabled={saving} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#f59e0b', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving? 'Saving...' : 'Change Email'}</button>
+                </div>
+              </div>
+            )}
+
+            {modal==='password' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <input type={showPass? "text" : "password"} value={currentPass} onChange={e=>setCurrentPass(e.target.value)} style={inputStyle} placeholder="Current password"/>
+                <div style={{ position: 'relative' }}>
+                  <input type={showPass? "text" : "password"} value={newPass} onChange={e=>setNewPass(e.target.value)} style={inputStyle} placeholder="New password"/>
+                  <button onClick={()=>setShowPass(!showPass)} style={{ position: 'absolute', right: '12px', top: '14px', background: 'none', border: 'none', cursor: 'pointer' }}>{showPass? <EyeOff size={18}/> : <Eye size={18}/>}</button>
+                </div>
+                <input type={showPass? "text" : "password"} value={confirmPass} onChange={e=>setConfirmPass(e.target.value)} style={inputStyle} placeholder="Confirm password"/>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={()=>setModal(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: 'none', color: darkMode? '#fff' : '#000', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={handleChangePassword} disabled={saving} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving? 'Saving...' : 'Change Password'}</button>
+                </div>
+              </div>
+            )}
           </div>
-          <input type={showPass? "text" : "password"} value={confirmPass} onChange={e=>setConfirmPass(e.target.value)} style={inputStyle} placeholder="Confirm new password"/>
-          <button onClick={handleChangePassword} disabled={saving} style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px', fontWeight: 700, cursor: 'pointer' }}>{saving? "Saving..." : "Update Password"}</button>
         </div>
-      </div>
+      )}
 
       <div style={{...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 700 }}>{darkMode? <Moon size={20}/> : <Moon size={20}/>} Dark Mode</div>
-        <button onClick={handleDarkToggle} style={{ width: '52px', height: '30px', borderRadius: '20px', border: 'none', background: darkMode? '#8d31ce' : '#ddd', position: 'relative', cursor: 'pointer' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 700 }}><Moon size={20}/> Dark Mode</div>
+        <button onClick={()=>applyAndSave(!darkMode, fontSize)} style={{ width: '52px', height: '30px', borderRadius: '20px', border: 'none', background: darkMode? '#8d31ce' : '#ddd', position: 'relative', cursor: 'pointer' }}>
           <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#fff', position: 'absolute', top: '3px', left: darkMode? '25px' : '3px', transition: '0.2s' }}/>
         </button>
       </div>
 
-      {/* FONT SIZE CONTROL - SITE PUMPUI */}
       <div style={card}>
-        <h3 style={{ margin: '0 0 12px 0', fontSize: '1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}><Type size={18}/> Font Size - Site pumpui</h3>
+        <h3 style={{ margin: '0 0 12px 0', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}><Type size={18}/> Font Size</h3>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {[
-            { label: 'Small', val: '14' },
-            { label: 'Default', val: '16' },
-            { label: 'Large', val: '18' },
-            { label: 'XL', val: '20' },
-          ].map(f => (
-            <button key={f.val} onClick={()=>handleFontChange(f.val)} style={{
-              padding: '8px 16px', borderRadius: '20px', border: fontSize===f.val? '2px solid #8d31ce' : `1px solid ${darkMode? '#333' : '#ddd'}`,
-              background: fontSize===f.val? '#e9e5ff' : darkMode? '#222' : '#f9f9f9',
-              color: fontSize===f.val? '#8d31ce' : darkMode? '#fff' : '#000',
-              fontWeight: 700, cursor: 'pointer', fontSize: f.val+'px'
-            }}>{f.label} ({f.val})</button>
+          {[{l:'Small',v:'14'},{l:'Default',v:'16'},{l:'Large',v:'18'},{l:'XL',v:'20'}].map(f=>(
+            <button key={f.v} onClick={()=>applyAndSave(darkMode,f.v)} style={{ padding: '8px 16px', borderRadius: '20px', border: fontSize===f.v? '2px solid #8d31ce' : `1px solid ${darkMode? '#333' : '#ddd'}`, background: fontSize===f.v? '#e9e5ff' : darkMode? '#222' : '#f9f9f9', color: fontSize===f.v? '#8d31ce' : darkMode? '#fff' : '#000', fontWeight: 700, cursor: 'pointer', fontSize: f.v+'px' }}>{f.l}</button>
           ))}
         </div>
-        <p style={{ fontSize: '0.85rem', opacity: 0.6, marginTop: '8px' }}>He font size hi page tin ah a lang nghal vek ang.</p>
       </div>
 
       <div style={card}>
@@ -151,13 +211,10 @@ export default function SettingPage() {
         </button>
         {showBlockList && (
           <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {blockedUsers.length === 0? <p style={{ textAlign: 'center', color: '#888', fontSize: '0.9rem' }}>No blocked users</p>
-            : blockedUsers.map(u => (
-              <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: darkMode? '#222' : '#f9f9f9', borderRadius: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#8d31ce', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{u.name?.charAt(0) || '?'}</div>
-                  <span style={{ fontWeight: 600 }}>{u.name || u.id}</span>
-                </div>
+            {blockedUsers.length===0? <p style={{ textAlign: 'center', color: '#888' }}>No blocked users</p>
+            : blockedUsers.map(u=>(
+              <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: darkMode? '#222' : '#f9f9f9', borderRadius: '10px' }}>
+                <span style={{ fontWeight: 600 }}>{u.name || u.id}</span>
                 <button onClick={()=>handleUnblock(u.id)} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 12px', fontWeight: 700, cursor: 'pointer' }}>Unblock</button>
               </div>
             ))}
