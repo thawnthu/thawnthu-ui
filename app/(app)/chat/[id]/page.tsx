@@ -47,7 +47,6 @@ export default function ChatDetailPage() {
 
   const getChatId = (uid1: string, uid2: string) => [uid1, uid2].sort().join('_');
 
-  // Messages chiah ngaihthlak - WRITE AWM LO - a chak zawk
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
@@ -58,7 +57,6 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, [currentUser, otherUid]);
 
-  // Chat data (seen/unread) ngaihthlak
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
@@ -68,7 +66,7 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, [currentUser, otherUid]);
 
-  // Chat luh ruala SEEN vawi 1 chiah - muang lo
+  // Chat luh apiangin seen update - open rual a green turin
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
@@ -78,12 +76,12 @@ export default function ChatDetailPage() {
     }, { merge: true }).catch(()=>{});
   }, [currentUser, otherUid]);
 
-  // Message thar a lo thlen apiangin seen update leh
+  // Message thar lo thlen apiangin ka en nghal tihna
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid || messages.length === 0) return;
-    const chatId = getChatId(currentUser.uid, otherUid);
     const last = messages[messages.length - 1];
     if (last.receiverId === currentUser.uid) {
+      const chatId = getChatId(currentUser.uid, otherUid);
       setDoc(doc(db, "chats", chatId), {
         [`seen.${currentUser.uid}`]: serverTimestamp(),
         [`unread.${currentUser.uid}`]: 0
@@ -95,7 +93,7 @@ export default function ChatDetailPage() {
     if (!user?.online ||!user?.lastSeen) return false;
     try {
       const last = user.lastSeen.toDate? user.lastSeen.toDate() : new Date(user.lastSeen);
-      return Date.now() - last.getTime() < 2 * 60 * 1000;
+      return Date.now() - last.getTime() < 90 * 1000; // 90 sec
     } catch { return false; }
   };
 
@@ -110,15 +108,8 @@ export default function ChatDetailPage() {
       prevCountRef.current = messages.length;
       return;
     }
-    if (isNewMessageAdded) {
-      if (lastMsgIsMine) {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      } else {
-        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
-        if (isNearBottom) {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }
-      }
+    if (isNewMessageAdded && lastMsgIsMine) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
     prevCountRef.current = messages.length;
   }, [messages, currentUser]);
@@ -190,50 +181,43 @@ export default function ChatDetailPage() {
     } catch { return false; }
   };
 
-  // FIX BER: 1 tick leh 2 tick leh green - a inang vek tawh ang
+  // WHATSAPP DIK TAK - i sawi ang chiah
   const renderTick = (msg: any, isMe: boolean) => {
     if (!isMe) return null;
 
     const otherSeen = chatData?.seen?.[otherUid];
     const msgTime = msg.timestamp;
 
-    // Default 1 tick
-    let tickType: 'sent' | 'delivered' | 'read' = 'sent';
-
-    if (chatData) {
-      // Other user chat ah a lut tawh chuan delivered tal
-      if (otherSeen) {
-        try {
-          const seenDate = otherSeen.toDate? otherSeen.toDate() : new Date(otherSeen);
-          const mDate = msgTime?.toDate? msgTime.toDate() : (msgTime? new Date(msgTime) : new Date());
-          if (msgTime) {
-            if (seenDate.getTime() >= mDate.getTime()) {
-              tickType = 'read'; // OPEN tawh -> GREEN
-            } else {
-              tickType = 'delivered'; // Chat ah awm tawh -> 2 tick white
-            }
-          } else {
-            tickType = 'delivered';
-          }
-        } catch {
-          tickType = 'delivered';
+    // 1. GREEN - an open tawh chuan (reply ngailo)
+    if (otherSeen && msgTime) {
+      try {
+        const seenDate = otherSeen.toDate? otherSeen.toDate() : new Date(otherSeen);
+        const mDate = msgTime.toDate? msgTime.toDate() : new Date(msgTime);
+        if (seenDate.getTime() >= mDate.getTime()) {
+          return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
         }
-      } else if (isReallyOnline(otherUser) || chatData?.participants) {
-        // Online emaw chat a awm tawh chuan delivered
-        tickType = 'delivered';
+      } catch {}
+    }
+
+    // 2. WHITE DOUBLE - deliver - midang online emaw a phone ah thleng tawh
+    // offline message chu 1 tick chiah tur
+    if (otherUser) {
+      const otherLastSeen = otherUser?.lastSeen?.toDate? otherUser.lastSeen.toDate() : (otherUser?.lastSeen? new Date(otherUser.lastSeen) : null);
+      if (otherLastSeen && msgTime) {
+        try {
+          const mDate = msgTime.toDate? msgTime.toDate() : new Date(msgTime);
+          // Midang lastSeen aia message a hlui zawk chuan deliver tawh
+          if (otherLastSeen.getTime() >= mDate.getTime() || isReallyOnline(otherUser)) {
+            return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
+          }
+        } catch {}
+      } else if (isReallyOnline(otherUser)) {
+        return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
       }
     }
 
-    if (tickType === 'sent') {
-      return <Check size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-    }
-    if (tickType === 'delivered') {
-      return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-    }
-    if (tickType === 'read') {
-      return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-    }
-    return null;
+    // 3. SINGLE TICK - send chiah - offline laia thawn
+    return <Check size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
   };
 
   const filteredMessages = searchQ? messages.filter(m => m.text?.toLowerCase().includes(searchQ.toLowerCase())) : messages;
@@ -405,4 +389,4 @@ export default function ChatDetailPage() {
 
     </div>
   );
-    }
+        }
