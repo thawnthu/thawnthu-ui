@@ -12,6 +12,7 @@ type ChatItem = {
   lastMessage: string;
   lastSender: string;
   lastTimestamp: any;
+  updatedAt?: any; // FIX: hemi ka add
   unread?: any;
   otherUser?: any;
 };
@@ -28,7 +29,6 @@ export default function ChatListPage() {
     return () => unsub();
   }, []);
 
-  // Chat ho la - a thar apiang a chung lamah (updatedAt desc)
   useEffect(() => {
     if (!currentUid) return;
     const q = query(
@@ -48,7 +48,7 @@ export default function ChatListPage() {
             if (uSnap.exists()) otherUser = { id: uSnap.id,...uSnap.data() };
           } catch {}
         }
-        list.push({ id: d.id, otherUser,...data });
+        list.push({ id: d.id, otherUser,...data } as ChatItem);
       }
       setChats(list);
     });
@@ -86,7 +86,6 @@ export default function ChatListPage() {
   };
 
   const handleOpenChat = async (chat: ChatItem) => {
-    // 4. Open veleh unread bo - whatsapp ang
     if (getUnreadCount(chat) > 0) {
       try {
         await updateDoc(doc(db, "chats", chat.id), {
@@ -102,7 +101,6 @@ export default function ChatListPage() {
     if (!confirm('He chat hi delete i duh em?')) return;
     try {
       await deleteDoc(doc(db, "chats", chatId));
-      // messages subcollection pawh delete duh chuan cloud function ngai
     } catch (e) {
       alert('Delete failed');
     }
@@ -117,8 +115,6 @@ export default function ChatListPage() {
 
   return (
     <div style={{ background: '#f5f5f5', minHeight: 'calc(100vh - 130px)' }}>
-
-      {/* 1. CHAT SEARCH - DING RENG MAWI DEUH */}
       <div style={{
         position: 'sticky',
         top: '130px',
@@ -143,7 +139,6 @@ export default function ChatListPage() {
         </div>
       </div>
 
-      {/* CHAT LIST */}
       <div style={{ padding: '0 12px 12px 12px' }}>
         <div style={{ background: '#fff', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
           {filtered.length===0? (
@@ -156,27 +151,23 @@ export default function ChatListPage() {
               <div key={chat.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 14px', borderBottom: '1px solid #f0f0f0', background: unread>0? '#f9f5ff' : '#fff', cursor: 'pointer', position: 'relative' }}
                 onClick={() => handleOpenChat(chat)}
               >
-                {/* Profile pic */}
                 <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: getColor(chat.otherUser?.name || 'U'), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '700', flexShrink: 0 }}>
                   {getInitial(chat.otherUser?.name || '?')}
                 </div>
 
-                {/* Hming + last message */}
                 <div style={{ flex: 1, overflow: 'hidden' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <p style={{ margin: 0, fontSize: '16px', fontWeight: unread>0? '700' : '600', color: '#000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>
                       {chat.otherUser?.name || 'Unknown'}
                     </p>
-                    {/* 5. TIME */}
                     <span style={{ fontSize: '12px', color: unread>0? '#8d31ce' : '#888', fontWeight: unread>0? '700' : '400' }}>
-                      {formatTime(chat.lastTimestamp || chat.updatedAt)}
+                      {formatTime((chat as any).lastTimestamp || (chat as any).updatedAt)}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3px' }}>
                     <p style={{ margin: 0, fontSize: '14px', color: unread>0? '#000' : '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px', fontWeight: unread>0? '600' : '400' }}>
                       {chat.lastSender===currentUid? 'You: ' : ''}{chat.lastMessage || '...'}
                     </p>
-                    {/* 4. UNREAD BADGE */}
                     {unread>0 && (
                       <span style={{ background: '#8d31ce', color: '#fff', fontSize: '12px', fontWeight: '700', minWidth: '22px', height: '22px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px' }}>
                         {unread>9? '9+' : unread}
@@ -185,7 +176,6 @@ export default function ChatListPage() {
                   </div>
                 </div>
 
-                {/* 2. DELETE MENU */}
                 <div style={{ position: 'relative' }} onClick={(e)=>e.stopPropagation()}>
                   <button onClick={()=>setOpenMenuId(openMenuId===chat.id? null : chat.id)} style={{ border: 'none', background: 'none', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                     <MoreVertical size={18} color="#999" />
@@ -205,4 +195,4 @@ export default function ChatListPage() {
       </div>
     </div>
   );
-  }
+                }
