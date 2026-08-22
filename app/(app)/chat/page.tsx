@@ -80,7 +80,6 @@ export default function ChatListPage() {
     return undefined;
   };
 
-  // 1. TICK DIK - 1 tick sent, 2 tick gray delivered, 2 tick green seen
   const getTick = (chat: ChatItem) => {
     if (chat.lastSender!== currentUid) return null;
     const otherUnread = getOtherUnread(chat);
@@ -115,11 +114,18 @@ export default function ChatListPage() {
     } catch { return text; }
   };
 
-  const filtered = chats.filter(c => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return c.otherUser?.name?.toLowerCase().includes(q) || c.lastMessage?.toLowerCase().includes(q);
-  });
+  // EDIT 1: Thar ber chung ah - sort
+  const filtered = chats
+   .filter(c => {
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return c.otherUser?.name?.toLowerCase().includes(q) || c.lastMessage?.toLowerCase().includes(q);
+    })
+   .sort((a: any, b: any) => {
+      const ta = a.updatedAt?.toDate?.()?.getTime() || a.lastTimestamp?.toDate?.()?.getTime() || 0;
+      const tb = b.updatedAt?.toDate?.()?.getTime() || b.lastTimestamp?.toDate?.()?.getTime() || 0;
+      return tb - ta;
+    });
 
   return (
     <div style={{ background: '#f5f5f5', minHeight: 'calc(100vh - 130px)' }}>
@@ -141,13 +147,20 @@ export default function ChatListPage() {
                 <div style={{ flex: 1, overflow: 'hidden' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <p style={{ margin: 0, fontSize: '16px', fontWeight: unread>0? '700' : '600', color: '#000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>{highlightText(chat.otherUser?.name || 'Unknown', search)}</p>
-                    <span style={{ fontSize: '12px', color: unread>0? '#25d366' : '#888', fontWeight: unread>0? '700' : '400' }}>{formatTime((chat as any).lastTimestamp || (chat as any).updatedAt)}</span>
+                    {/* EDIT 2 & 3: Time bul ah bial - WhatsApp ang */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <span style={{ fontSize: '12px', color: unread>0? '#25d366' : '#888', fontWeight: unread>0? '700' : '400' }}>{formatTime(chat.lastTimestamp || chat.updatedAt)}</span>
+                      {unread>0 && (
+                        <span style={{ background: '#25d366', color: '#fff', fontSize: '11px', fontWeight: '700', minWidth: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>
+                          {unread>9? '9+' : unread}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3px' }}>
-                    <p style={{ margin: 0, fontSize: '14px', color: unread>0? '#000' : '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px', fontWeight: unread>0? '600' : '400', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <p style={{ margin: 0, fontSize: '14px', color: unread>0? '#000' : '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px', fontWeight: unread>0? '600' : '400', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       {getTick(chat)}<span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{highlightText(chat.lastMessage || '...', search)}</span>
                     </p>
-                    {unread>0 && (<span style={{ background: '#25d366', color: '#fff', fontSize: '12px', fontWeight: '700', minWidth: '22px', height: '22px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px' }}>{unread>9? '9+' : unread}</span>)}
                   </div>
                 </div>
                 <div style={{ position: 'relative' }} onClick={(e)=>e.stopPropagation()}>
@@ -178,4 +191,4 @@ export default function ChatListPage() {
       )}
     </div>
   );
-                                                                                                  }
+}
