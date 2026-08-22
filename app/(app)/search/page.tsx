@@ -33,7 +33,7 @@ export default function GlobalSearchPage() {
   return (
     <div style={{ background: '#f5f5f5', minHeight: '100vh' }}>
       {/* SEARCH BAR - ding reng */}
-      <div style={{ position: 'sticky', top: '120px', zIndex: 15, padding: '10px 12px', background: '#f5f5f5' }}>
+      <div style={{ position: 'sticky', top: '130px', zIndex: 15, padding: '10px 12px', background: '#f5f5f5' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fff', padding: '14px 16px', borderRadius: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
           <button onClick={()=>router.back()} style={{border:'none', background:'none', cursor:'pointer'}}><ArrowLeft size={20} color="#666"/></button>
           <Search size={20} color="#888" />
