@@ -142,7 +142,11 @@ export default function ChatDetailPage() {
     if (!ts) return '';
     try {
       const d = ts.toDate? ts.toDate() : new Date(ts);
-      return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      let h = d.getHours();
+      const m = d.getMinutes().toString().padStart(2, '0');
+      const ampm = h >= 12? 'pm' : 'am';
+      h = h % 12; h = h? h : 12;
+      return `${h}:${m} ${ampm}`;
     } catch { return ''; }
   };
   const formatDateLabel = (ts: any) => {
@@ -167,13 +171,13 @@ export default function ChatDetailPage() {
     } catch { return false; }
   };
 
-  // FINAL GREEN LOGIC - pahnih ah a inang vek tur
+  // FIXED TICK LOGIC - 1 gray, 2 gray, 2 green
   const renderTick = (msg: any, isMe: boolean, allMsgs: any[]) => {
     if (!isMe) return null;
+    const msgTime = msg.timestamp?.toDate? msg.timestamp.toDate().getTime() : (msg.timestamp? new Date(msg.timestamp).getTime() : 0);
+    if (!msgTime) return <Check size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
 
-    const msgTime = msg.timestamp?.toDate? msg.timestamp.toDate().getTime() : (msg.timestamp? new Date(msg.timestamp).getTime() : Date.now());
-
-    // 1. A reply tawh chuan GREEN - 100%
+    // 1. Reply a awm tawh chuan GREEN (seen chiang)
     const hasReplyAfter = allMsgs.some((m: any) => {
       if (m.senderId!== otherUid) return false;
       const t = m.timestamp?.toDate? m.timestamp.toDate().getTime() : (m.timestamp? new Date(m.timestamp).getTime() : 0);
@@ -183,31 +187,33 @@ export default function ChatDetailPage() {
       return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
 
-    // 2. Seen a awm chuan GREEN - open tawh
+    // 2. Seen timestamp >= message time chuan GREEN
     if (chatData?.seen?.[otherUid]) {
       try {
         const seenDate = chatData.seen[otherUid].toDate? chatData.seen[otherUid].toDate() : new Date(chatData.seen[otherUid]);
-        if (seenDate.getTime() >= msgTime - 5000) {
+        if (seenDate.getTime() >= msgTime) {
           return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
         }
-      } catch {
-        // seen awm chuan green tho
-        return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-      }
+      } catch {}
     }
 
-    // 3. Message server ah a thleng tawh chuan 2 tick white - delivery
-    // chatData a awm chuan deliver tawh tihna - single tick bo
+    // 3. Unread[otherUid] > 0 chuan DELIVERED - 2 tick gray
+    // Unread a awm tawh chuan server ah a thleng tawh tihna
+    if (chatData?.unread && typeof chatData.unread[otherUid] === 'number' && chatData.unread[otherUid] > 0) {
+      return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
+    }
+
+    // 4. Unread 0 tawh leh seen la awm loh chuan a seen tawh - GREEN (case thenkhat)
+    if (chatData?.unread && chatData.unread[otherUid] === 0 && chatData?.seen?.[otherUid]) {
+      return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
+    }
+
+    // 5. ChatData a awm tawh chuan at least delivered - 2 gray
     if (chatData) {
       return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
 
-    // 4. Online chuan 2 white
-    if (isReallyOnline(otherUser)) {
-      return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-    }
-
-    // 5. Chauh a la thleng lo - 1 tick
+    // 6. Thawn chiah, server a la thleng lo - 1 tick
     return <Check size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
   };
 
@@ -226,7 +232,6 @@ export default function ChatDetailPage() {
       overflow: 'hidden',
       zIndex: 5,
     }}>
-
       <div style={{
         background: '#8d31ce',
         display: 'flex',
@@ -270,20 +275,8 @@ export default function ChatDetailPage() {
         </div>
       </div>
 
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          background: '#e5ddd5',
-          WebkitOverflowScrolling: 'touch',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        {/* Message hniam turin - a chung ah spacer */}
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', background: '#e5ddd5', WebkitOverflowScrolling: 'touch', display: 'flex', flexDirection: 'column' }}>
         <div style={{ flex: 1 }}></div>
-
         <div style={{ padding: '10px 18px 10px 18px' }}>
           {filteredMessages.map((msg, idx) => {
             const isMe = msg.senderId === currentUser?.uid;
@@ -312,23 +305,8 @@ export default function ChatDetailPage() {
                     <span style={{ fontSize: '15px', lineHeight: '19px', fontWeight: '400', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
                       {msg.text}
                     </span>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'flex-end',
-                      alignItems: 'center',
-                      gap: '2px',
-                      marginTop: '2px',
-                      float: 'right',
-                      marginLeft: '12px',
-                      paddingTop: '3px'
-                    }}>
-                      <span style={{
-                        fontSize: '10.5px',
-                        color: isMe? 'rgba(255,255,255,0.85)' : '#667781',
-                        fontWeight: '400',
-                        lineHeight: '10px',
-                        whiteSpace: 'nowrap'
-                      }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '2px', marginTop: '2px', float: 'right', marginLeft: '12px', paddingTop: '3px' }}>
+                      <span style={{ fontSize: '10.5px', color: isMe? 'rgba(255,255,255,0.85)' : '#667781', fontWeight: '400', lineHeight: '10px', whiteSpace: 'nowrap' }}>
                         {formatMsgTime(msg.timestamp)}
                       </span>
                       {renderTick(msg, isMe, filteredMessages)}
@@ -343,14 +321,7 @@ export default function ChatDetailPage() {
         </div>
       </div>
 
-      <div style={{
-        background: '#e5ddd5',
-        padding: '6px 14px 10px 14px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        flexShrink: 0,
-      }}>
+      <div style={{ background: '#e5ddd5', padding: '6px 14px 10px 14px', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '20px', padding: '2px 12px', boxShadow: '0 1px 1px rgba(0,0,0,0.08)', minHeight: '40px' }}>
           <textarea
             value={newMsg}
@@ -358,18 +329,7 @@ export default function ChatDetailPage() {
             onKeyDown={(e) => { if (e.key === 'Enter' &&!e.shiftKey) { e.preventDefault(); handleSend(); } }}
             placeholder="Type a message..."
             rows={1}
-            style={{
-              flex: 1,
-              border: 'none',
-              outline: 'none',
-              fontSize: '15px',
-              background: 'none',
-              padding: '6px 0',
-              resize: 'none',
-              maxHeight: '80px',
-              lineHeight: '18px',
-              fontFamily: 'inherit'
-            }}
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: '15px', background: 'none', padding: '6px 0', resize: 'none', maxHeight: '80px', lineHeight: '18px', fontFamily: 'inherit' }}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement;
               target.style.height = 'auto';
@@ -378,12 +338,9 @@ export default function ChatDetailPage() {
           />
         </div>
         <button onClick={handleSend} style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#8d31ce', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" style={{ marginLeft: '1px' }}>
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-          </svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" style={{ marginLeft: '1px' }}><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
         </button>
       </div>
-
     </div>
   );
-              }
+   }
