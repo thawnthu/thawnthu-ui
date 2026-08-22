@@ -1,82 +1,134 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, MessageCircle } from 'lucide-react';
-import { collection, onSnapshot } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
-
-type User = { id: string; uid: string; name: string; email: string; online?: boolean; lastSeen?: any; };
+import { MessageCircle, Search, UserPlus, Check, Clock, Loader2 } from 'lucide-react';
+import { auth, db } from '@/lib/firebase';
+import { collection, onSnapshot, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export default function UsersPage() {
   const router = useRouter();
-  const [users, setUsers] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [friendStatus, setFriendStatus] = useState<{[key:string]: string}>({});
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "users"), (snap) => {
-      const list = snap.docs.map(d => ({ id: d.id,...d.data() } as User));
-      setUsers(list.filter(u => u.uid!== auth.currentUser?.uid));
-      setLoading(false);
-    });
+    const unsub = onAuthStateChanged(auth, (u) => { if (u) setCurrentUser(u); });
     return () => unsub();
   }, []);
 
-  const filtered = users.filter(u => u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()));
-  const getInitial = (name: string) => name?.charAt(0).toUpperCase() || '?';
-  const getColor = (name: string) => ['#2563eb','#ef4444','#ff6b35','#f59e0b','#8d31ce'][(name?.length || 0) % 5];
-  const isReallyOnline = (user: User) => {
-    if (!user.online ||!user.lastSeen) return false;
-    try { const last = user.lastSeen.toDate? user.lastSeen.toDate() : new Date(user.lastSeen); return Date.now() - last.getTime() < 2*60*1000; } catch { return false; }
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const unsub = onSnapshot(collection(db, 'users'), (snap) => {
+      const list = snap.docs.map(d => ({ id: d.id,...d.data() } as any)).filter((u:any) => u.id!== currentUser.uid);
+      setUsers(list);
+    });
+    return () => unsub();
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser?.uid || users.length === 0) return;
+    users.forEach(async (u) => {
+      const f = await getDoc(doc(db, 'users', currentUser.uid, 'friends', u.id));
+      if (f.exists()) { setFriendStatus(prev => ({...prev, [u.id]: 'friends' })); return; }
+      const out = await getDoc(doc(db, 'friendRequests', currentUser.uid + '_' + u.id));
+      if (out.exists()) { setFriendStatus(prev => ({...prev, [u.id]: 'pending' })); return; }
+      const inc = await getDoc(doc(db, 'friendRequests', u.id + '_' + currentUser.uid));
+      if (inc.exists()) { setFriendStatus(prev => ({...prev, [u.id]: 'incoming' })); return; }
+      setFriendStatus(prev => ({...prev, [u.id]: 'none' }));
+    });
+  }, [users, currentUser]);
+
+  const sendRequest = async (u: any) => {
+    if (!currentUser) return;
+    const myData = await getDoc(doc(db, 'users', currentUser.uid));
+    const my = myData.data();
+    await setDoc(doc(db, 'friendRequests', currentUser.uid + '_' + u.id), {
+      fromUid: currentUser.uid, toUid: u.id,
+      fromName: my?.name || currentUser.email, fromPhoto: my?.photoURL || '',
+      toName: u.name, createdAt: serverTimestamp()
+    });
+    setFriendStatus(prev => ({...prev, [u.id]: 'pending' }));
   };
 
+  const isOnline = (u: any) => {
+    if (u.isOnline) return true;
+    if (!u.lastSeen) return false;
+    const last = u.lastSeen?.toMillis? u.lastSeen.toMillis() : new Date(u.lastSeen).getTime();
+    return Date.now() - last < 5 * 60 * 1000;
+  };
+
+  const filtered = users.filter((u: any) => u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()));
+
   return (
-    <div style={{ background: '#f5f5f5', minHeight: '100vh' }}>
-      {/* THLAKNA: top 109px -> 110px ah ka dah sang, background solid, a hnuai a list a lut tawh lo ang */}
-      <div style={{ 
-        position: 'sticky', 
-        top: '130px', 
-        zIndex: 15, 
-        padding: '10px 12px 12px 12px', 
-        background: '#f5f5f5',
-        borderBottom: '1px solid #f5f5f5'
-      }}>
-        <div style={{ 
-          display: 'flex', alignItems: 'center', gap: '10px', 
-          background: '#fff', padding: '14px 16px', borderRadius: '14px', 
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-          border: '1px solid #eee'
-        }}>
-          <Search size={20} color="#888" />
-          <input type="text" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '16px' }} />
+    <div style={{ background: '#f0f2f5', minHeight: '100vh' }}>
+      <div style={{ padding: 12 }}>
+        <div style={{ background: '#fff', borderRadius: 16, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+          <Search size={20} color="#999" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search users..." style={{ flex: 1, border: 'none', outline: 'none', fontSize: 15 }} />
         </div>
       </div>
 
-      {/* LIST - tun ah chuan search hnuai ah a lut hret tawh lo ang */}
-      <div style={{ padding: '0 12px 12px 12px' }}>
-        <div style={{ background: '#fff', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          {loading? <p style={{ textAlign: 'center', color: '#666', padding: '30px' }}>Loading users...</p>
-          : filtered.length===0? <p style={{ textAlign: 'center', color: '#666', padding: '30px' }}>No users found</p>
-          : filtered.map((user) => (
-            <div key={user.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#fff', padding: '14px 14px', borderBottom: '1px solid #f0f0f0' }}>
-              <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => router.push(`/profile/${user.uid || user.id}`)}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: getColor(user.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '700' }}>{getInitial(user.name)}</div>
-                {isReallyOnline(user) && <div style={{ position: 'absolute', bottom: '1px', right: '1px', width: '12px', height: '12px', background: '#10b981', borderRadius: '50%', border: '2px solid #fff' }}></div>}
-              </div>
-              <div style={{ flex: 1, overflow: 'hidden', cursor: 'pointer' }} onClick={() => router.push(`/profile/${user.uid || user.id}`)}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <p style={{ margin: 0, fontSize: '15px', fontWeight: '600', color: '#000' }}>{user.name}</p>
-                  {isReallyOnline(user) && <span style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', display: 'inline-block' }}></span>}
+      <div style={{ padding: '0 12px 12px' }}>
+        <div style={{ background: '#fff', borderRadius: 18, overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+          {filtered.map((u: any, idx: number) => {
+            const online = isOnline(u);
+            const status = friendStatus[u.id] || 'none';
+            return (
+              <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 14px', borderBottom: idx === filtered.length -1? 'none' : '1px solid #f3f4f6' }}>
+                {/* 1. PIC BIAL AH PROFILE PIC UPLOAD MIL ZEL LANG */}
+                <div onClick={() => router.push('/profile/' + u.id)} style={{ cursor: 'pointer' }}>
+                  {u.photoURL? (
+                    <img src={u.photoURL} alt={u.name} style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: 52, height: 52, borderRadius: '50%', background: u.color || '#8d31ce', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20 }}>
+                      {(u.name || u.email || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
                 </div>
-                <p style={{ margin: '1px 0 0 0', fontSize: '13px', color: '#666' }}>{user.email}</p>
+
+                <div onClick={() => router.push('/profile/' + u.id)} style={{ flex: 1, cursor: 'pointer' }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#111' }}>{u.name || 'User'}</div>
+                  {/* 2. EMAIL AIAH ONLINE/OFFLINE */}
+                  <div style={{ fontSize: 13, color: online? '#22c55e' : '#999', fontWeight: 600, marginTop: 1 }}>
+                    {online? 'Online' : 'Offline'}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {/* 3. ADD FRIEND ICON - CHAT ICON TIAT CHIAH */}
+                  {status === 'none' && (
+                    <button onClick={() => sendRequest(u)} style={{ width: 40, height: 40, borderRadius: '50%', background: '#e9e5ff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <UserPlus size={18} color="#8d31ce" />
+                    </button>
+                  )}
+                  {status === 'pending' && (
+                    <button style={{ width: 40, height: 40, borderRadius: '50%', background: '#fff7ed', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Clock size={18} color="#f97316" />
+                    </button>
+                  )}
+                  {status === 'friends' && (
+                    <button style={{ width: 40, height: 40, borderRadius: '50%', background: '#f0fdf4', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Check size={18} color="#22c55e" />
+                    </button>
+                  )}
+                  {status === 'incoming' && (
+                    <button onClick={() => router.push('/profile/' + u.id)} style={{ width: 40, height: 40, borderRadius: '50%', background: '#e9e5ff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <UserPlus size={18} color="#8d31ce" />
+                    </button>
+                  )}
+
+                  <button onClick={() => router.push('/chat/' + u.id)} style={{ width: 40, height: 40, borderRadius: '50%', background: '#f3f0ff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <MessageCircle size={18} color="#8d31ce" />
+                  </button>
+                </div>
               </div>
-              <button onClick={() => router.push(`/chat/${user.uid || user.id}`)} style={{ background: '#f5f0ff', border: 'none', width: '38px', height: '38px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                <MessageCircle size={20} color="#8d31ce" />
-              </button>
-            </div>
-          ))}
+            );
+          })}
+          {filtered.length === 0 && <div style={{ padding: 30, textAlign: 'center', color: '#999', fontSize: 14 }}>User hmuh tur an awm lo</div>}
         </div>
       </div>
     </div>
   );
-              }
+}
