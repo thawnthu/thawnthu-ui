@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, MoreVertical, Search, User, Ban, X, Check, CheckCheck } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Search, User, Ban, X } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { collection, doc, onSnapshot, query, addDoc, serverTimestamp, setDoc, increment } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -162,40 +162,6 @@ export default function ChatDetailPage() {
     } catch { return false; }
   };
 
-  const renderTick = (msg: any, isMe: boolean, allMsgs: any[]) => {
-    if (!isMe) return null;
-    const msgTime = msg.timestamp?.toDate? msg.timestamp.toDate().getTime() : (msg.timestamp? new Date(msg.timestamp).getTime() : 0);
-    if (!msgTime) return <Check size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-
-    const hasReplyAfter = allMsgs.some((m: any) => {
-      if (m.senderId!== otherUid) return false;
-      const t = m.timestamp?.toDate? m.timestamp.toDate().getTime() : (m.timestamp? new Date(m.timestamp).getTime() : 0);
-      return t > msgTime;
-    });
-    if (hasReplyAfter) {
-      return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-    }
-
-    if (chatData?.seen?.[otherUid]) {
-      try {
-        const seenDate = chatData.seen[otherUid].toDate? chatData.seen[otherUid].toDate() : new Date(chatData.seen[otherUid]);
-        if (seenDate.getTime() >= msgTime - 1000) {
-          return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-        }
-      } catch {}
-    }
-
-    if (chatData?.unread && chatData.unread[otherUid] === 0 && chatData?.seen?.[otherUid]) {
-      return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-    }
-
-    if (chatData) {
-      return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-    }
-
-    return <Check size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-  };
-
   const filteredMessages = searchQ? messages.filter(m => m.text?.toLowerCase().includes(searchQ.toLowerCase())) : messages;
 
   return (
@@ -288,7 +254,6 @@ export default function ChatDetailPage() {
                       <span style={{ fontSize: '10.5px', color: isMe? 'rgba(255,255,255,0.85)' : '#667781', fontWeight: '400', lineHeight: '10px', whiteSpace: 'nowrap' }}>
                         {formatMsgTime(msg.timestamp)}
                       </span>
-                      {renderTick(msg, isMe, filteredMessages)}
                     </div>
                     <div style={{ clear: 'both' }}></div>
                   </div>
@@ -322,4 +287,4 @@ export default function ChatDetailPage() {
       </div>
     </div>
   );
-    }
+                             }
