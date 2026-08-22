@@ -2,8 +2,9 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { Search, MoreVertical, LogOut, Mail } from 'lucide-react';
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { signOut, onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -23,6 +24,77 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // THLAKNA 1: ONLINE SYSTEM - App chhung a awm chiah a online
+  useEffect(() => {
+    let cleanupFn: (() => void) | null = null;
+    let intervalId: any = null;
+
+    const setOnline = async (uid: string) => {
+      try {
+        await setDoc(doc(db, "users", uid), {
+          online: true,
+          lastSeen: serverTimestamp()
+        }, { merge: true });
+      } catch {}
+    };
+
+    const setOffline = async (uid: string) => {
+      try {
+        await setDoc(doc(db, "users", uid), {
+          online: false,
+          lastSeen: serverTimestamp()
+        }, { merge: true });
+      } catch {}
+    };
+
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (cleanupFn) {
+        cleanupFn();
+        cleanupFn = null;
+      }
+      if (intervalId) clearInterval(intervalId);
+
+      if (!user) return;
+
+      const uid = user.uid;
+      setOnline(uid);
+
+      // 30 sec dan ah online tih update - la awm tih hriat nan
+      intervalId = setInterval(() => setOnline(uid), 30000);
+
+      const handleVisibility = () => {
+        if (document.visibilityState === 'visible') {
+          setOnline(uid);
+        } else {
+          setOffline(uid);
+        }
+      };
+
+      const handleBeforeUnload = () => {
+        // best effort offline
+        setOffline(uid);
+      };
+
+      document.addEventListener('visibilitychange', handleVisibility);
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('pagehide', handleBeforeUnload);
+
+      cleanupFn = () => {
+        document.removeEventListener('visibilitychange', handleVisibility);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        window.removeEventListener('pagehide', handleBeforeUnload);
+        setOffline(uid);
+        if (intervalId) clearInterval(intervalId);
+      };
+    });
+
+    return () => {
+      unsubAuth();
+      if (cleanupFn) cleanupFn();
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
+
   const tabs = ['Home', 'Chat', 'Online(98)', 'Notification(98)', 'Group', 'Category', 'Profile', 'Users', 'Setting'];
   const currentPath = pathname.split('/')[1] || 'home';
   const activeTab = currentPath === ''? 'Home' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1);
@@ -34,6 +106,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     try {
+      // THLAKNA 2: Logout hmain offline siam hmasa
+      if (auth.currentUser) {
+        await setDoc(doc(db, "users", auth.currentUser.uid), {
+          online: false,
+          lastSeen: serverTimestamp()
+        }, { merge: true });
+      }
       await signOut(auth);
       router.replace('/');
     } catch (e) {
@@ -111,4 +190,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div style={{padding: '16px'}}>{children}</div>
     </div>
   )
-        }
+                  }
