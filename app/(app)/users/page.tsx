@@ -1,11 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, MessageCircle } from 'lucide-react';
+import { Search, MessageCircle, UserPlus } from 'lucide-react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 
-type User = { id: string; uid: string; name: string; email: string; online?: boolean; lastSeen?: any; };
+type User = { id: string; uid: string; name: string; email: string; online?: boolean; lastSeen?: any; photoURL?: string; };
 
 export default function UsersPage() {
   const router = useRouter();
@@ -32,7 +32,6 @@ export default function UsersPage() {
 
   return (
     <div style={{ background: '#f5f5f5', minHeight: '100vh' }}>
-      {/* THLAKNA: top 109px -> 110px ah ka dah sang, background solid, a hnuai a list a lut tawh lo ang */}
       <div style={{ 
         position: 'sticky', 
         top: '130px', 
@@ -52,7 +51,6 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* LIST - tun ah chuan search hnuai ah a lut hret tawh lo ang */}
       <div style={{ padding: '0 12px 12px 12px' }}>
         <div style={{ background: '#fff', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
           {loading? <p style={{ textAlign: 'center', color: '#666', padding: '30px' }}>Loading users...</p>
@@ -60,7 +58,12 @@ export default function UsersPage() {
           : filtered.map((user) => (
             <div key={user.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#fff', padding: '14px 14px', borderBottom: '1px solid #f0f0f0' }}>
               <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => router.push(`/profile/${user.uid || user.id}`)}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: getColor(user.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '700' }}>{getInitial(user.name)}</div>
+                {/* 1. PIC BIAL AH PROFILE PIC UPLOAD MIL ZEL LANG */}
+                {user.photoURL? (
+                  <img src={user.photoURL} alt={user.name} style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: getColor(user.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '700' }}>{getInitial(user.name)}</div>
+                )}
                 {isReallyOnline(user) && <div style={{ position: 'absolute', bottom: '1px', right: '1px', width: '12px', height: '12px', background: '#10b981', borderRadius: '50%', border: '2px solid #fff' }}></div>}
               </div>
               <div style={{ flex: 1, overflow: 'hidden', cursor: 'pointer' }} onClick={() => router.push(`/profile/${user.uid || user.id}`)}>
@@ -68,8 +71,13 @@ export default function UsersPage() {
                   <p style={{ margin: 0, fontSize: '15px', fontWeight: '600', color: '#000' }}>{user.name}</p>
                   {isReallyOnline(user) && <span style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', display: 'inline-block' }}></span>}
                 </div>
-                <p style={{ margin: '1px 0 0 0', fontSize: '13px', color: '#666' }}>{user.email}</p>
+                {/* 2. EMAIL AIAH ONLINE/OFFLINE */}
+                <p style={{ margin: '1px 0 0 0', fontSize: '13px', color: isReallyOnline(user)? '#10b981' : '#999', fontWeight: 600 }}>{isReallyOnline(user)? 'Online' : 'Offline'}</p>
               </div>
+              {/* 3. CHAT ICON HMA AH ADD FRIEND ICON - CHAT ICON TIAT CHIAH */}
+              <button style={{ background: '#e9e5ff', border: 'none', width: '38px', height: '38px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <UserPlus size={20} color="#8d31ce" />
+              </button>
               <button onClick={() => router.push(`/chat/${user.uid || user.id}`)} style={{ background: '#f5f0ff', border: 'none', width: '38px', height: '38px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                 <MessageCircle size={20} color="#8d31ce" />
               </button>
