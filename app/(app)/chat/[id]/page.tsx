@@ -45,7 +45,6 @@ export default function ChatDetailPage() {
 
   const getChatId = (uid1: string, uid2: string) => [uid1, uid2].sort().join('_');
 
-  // MESSAGE - FIX: null timestamp chu tunlai hun ah dah nghal - a hnuhnung ber alang nghal turin
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
@@ -53,16 +52,11 @@ export default function ChatDetailPage() {
     const unsub = onSnapshot(q, snap => {
       const msgs = snap.docs.map(d => ({ id: d.id,...d.data() as any }));
       msgs.sort((a: any, b: any) => {
-        // timestamp la awm lo chu a hnuhnung ber ah dah - input chung ah lang turin
         const ta = a.timestamp?.toDate? a.timestamp.toDate().getTime() : (a.timestamp? new Date(a.timestamp).getTime() : (a.senderId === currentUser.uid? Date.now() : 0));
         const tb = b.timestamp?.toDate? b.timestamp.toDate().getTime() : (b.timestamp? new Date(b.timestamp).getTime() : (b.senderId === currentUser.uid? Date.now() : 0));
         return ta - tb;
       });
       setMessages(msgs);
-      // Message thar apiangin auto scroll - input chung ah lang turin
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
     });
     return () => unsub();
   }, [currentUser, otherUid]);
@@ -76,7 +70,6 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, [currentUser, otherUid]);
 
-  // Open ruala GREEN turin - chat lut apiangin seen
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
@@ -86,7 +79,6 @@ export default function ChatDetailPage() {
     }, { merge: true }).catch(()=>{});
   }, [currentUser, otherUid]);
 
-  // Message lo thlen apiangin seen update zel - green nghal turin
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid || messages.length === 0) return;
     const last = messages[messages.length - 1];
@@ -96,6 +88,7 @@ export default function ChatDetailPage() {
         [`seen.${currentUser.uid}`]: serverTimestamp(),
         [`unread.${currentUser.uid}`]: 0
       }, { merge: true }).catch(()=>{});
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, currentUser, otherUid]);
 
@@ -113,19 +106,15 @@ export default function ChatDetailPage() {
     setNewMsg('');
     const chatId = getChatId(currentUser.uid, otherUid);
 
-    // Optimistic - input chung ah lang nghal turin
     const tempId = 'temp_' + Date.now();
-    const optimisticMsg = {
+    setMessages(prev => [...prev, {
       id: tempId,
       text: text,
       senderId: currentUser.uid,
       receiverId: otherUid,
       timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, optimisticMsg]);
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 50);
+    }]);
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
 
     try {
       await setDoc(doc(db, "chats", chatId), {
@@ -190,36 +179,33 @@ export default function ChatDetailPage() {
     } catch { return false; }
   };
 
-  // WHATSAPP DIK TAK - SIMPLIFIED GREEN LOGIC
-  const renderTick = (msg: any, isMe: boolean) => {
+  // GREEN FIX 100% - a reply tawh chuan GREEN
+  const renderTick = (msg: any, isMe: boolean, allMsgs: any[]) => {
     if (!isMe) return null;
 
-    const otherSeen = chatData?.seen?.[otherUid];
-    const msgTime = msg.timestamp;
+    const msgTime = msg.timestamp?.toDate? msg.timestamp.toDate().getTime() : (msg.timestamp? new Date(msg.timestamp).getTime() : Date.now());
 
-    // GREEN - an open tawh chuan - a awm chuan green vek
-    if (otherSeen && msgTime) {
-      try {
-        const seenDate = otherSeen.toDate? otherSeen.toDate() : new Date(otherSeen);
-        const mDate = msgTime.toDate? msgTime.toDate() : new Date(msgTime);
-        // Seen a hnuhnung zawk chuan GREEN - reply ngailo
-        if (seenDate.getTime() >= mDate.getTime() - 2000) {
-          return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-        }
-      } catch {}
-    }
-
-    // Seen a awm a, unread 0 a nih chuan - an en tawh, green
-    if (otherSeen && chatData?.unread && chatData.unread[otherUid] === 0) {
+    // 1. Midangin he message hnua a rawn reply tawh chuan GREEN - 100% read
+    const hasReplyAfter = allMsgs.some((m: any) => {
+      if (m.senderId!== otherUid) return false;
+      const t = m.timestamp?.toDate? m.timestamp.toDate().getTime() : (m.timestamp? new Date(m.timestamp).getTime() : 0);
+      return t > msgTime;
+    });
+    if (hasReplyAfter) {
       return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
 
-    // Online chuan 2 tick white
+    // 2. Seen a awm a unread 0 a nih chuan GREEN - open tawh
+    if (chatData?.seen?.[otherUid] && chatData?.unread?.[otherUid] === 0) {
+      return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
+    }
+
+    // 3. Online chuan 2 tick white
     if (isReallyOnline(otherUser)) {
       return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
 
-    // Offline - 1 tick
+    // 4. Offline - 1 tick
     return <Check size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
   };
 
@@ -288,7 +274,7 @@ export default function ChatDetailPage() {
           flex: 1,
           overflowY: 'auto',
           overflowX: 'hidden',
-          padding: '10px 18px 90px 18px',
+          padding: '10px 18px 12px 18px',
           background: '#e5ddd5',
           WebkitOverflowScrolling: 'touch',
         }}
@@ -339,7 +325,7 @@ export default function ChatDetailPage() {
                     }}>
                       {formatMsgTime(msg.timestamp)}
                     </span>
-                    {renderTick(msg, isMe)}
+                    {renderTick(msg, isMe, filteredMessages)}
                   </div>
                   <div style={{ clear: 'both' }}></div>
                 </div>
@@ -347,7 +333,7 @@ export default function ChatDetailPage() {
             </div>
           );
         })}
-        <div ref={messagesEndRef} style={{ height: '20px' }} />
+        <div ref={messagesEndRef} style={{ height: '10px' }} />
       </div>
 
       <div style={{
@@ -393,4 +379,4 @@ export default function ChatDetailPage() {
 
     </div>
   );
-                         }
+            }
