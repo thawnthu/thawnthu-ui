@@ -11,6 +11,7 @@ type User = {
   name: string;
   email: string;
   online?: boolean;
+  lastSeen?: any;
 };
 
 export default function UsersPage() {
@@ -38,6 +39,19 @@ export default function UsersPage() {
   const getColor = (name: string) => {
     const colors = ['#2563eb', '#ef4444', '#ff6b35', '#f59e0b', '#8d31ce'];
     return colors[(name?.length || 0) % colors.length];
+  };
+
+  // THLAKNA: Online dik tak check - 2 min chhung a active lo chu offline
+  const isReallyOnline = (user: User) => {
+    if (!user.online) return false;
+    if (!user.lastSeen) return false;
+    try {
+      const last = user.lastSeen.toDate ? user.lastSeen.toDate() : new Date(user.lastSeen);
+      const diff = Date.now() - last.getTime();
+      return diff < 2 * 60 * 1000; // 2 min
+    } catch {
+      return false;
+    }
   };
 
   return (
@@ -118,7 +132,7 @@ export default function UsersPage() {
                     }}>
                     {getInitial(user.name)}
                   </div>
-                  {user.online && (
+                  {isReallyOnline(user) && (
                     <div style={{ position: 'absolute', bottom: '1px', right: '1px', width: '12px', height: '12px', background: '#10b981', borderRadius: '50%', border: '2px solid #fff' }}></div>
                   )}
                 </div>
@@ -129,7 +143,7 @@ export default function UsersPage() {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <p style={{ margin: 0, fontSize: '15px', fontWeight: '600', color: '#000' }}>{user.name}</p>
-                    {user.online && <span style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', display: 'inline-block' }}></span>}
+                    {isReallyOnline(user) && <span style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', display: 'inline-block' }}></span>}
                   </div>
                   <p style={{ margin: '1px 0 0 0', fontSize: '13px', color: '#666' }}>{user.email}</p>
                 </div>
