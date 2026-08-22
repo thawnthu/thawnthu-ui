@@ -17,8 +17,11 @@ export default function ChatDetailPage() {
   const [showMenu, setShowMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQ, setSearchQ] = useState('');
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const prevCountRef = useRef(0);
+  const isFirstLoadRef = useRef(true);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, u => { if (u) setCurrentUser(u); });
@@ -61,40 +64,31 @@ export default function ChatDetailPage() {
     } catch { return false; }
   };
 
-  // FIX BER: TICK SEEN LOGIC
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid || messages.length === 0) return;
     const chatId = getChatId(currentUser.uid, otherUid);
     const batch = writeBatch(db);
     let hasUpdate = false;
-
     messages.forEach(m => {
-      // 1. Min rawn thawn a ka hmuh chuan READ ah
       if (m.receiverId === currentUser.uid && m.status!== 'read') {
         batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'read' });
         hasUpdate = true;
       }
-      // 2. Ka thawn a, Thara a online chuan DELIVERED ah (2 tick grey)
       if (m.senderId === currentUser.uid && m.status === 'sent' && isReallyOnline(otherUser)) {
         batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'delivered' });
         hasUpdate = true;
       }
     });
-
     if (hasUpdate) batch.commit().catch(()=>{});
-
-    // Ka unread 0 ah
     setDoc(doc(db, "chats", chatId), { [`unread.${currentUser.uid}`]: 0 }, { merge: true }).catch(()=>{});
   }, [messages, currentUser, otherUid, otherUser]);
 
-  // Ka thawn message te chu Thara'n a chat a hawn chuan READ (blue tick) ah ka dah ang - Thara lam atanga update a rawn thleng hunah auto in lang ang
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
     const unsub = onSnapshot(doc(db, "chats", chatId), (snap) => {
       const data = snap.data() as any;
       if (!data) return;
-      // Thara'n a unread a 0 chuan ka thawn zawng zawng kha a hmu tawh tihna = READ
       if (data.unread && data.unread[otherUid] === 0) {
         const batch = writeBatch(db);
         let has = false;
@@ -110,9 +104,38 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, [messages, currentUser, otherUid]);
 
+  // FIX BER: A chung lam en laiin a tawlh thla tawh lo ang
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    const container = messagesContainerRef.current;
+    if (!container || messages.length === 0) return;
+
+    const isNewMessageAdded = messages.length > prevCountRef.current;
+    const lastMsgIsMine = messages[messages.length - 1]?.senderId === currentUser?.uid;
+
+    // A tir a luh chiah in emaw, message thar ka thawn chiah in emaw chiah scroll thla rawh
+    if (isFirstLoadRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      isFirstLoadRef.current = false;
+      prevCountRef.current = messages.length;
+      return;
+    }
+
+    if (isNewMessageAdded) {
+      // Ka thawn a nih chuan scroll thla ngei rawh
+      if (lastMsgIsMine) {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        // Min rawn thawn a, ka awmna a hnuai lamah a awm tawh chuan chiah scroll thla rawh, chung lam ka en lai chuan scroll suh
+        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+        if (isNearBottom) {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    }
+    // Tick status inthlak (sent->delivered->read) ah chuan scroll suh - hei hi a pawimawh ber
+
+    prevCountRef.current = messages.length;
+  }, [messages, currentUser]);
 
   const handleSend = async () => {
     if (!newMsg.trim() ||!currentUser?.uid ||!otherUid) return;
@@ -257,8 +280,8 @@ export default function ChatDetailPage() {
         </div>
       </div>
 
-      {/* FIX: SIR SPACE TI ZAU - 14px left right */}
       <div
+        ref={messagesContainerRef}
         style={{
           flex: 1,
           overflowY: 'auto',
@@ -367,4 +390,4 @@ export default function ChatDetailPage() {
 
     </div>
   );
-                     }
+  }
