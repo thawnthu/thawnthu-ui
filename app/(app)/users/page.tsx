@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, MessageCircle, UserPlus, Check, Clock } from 'lucide-react';
-import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 
 type User = { id: string; uid: string; name: string; email: string; online?: boolean; lastSeen?: any; photoURL?: string; };
@@ -25,12 +25,10 @@ export default function UsersPage() {
     return () => unsub();
   }, []);
 
-  // 1. EDIT - FRIENDS & REQUESTS CHECK
   useEffect(() => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
 
-    // Friends list - users/{myUid} ah friends array emaw friends subcollection
     const unsubFriends = onSnapshot(doc(db, "users", uid), (snap) => {
       const data = snap.data() as any;
       if (data?.friends && Array.isArray(data.friends)) {
@@ -38,17 +36,19 @@ export default function UsersPage() {
       }
     });
 
-    // Friends subcollection check - friends collection ah
     const unsubFriendsCol = onSnapshot(collection(db, "users", uid, "friends"), (snap) => {
-      const ids = new Set(snap.docs.map(d => d.id));
-      setFriends(prev => new Set([...prev, ...ids]));
+      const ids = snap.docs.map(d => d.id);
+      setFriends(prev => {
+        const next = new Set(prev);
+        ids.forEach(id => next.add(id));
+        return next;
+      });
     });
 
-    // Sent requests - friendRequests ah ka thawn tawh te
     const q = query(collection(db, "friendRequests"), where("from", "==", uid), where("status", "==", "pending"));
     const unsubReq = onSnapshot(q, (snap) => {
-      const ids = new Set(snap.docs.map(d => d.data().to));
-      setSentRequests(ids);
+      const ids = snap.docs.map(d => d.data().to);
+      setSentRequests(new Set(ids));
     });
 
     return () => { unsubFriends(); unsubFriendsCol(); unsubReq(); };
@@ -71,7 +71,6 @@ export default function UsersPage() {
         status: "pending",
         createdAt: serverTimestamp()
       });
-      // Notification
       await setDoc(doc(collection(db, "notifications")), {
         toUid: targetUid,
         fromUid: uid,
@@ -80,7 +79,11 @@ export default function UsersPage() {
         read: false,
         createdAt: serverTimestamp()
       });
-      setSentRequests(prev => new Set([...prev, targetUid]));
+      setSentRequests(prev => {
+        const next = new Set(prev);
+        next.add(targetUid);
+        return next;
+      });
     } catch (e) {
       console.log("Friend request error", e);
     }
@@ -97,20 +100,8 @@ export default function UsersPage() {
 
   return (
     <div style={{ background: '#f5f5f5', minHeight: '100vh' }}>
-      <div style={{ 
-        position: 'sticky', 
-        top: '130px', 
-        zIndex: 15, 
-        padding: '10px 12px 12px 12px', 
-        background: '#f5f5f5',
-        borderBottom: '1px solid #f5f5f5'
-      }}>
-        <div style={{ 
-          display: 'flex', alignItems: 'center', gap: '10px', 
-          background: '#fff', padding: '14px 16px', borderRadius: '14px', 
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-          border: '1px solid #eee'
-        }}>
+      <div style={{ position: 'sticky', top: '130px', zIndex: 15, padding: '10px 12px 12px 12px', background: '#f5f5f5', borderBottom: '1px solid #f5f5f5' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fff', padding: '14px 16px', borderRadius: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #eee' }}>
           <Search size={20} color="#888" />
           <input type="text" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '16px' }} />
         </div>
@@ -142,7 +133,6 @@ export default function UsersPage() {
                 <p style={{ margin: '1px 0 0 0', fontSize: '13px', color: isReallyOnline(user)? '#10b981' : '#999', fontWeight: 600 }}>{isReallyOnline(user)? 'Online' : 'Offline'}</p>
               </div>
               
-              {/* 1. EDIT - ADD FRIEND / TICK / REQUEST SENT */}
               {isFriend ? (
                 <button style={{ background: '#e6f9e6', border: 'none', width: '38px', height: '38px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'default' }} title="Friends">
                   <Check size={20} color="#10b981" strokeWidth={3} />
