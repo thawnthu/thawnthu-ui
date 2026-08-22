@@ -5,14 +5,7 @@ import { Search, MessageCircle } from 'lucide-react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 
-type User = {
-  id: string;
-  uid: string;
-  name: string;
-  email: string;
-  online?: boolean;
-  lastSeen?: any;
-};
+type User = { id: string; uid: string; name: string; email: string; online?: boolean; lastSeen?: any; };
 
 export default function UsersPage() {
   const router = useRouter();
@@ -22,141 +15,54 @@ export default function UsersPage() {
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "users"), (snap) => {
-      const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as User));
-      const filteredList = list.filter(u => u.uid !== auth.currentUser?.uid);
-      setUsers(filteredList);
+      const list = snap.docs.map(d => ({ id: d.id,...d.data() } as User));
+      setUsers(list.filter(u => u.uid!== auth.currentUser?.uid));
       setLoading(false);
     });
     return () => unsub();
   }, []);
 
-  const filtered = users.filter(u => 
-    u.name?.toLowerCase().includes(search.toLowerCase()) ||
-    u.email?.toLowerCase().includes(search.toLowerCase())
-  );
-
+  const filtered = users.filter(u => u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()));
   const getInitial = (name: string) => name?.charAt(0).toUpperCase() || '?';
-  const getColor = (name: string) => {
-    const colors = ['#2563eb', '#ef4444', '#ff6b35', '#f59e0b', '#8d31ce'];
-    return colors[(name?.length || 0) % colors.length];
-  };
-
-  // THLAKNA: Online dik tak check - 2 min chhung a active lo chu offline
+  const getColor = (name: string) => ['#2563eb','#ef4444','#ff6b35','#f59e0b','#8d31ce'][(name?.length || 0) % 5];
   const isReallyOnline = (user: User) => {
-    if (!user.online) return false;
-    if (!user.lastSeen) return false;
-    try {
-      const last = user.lastSeen.toDate ? user.lastSeen.toDate() : new Date(user.lastSeen);
-      const diff = Date.now() - last.getTime();
-      return diff < 2 * 60 * 1000; // 2 min
-    } catch {
-      return false;
-    }
+    if (!user.online ||!user.lastSeen) return false;
+    try { const last = user.lastSeen.toDate? user.lastSeen.toDate() : new Date(user.lastSeen); return Date.now() - last.getTime() < 2*60*1000; } catch { return false; }
   };
 
   return (
-    <div style={{ 
-      height: '100vh', 
-      background: '#f5f5f5', 
-      display: 'flex', 
-      flexDirection: 'column',
-      overflow: 'hidden' 
-    }}>
-      
-      {/* SEARCH - A DING RENG - TUAI CHHOH A LUT VE LO */}
-      <div style={{ 
-        padding: '12px', 
-        background: '#f5f5f5',
-        position: 'sticky', 
-        top: 0, 
-        zIndex: 10,
-      }}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '10px', 
-          background: '#fff', 
-          padding: '16px 16px',
-          borderRadius: '14px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
-        }}>
+    <div style={{ background: '#f5f5f5', minHeight: '100vh' }}>
+      {/* SEARCH - MENU HNUAIAH DING RENG */}
+      <div style={{ position: 'sticky', top: '104px', zIndex: 15, padding: '12px', background: '#f5f5f5' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fff', padding: '16px 16px', borderRadius: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
           <Search size={20} color="#888" />
-          <input
-            type="text"
-            placeholder="Search users..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '16px' }}
-          />
+          <input type="text" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '16px' }} />
         </div>
       </div>
 
-      {/* USER LIST - HEI CHAUH HI A TAWLH LUT CHHO */}
-      <div style={{ 
-        flex: 1,
-        overflowY: 'auto',
-        padding: '0 12px 12px 12px',
-      }}>
-        <div style={{ 
-          background: '#fff', 
-          borderRadius: '14px',
-          overflow: 'hidden',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-        }}>
-          {loading ? (
-            <p style={{ textAlign: 'center', color: '#666', padding: '30px' }}>Loading users...</p>
-          ) : filtered.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#666', padding: '30px' }}>No users found</p>
-          ) : (
-            filtered.map((user) => (
-              <div
-                key={user.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  background: '#fff',
-                  padding: '14px 14px',
-                  borderBottom: '1px solid #f0f0f0',
-                }}
-              >
-                <div 
-                  style={{ position: 'relative', cursor: 'pointer' }}
-                  onClick={() => router.push(`/profile/${user.uid || user.id}`)}
-                >
-                  <div style={{
-                      width: '48px', height: '48px', borderRadius: '50%',
-                      background: getColor(user.name), color: '#fff',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '20px', fontWeight: '700',
-                    }}>
-                    {getInitial(user.name)}
-                  </div>
-                  {isReallyOnline(user) && (
-                    <div style={{ position: 'absolute', bottom: '1px', right: '1px', width: '12px', height: '12px', background: '#10b981', borderRadius: '50%', border: '2px solid #fff' }}></div>
-                  )}
-                </div>
-
-                <div 
-                  style={{ flex: 1, overflow: 'hidden', cursor: 'pointer' }}
-                  onClick={() => router.push(`/profile/${user.uid || user.id}`)}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <p style={{ margin: 0, fontSize: '15px', fontWeight: '600', color: '#000' }}>{user.name}</p>
-                    {isReallyOnline(user) && <span style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', display: 'inline-block' }}></span>}
-                  </div>
-                  <p style={{ margin: '1px 0 0 0', fontSize: '13px', color: '#666' }}>{user.email}</p>
-                </div>
-
-                <button
-                  onClick={() => router.push(`/chat/${user.uid || user.id}`)}
-                  style={{ background: '#f5f0ff', border: 'none', width: '38px', height: '38px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                >
-                  <MessageCircle size={20} color="#8d31ce" />
-                </button>
+      {/* LIST */}
+      <div style={{ padding: '0 12px 12px 12px' }}>
+        <div style={{ background: '#fff', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          {loading? <p style={{ textAlign: 'center', color: '#666', padding: '30px' }}>Loading users...</p>
+          : filtered.length===0? <p style={{ textAlign: 'center', color: '#666', padding: '30px' }}>No users found</p>
+          : filtered.map((user) => (
+            <div key={user.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#fff', padding: '14px 14px', borderBottom: '1px solid #f0f0f0' }}>
+              <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => router.push(`/profile/${user.uid || user.id}`)}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: getColor(user.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '700' }}>{getInitial(user.name)}</div>
+                {isReallyOnline(user) && <div style={{ position: 'absolute', bottom: '1px', right: '1px', width: '12px', height: '12px', background: '#10b981', borderRadius: '50%', border: '2px solid #fff' }}></div>}
               </div>
-            ))
-          )}
+              <div style={{ flex: 1, overflow: 'hidden', cursor: 'pointer' }} onClick={() => router.push(`/profile/${user.uid || user.id}`)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <p style={{ margin: 0, fontSize: '15px', fontWeight: '600', color: '#000' }}>{user.name}</p>
+                  {isReallyOnline(user) && <span style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', display: 'inline-block' }}></span>}
+                </div>
+                <p style={{ margin: '1px 0 0 0', fontSize: '13px', color: '#666' }}>{user.email}</p>
+              </div>
+              <button onClick={() => router.push(`/chat/${user.uid || user.id}`)} style={{ background: '#f5f0ff', border: 'none', width: '38px', height: '38px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <MessageCircle size={20} color="#8d31ce" />
+              </button>
+            </div>
+          ))}
         </div>
       </div>
     </div>
