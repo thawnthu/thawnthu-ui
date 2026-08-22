@@ -64,7 +64,6 @@ export default function ChatDetailPage() {
     } catch { return false; }
   };
 
-  // 1. Min rawn thawn chu READ ah
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid || messages.length === 0) return;
     const chatId = getChatId(currentUser.uid, otherUid);
@@ -80,7 +79,7 @@ export default function ChatDetailPage() {
     setDoc(doc(db, "chats", chatId), { [`unread.${currentUser.uid}`]: 0 }, { merge: true }).catch(()=>{});
   }, [messages, currentUser, otherUid]);
 
-  // 2. FIX BER: Ka thawn kha a rawn reply emaw a chat a hawn chuan GREEN TICK ah
+  // FIX CHIAH: A open hrim hrim pawn GREEN TICK
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
@@ -88,12 +87,8 @@ export default function ChatDetailPage() {
       const data = snap.data() as any;
       if (!data) return;
 
-      const shouldMarkRead =
-        (data.lastSender === otherUid) || // A rawn reply chuan ka thawn hmasa zawng kha a hmu tawh tihna
-        (data.unread && data.unread[otherUid] === 0 && data.lastSender!== currentUser.uid);
-
-      if (shouldMarkRead) {
-        // Stale closure vangin DB atangin la thar leh rawh
+      // Midangin chat a hawng a, a unread 0 a nih chuan ka thawn zawng kha a hmu tawh tihna - reply kher ngailo
+      if (data.unread && data.unread[otherUid] === 0) {
         const msgsSnap = await getDocs(collection(db, "chats", chatId, "messages"));
         const batch = writeBatch(db);
         let has = false;
@@ -103,14 +98,9 @@ export default function ChatDetailPage() {
             batch.update(d.ref, { status: 'read' });
             has = true;
           }
-          if (m.senderId === currentUser.uid && m.status === 'sent') {
-            batch.update(d.ref, { status: 'delivered' });
-            has = true;
-          }
         });
         if (has) batch.commit().catch(()=>{});
       } else if (isReallyOnline(otherUser)) {
-        // Online chuan delivered tal ah
         const msgsSnap = await getDocs(collection(db, "chats", chatId, "messages"));
         const batch = writeBatch(db);
         let has = false;
@@ -218,7 +208,6 @@ export default function ChatDetailPage() {
     } catch { return false; }
   };
 
-  // GREEN TICK - i duh ang in green ah ka dah ta
   const renderTick = (status: string, isMe: boolean) => {
     if (!isMe) return null;
     if (!status || status === 'sent') {
@@ -228,7 +217,6 @@ export default function ChatDetailPage() {
       return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
     if (status === 'read') {
-      // GREEN TICK - Seen tawh
       return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
     return null;
@@ -293,7 +281,6 @@ export default function ChatDetailPage() {
         </div>
       </div>
 
-      {/* SIR SPACE ZAU - 18px */}
       <div
         ref={messagesContainerRef}
         style={{
@@ -318,7 +305,6 @@ export default function ChatDetailPage() {
                   </span>
                 </div>
               )}
-              {/* MESSAGE SIR SPACE - left/right a hlat deuh tawh ang */}
               <div style={{ display: 'flex', justifyContent: isMe? 'flex-end' : 'flex-start', marginBottom: '4px', paddingLeft: isMe? '20px' : '0', paddingRight: isMe? '0' : '20px' }}>
                 <div style={{
                   maxWidth: '74%',
