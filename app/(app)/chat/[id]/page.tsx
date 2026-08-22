@@ -176,7 +176,7 @@ export default function ChatDetailPage() {
     // FIX BER: Position fixed - he page chhungah hian message chiah a tawlh ang, header leh input a tawlh lo ang
     <div style={{
       position: 'fixed',
-      top: '88px',
+      top: '108px',
       bottom: '0',
       left: '0',
       right: '0',
