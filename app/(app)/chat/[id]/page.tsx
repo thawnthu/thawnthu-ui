@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, MoreVertical, Search, User, Ban, Send, X } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, getDoc, onSnapshot, orderBy, query, addDoc, serverTimestamp, setDoc, increment } from 'firebase/firestore';
+import { collection, doc, onSnapshot, orderBy, query, addDoc, serverTimestamp, setDoc, increment } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function ChatDetailPage() {
@@ -41,9 +41,7 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, [otherUid]);
 
-  const getChatId = (uid1: string, uid2: string) => {
-    return [uid1, uid2].sort().join('_');
-  };
+  const getChatId = (uid1: string, uid2: string) => [uid1, uid2].sort().join('_');
 
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid) return;
@@ -51,7 +49,7 @@ export default function ChatDetailPage() {
     const q = query(collection(db, "chats", chatId, "messages"), orderBy("timestamp", "asc"));
     const unsub = onSnapshot(q, snap => {
       setMessages(snap.docs.map(d => ({ id: d.id,...d.data() })));
-    }, (err) => console.log("messages error", err));
+    });
     return () => unsub();
   }, [currentUser, otherUid]);
 
@@ -59,17 +57,12 @@ export default function ChatDetailPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // FIX THAR - MESSAGE THAWN THEIH TAWH
   const handleSend = async () => {
-    if (!newMsg.trim() ||!currentUser?.uid ||!otherUid) {
-      console.log("no msg or user", newMsg, currentUser?.uid, otherUid);
-      return;
-    }
+    if (!newMsg.trim() ||!currentUser?.uid ||!otherUid) return;
     const text = newMsg.trim();
-    setNewMsg(''); // nghal a clear
+    setNewMsg('');
     const chatId = getChatId(currentUser.uid, otherUid);
     try {
-      // 1. chat doc update - unread chhiar belh
       await setDoc(doc(db, "chats", chatId), {
         participants: [currentUser.uid, otherUid],
         lastMessage: text,
@@ -79,19 +72,14 @@ export default function ChatDetailPage() {
         [`unread.${otherUid}`]: increment(1),
         [`unread.${currentUser.uid}`]: 0,
       }, { merge: true });
-
-      // 2. message add
       await addDoc(collection(db, "chats", chatId, "messages"), {
         text: text,
         senderId: currentUser.uid,
         receiverId: otherUid,
         timestamp: serverTimestamp(),
       });
-      console.log("sent ok");
     } catch (e: any) {
-      console.log("send error", e.message);
-      alert("Send failed: " + e.message);
-      setNewMsg(text); // fail chuan restore
+      setNewMsg(text);
     }
   };
 
@@ -99,11 +87,8 @@ export default function ChatDetailPage() {
     if (!currentUser ||!otherUid) return;
     if (!confirm(`${otherUser?.name} block i duh tak tak em?`)) return;
     await setDoc(doc(db, "users", currentUser.uid, "blocked", otherUid), {
-      uid: otherUid,
-      name: otherUser?.name,
-      blockedAt: serverTimestamp(),
+      uid: otherUid, name: otherUser?.name, blockedAt: serverTimestamp(),
     });
-    alert(`${otherUser?.name} blocked`);
     setShowMenu(false);
     router.push('/users');
   };
@@ -117,114 +102,188 @@ export default function ChatDetailPage() {
   };
 
   const getInitial = (name: string) => name?.charAt(0).toUpperCase() || 'T';
+
+  // TIME FORMAT - 12HRS AM/PM WHATSAPP ANG
+  const formatMsgTime = (ts: any) => {
+    if (!ts) return '';
+    try {
+      const d = ts.toDate? ts.toDate() : new Date(ts);
+      return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch { return ''; }
+  };
+
+  const formatDateLabel = (ts: any) => {
+    if (!ts) return '';
+    try {
+      const d = ts.toDate? ts.toDate() : new Date(ts);
+      const today = new Date();
+      const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+      const isToday = d.toDateString() === today.toDateString();
+      const isYesterday = d.toDateString() === yesterday.toDateString();
+      if (isToday) return 'Today';
+      if (isYesterday) return 'Yesterday';
+      return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: d.getFullYear()!== today.getFullYear()? 'numeric' : undefined });
+    } catch { return ''; }
+  };
+
+  const shouldShowDate = (curr: any, prev: any) => {
+    if (!prev) return true;
+    try {
+      const c = curr.timestamp?.toDate? curr.timestamp.toDate() : new Date(curr.timestamp);
+      const p = prev.timestamp?.toDate? prev.timestamp.toDate() : new Date(prev.timestamp);
+      return c.toDateString()!== p.toDateString();
+    } catch { return false; }
+  };
+
   const filteredMessages = searchQ? messages.filter(m => m.text?.toLowerCase().includes(searchQ.toLowerCase())) : messages;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 130px)', background: '#e5ddd5', position: 'relative' }}>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: 'calc(100dvh - 102px)',
+      background: '#e5ddd5',
+      overflow: 'hidden',
+      margin: '-0px',
+      overscrollBehavior: 'contain',
+      touchAction: 'pan-y'
+    }}>
 
+      {/* HEADER FIXED - CHAT HEADER CHIAH */}
       <div style={{
-        position: 'sticky',
-        top: '130px',
-        zIndex: 18,
         background: '#8d31ce',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '8px 8px 8px 4px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+        flexShrink: 0,
+        height: '56px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button onClick={() => router.back()} style={{ border: 'none', background: 'none', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <ArrowLeft size={24} color="#fff" />
           </button>
-          <div onClick={() => router.push(`/profile/${otherUid}`)} style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#fff', color: '#8d31ce', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '18px', cursor: 'pointer' }}>
-            {getInitial(otherUser?.name || 'D')}
+          <div onClick={() => router.push(`/profile/${otherUid}`)} style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#fff', color: '#8d31ce', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '16px', cursor: 'pointer' }}>
+            {getInitial(otherUser?.name || 'F')}
           </div>
           <div onClick={() => router.push(`/profile/${otherUid}`)} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ color: '#fff', fontWeight: '700', fontSize: '16px', lineHeight: '16px' }}>{otherUser?.name || 'Diktea'}</span>
-            <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', marginTop: '2px' }}>{isReallyOnline(otherUser)? 'Online' : 'Offline'}</span>
+            <span style={{ color: '#fff', fontWeight: '700', fontSize: '15px', lineHeight: '15px' }}>{otherUser?.name || 'Fela'}</span>
+            <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '11px', marginTop: '2px' }}>{isReallyOnline(otherUser)? 'Online' : 'Offline'}</span>
           </div>
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', position: 'relative' }} ref={menuRef}>
+        <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={menuRef}>
           {showSearch? (
-            <div style={{ display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '20px', padding: '6px 10px' }}>
-              <Search size={18} color="#888" />
-              <input autoFocus value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Search messages" style={{ border: 'none', outline: 'none', marginLeft: '6px', width: '120px', fontSize: '14px' }} />
-              <button onClick={() => { setShowSearch(false); setSearchQ(''); }} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={18} color="#888" /></button>
+            <div style={{ display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '20px', padding: '5px 10px' }}>
+              <Search size={16} color="#888" />
+              <input autoFocus value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Search" style={{ border: 'none', outline: 'none', marginLeft: '6px', width: '80px', fontSize: '13px' }} />
+              <button onClick={() => { setShowSearch(false); setSearchQ(''); }} style={{ border: 'none', background: 'none' }}><X size={16} color="#888" /></button>
             </div>
           ) : null}
-
           <button onClick={() => setShowMenu(!showMenu)} style={{ border: 'none', background: 'none', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <MoreVertical size={22} color="#fff" />
+            <MoreVertical size={20} color="#fff" />
           </button>
-
           {showMenu && (
-            <div style={{ position: 'absolute', right: '0', top: '44px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '170px', overflow: 'hidden', zIndex: 30 }}>
-              <button onClick={() => { router.push(`/profile/${otherUid}`); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '14px 14px', border: 'none', borderBottom: '1px solid #f0f0f0', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '15px', fontWeight: '700', color: '#000' }}>
-                <User size={18} /> Profile
-              </button>
-              <button onClick={handleBlock} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '14px 14px', border: 'none', borderBottom: '1px solid #f0f0f0', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '15px', fontWeight: '700', color: '#ef4444' }}>
-                <Ban size={18} /> Block
-              </button>
-              <button onClick={() => { setShowSearch(true); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '14px 14px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '15px', fontWeight: '700', color: '#000' }}>
-                <Search size={18} /> Search
-              </button>
+            <div style={{ position: 'absolute', right: '0', top: '40px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '160px', overflow: 'hidden', zIndex: 50 }}>
+              <button onClick={() => { router.push(`/profile/${otherUid}`); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px', border: 'none', borderBottom: '1px solid #f0f0f0', background: 'none', fontSize: '14px', fontWeight: '700' }}><User size={16} /> Profile</button>
+              <button onClick={handleBlock} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px', border: 'none', borderBottom: '1px solid #f0f0f0', background: 'none', fontSize: '14px', fontWeight: '700', color: '#ef4444' }}><Ban size={16} /> Block</button>
+              <button onClick={() => { setShowSearch(true); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px', border: 'none', background: 'none', fontSize: '14px', fontWeight: '700' }}><Search size={16} /> Search</button>
             </div>
           )}
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px', paddingBottom: '80px', background: '#e5ddd5' }}>
-        {filteredMessages.length===0 && <p style={{textAlign:'center', color:'#888', marginTop:'40px'}}>No messages yet - start chatting!</p>}
-        {filteredMessages.map((msg) => {
+      {/* MESSAGES - HEI CHIAH HI A KHAH HNU AH CHIAH TAWLH THEIH */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          padding: '10px 8px',
+          background: '#e5ddd5',
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        {filteredMessages.map((msg, idx) => {
           const isMe = msg.senderId === currentUser?.uid;
+          const prev = idx > 0? filteredMessages[idx - 1] : null;
+          const showDate = shouldShowDate(msg, prev);
           return (
-            <div key={msg.id} style={{ display: 'flex', justifyContent: isMe? 'flex-end' : 'flex-start', marginBottom: '8px' }}>
-              <div style={{
-                maxWidth: '75%',
-                padding: '8px 12px',
-                borderRadius: isMe? '14px 14px 0 14px' : '14px 14px 14px 0',
-                background: isMe? '#8d31ce' : '#fff',
-                color: isMe? '#fff' : '#000',
-                boxShadow: '0 1px 1px rgba(0,0,0,0.1)',
-                fontSize: '15px',
-                wordBreak: 'break-word'
-              }}>
-                {msg.text}
+            <div key={msg.id}>
+              {showDate && (
+                <div style={{ display: 'flex', justifyContent: 'center', margin: '12px 0' }}>
+                  <span style={{ background: '#fff', color: '#54656f', fontSize: '11px', padding: '4px 10px', borderRadius: '8px', boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)', fontWeight: '500' }}>
+                    {formatDateLabel(msg.timestamp)}
+                  </span>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: isMe? 'flex-end' : 'flex-start', marginBottom: '3px' }}>
+                <div style={{
+                  maxWidth: '78%',
+                  padding: '6px 7px 4px 9px',
+                  borderRadius: isMe? '8px 8px 0 8px' : '8px 8px 8px 0',
+                  background: isMe? '#8d31ce' : '#fff',
+                  color: isMe? '#fff' : '#111b21',
+                  boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)',
+                  position: 'relative',
+                  minWidth: '90px'
+                }}>
+                  <span style={{ fontSize: '16.5px', lineHeight: '20px', fontWeight: '400', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                    {msg.text}
+                  </span>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    alignItems: 'flex-end',
+                    gap: '4px',
+                    marginTop: '2px',
+                    float: 'right',
+                    marginLeft: '12px',
+                    paddingTop: '4px'
+                  }}>
+                    <span style={{
+                      fontSize: '10.5px',
+                      color: isMe? 'rgba(255,255,255,0.85)' : '#667781',
+                      fontWeight: '400',
+                      lineHeight: '11px',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {formatMsgTime(msg.timestamp)}
+                    </span>
+                  </div>
+                  <div style={{ clear: 'both' }}></div>
+                </div>
               </div>
             </div>
           );
         })}
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} style={{ height: '2px' }} />
       </div>
 
+      {/* INPUT FIXED BOTTOM */}
       <div style={{
-        position: 'fixed',
-        bottom: '0',
-        left: '0',
-        right: '0',
-        zIndex: 18,
-        background: 'transparent',
-        padding: '8px 10px 12px 10px',
+        background: '#f0f0f0',
+        padding: '6px 8px 8px 8px',
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
+        gap: '6px',
+        flexShrink: 0,
+        borderTop: '1px solid #ddd'
       }}>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '24px', padding: '8px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '24px', padding: '4px 14px', boxShadow: '0 1px 1px rgba(0,0,0,0.08)' }}>
           <input
             value={newMsg}
             onChange={(e) => setNewMsg(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
             placeholder="Type a message..."
-            style={{ flex: 1, border: 'none', outline: 'none', fontSize: '16px', background: 'none', padding: '6px 0' }}
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: '16px', background: 'none', padding: '8px 0' }}
           />
         </div>
-        <button onClick={handleSend} style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#8d31ce', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
-          <Send size={22} color="#fff" style={{ transform: 'rotate(0deg) translateX(1px)', marginLeft: '2px' }} />
+        <button onClick={handleSend} style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#8d31ce', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+          <Send size={20} color="#fff" style={{ marginLeft: '2px' }} />
         </button>
       </div>
 
     </div>
   );
-          }
+              }
