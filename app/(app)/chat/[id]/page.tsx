@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, MoreVertical, Search, User, Ban, Send, X } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, getDoc, onSnapshot, orderBy, query, addDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, onSnapshot, orderBy, query, addDoc, serverTimestamp, setDoc, increment } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function ChatDetailPage() {
@@ -46,12 +46,12 @@ export default function ChatDetailPage() {
   };
 
   useEffect(() => {
-    if (!currentUser ||!otherUid) return;
+    if (!currentUser?.uid ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
     const q = query(collection(db, "chats", chatId, "messages"), orderBy("timestamp", "asc"));
     const unsub = onSnapshot(q, snap => {
       setMessages(snap.docs.map(d => ({ id: d.id,...d.data() })));
-    });
+    }, (err) => console.log("messages error", err));
     return () => unsub();
   }, [currentUser, otherUid]);
 
@@ -59,24 +59,40 @@ export default function ChatDetailPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // FIX THAR - MESSAGE THAWN THEIH TAWH
   const handleSend = async () => {
-    if (!newMsg.trim() ||!currentUser ||!otherUid) return;
+    if (!newMsg.trim() ||!currentUser?.uid ||!otherUid) {
+      console.log("no msg or user", newMsg, currentUser?.uid, otherUid);
+      return;
+    }
+    const text = newMsg.trim();
+    setNewMsg(''); // nghal a clear
     const chatId = getChatId(currentUser.uid, otherUid);
-    await setDoc(doc(db, "chats", chatId), {
-      participants: [currentUser.uid, otherUid],
-      lastMessage: newMsg,
-      lastSender: currentUser.uid,
-      lastTimestamp: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+    try {
+      // 1. chat doc update - unread chhiar belh
+      await setDoc(doc(db, "chats", chatId), {
+        participants: [currentUser.uid, otherUid],
+        lastMessage: text,
+        lastSender: currentUser.uid,
+        lastTimestamp: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        [`unread.${otherUid}`]: increment(1),
+        [`unread.${currentUser.uid}`]: 0,
+      }, { merge: true });
 
-    await addDoc(collection(db, "chats", chatId, "messages"), {
-      text: newMsg,
-      senderId: currentUser.uid,
-      receiverId: otherUid,
-      timestamp: serverTimestamp(),
-    });
-    setNewMsg('');
+      // 2. message add
+      await addDoc(collection(db, "chats", chatId, "messages"), {
+        text: text,
+        senderId: currentUser.uid,
+        receiverId: otherUid,
+        timestamp: serverTimestamp(),
+      });
+      console.log("sent ok");
+    } catch (e: any) {
+      console.log("send error", e.message);
+      alert("Send failed: " + e.message);
+      setNewMsg(text); // fail chuan restore
+    }
   };
 
   const handleBlock = async () => {
@@ -104,7 +120,7 @@ export default function ChatDetailPage() {
   const filteredMessages = searchQ? messages.filter(m => m.text?.toLowerCase().includes(searchQ.toLowerCase())) : messages;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 130px)', background: '#e5ddd5' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 130px)', background: '#e5ddd5', position: 'relative' }}>
 
       <div style={{
         position: 'sticky',
@@ -122,10 +138,10 @@ export default function ChatDetailPage() {
             <ArrowLeft size={24} color="#fff" />
           </button>
           <div onClick={() => router.push(`/profile/${otherUid}`)} style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#fff', color: '#8d31ce', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '18px', cursor: 'pointer' }}>
-            {getInitial(otherUser?.name || 'Thara')}
+            {getInitial(otherUser?.name || 'D')}
           </div>
           <div onClick={() => router.push(`/profile/${otherUid}`)} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ color: '#fff', fontWeight: '700', fontSize: '16px', lineHeight: '16px' }}>{otherUser?.name || 'Thara'}</span>
+            <span style={{ color: '#fff', fontWeight: '700', fontSize: '16px', lineHeight: '16px' }}>{otherUser?.name || 'Diktea'}</span>
             <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', marginTop: '2px' }}>{isReallyOnline(otherUser)? 'Online' : 'Offline'}</span>
           </div>
         </div>
@@ -159,7 +175,8 @@ export default function ChatDetailPage() {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px', paddingBottom: '70px', background: '#e5ddd5' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px', paddingBottom: '80px', background: '#e5ddd5' }}>
+        {filteredMessages.length===0 && <p style={{textAlign:'center', color:'#888', marginTop:'40px'}}>No messages yet - start chatting!</p>}
         {filteredMessages.map((msg) => {
           const isMe = msg.senderId === currentUser?.uid;
           return (
@@ -184,17 +201,17 @@ export default function ChatDetailPage() {
 
       <div style={{
         position: 'fixed',
-        bottom: '8px',
+        bottom: '0',
         left: '0',
         right: '0',
         zIndex: 18,
         background: 'transparent',
-        padding: '8px 10px',
+        padding: '8px 10px 12px 10px',
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
       }}>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '24px', padding: '8px 16px', boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '24px', padding: '8px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
           <input
             value={newMsg}
             onChange={(e) => setNewMsg(e.target.value)}
@@ -210,4 +227,4 @@ export default function ChatDetailPage() {
 
     </div>
   );
-                              }
+          }
