@@ -19,7 +19,9 @@ export default function SettingPage() {
   const [currentPass, setCurrentPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
-  const [showPass, setShowPass] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const [modal, setModal] = useState<'name' | 'email' | 'password' | null>(null);
 
@@ -32,7 +34,6 @@ export default function SettingPage() {
     setEmail(dEmail); setNewEmail(dEmail);
     setDarkMode(localStorage.getItem('darkMode') === 'true');
     setFontSize(localStorage.getItem('fontSize') || '16');
-
     const unsubBlock = onSnapshot(collection(db, "users", uid, "blocked"), (snap) => {
       setBlockedUsers(snap.docs.map(d => ({ id: d.id,...d.data() })));
     });
@@ -97,19 +98,20 @@ export default function SettingPage() {
   };
 
   const card = { background: darkMode? '#1a1a1c' : '#fff', borderRadius: '16px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${darkMode? '#2a2a2c' : '#eee'}` };
-  const inputStyle = { width: '100%', padding: '14px', borderRadius: '12px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: darkMode? '#222' : '#f9f9f9', color: darkMode? '#fff' : '#000', outline: 'none', fontSize: '1rem' };
+  const inputWrap = { position: 'relative' as const, width: '100%' };
+  // EDIT - INPUT TAWI, BOX-SIZING
+  const inputStyle = { width: '100%', boxSizing: 'border-box' as const, padding: '12px 14px', borderRadius: '12px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: darkMode? '#222' : '#f9f9f9', color: darkMode? '#fff' : '#000', outline: 'none', fontSize: '0.95rem' };
+  const inputWithEye = { ...inputStyle, paddingRight: '42px' };
   const rowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 4px', cursor: 'pointer' };
+  const eyeBtn = { position: 'absolute' as const, right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#888', display: 'flex' };
 
   return (
     <div style={{ background: darkMode? '#0f0f10' : '#f5f5f5', minHeight: '100vh', padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px', color: darkMode? '#fff' : '#000' }}>
 
-      {/* PROFILE SETTINGS - CLASS 1 AH VEK */}
       <div style={card}>
         <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}><User size={20}/> Profile Settings</h3>
         <p style={{ fontSize: '0.85rem', opacity: 0.5, margin: '0 0 8px 28px' }}>{name} • {email}</p>
-
         <div style={{ marginTop: '8px' }}>
-          {/* Change Name */}
           <div onClick={()=>{setNewName(name); setModal('name')}} style={rowStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Edit3 size={20} color="#6366f1"/></div>
@@ -118,8 +120,6 @@ export default function SettingPage() {
             <ChevronRight size={20} color="#aaa"/>
           </div>
           <div style={{ height: '1px', background: darkMode? '#2a2a2c' : '#f0f0f0', marginLeft: '54px' }}></div>
-
-          {/* Change Email */}
           <div onClick={()=>{setNewEmail(email); setModal('email')}} style={rowStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Mail size={20} color="#f59e0b"/></div>
@@ -128,8 +128,6 @@ export default function SettingPage() {
             <ChevronRight size={20} color="#aaa"/>
           </div>
           <div style={{ height: '1px', background: darkMode? '#2a2a2c' : '#f0f0f0', marginLeft: '54px' }}></div>
-
-          {/* Change Password */}
           <div onClick={()=>setModal('password')} style={rowStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Lock size={20} color="#ef4444"/></div>
@@ -140,47 +138,55 @@ export default function SettingPage() {
         </div>
       </div>
 
-      {/* MODALS */}
       {modal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={()=>setModal(null)}>
-          <div onClick={e=>e.stopPropagation()} style={{ width: '100%', maxWidth: '380px', background: darkMode? '#1e1e1e' : '#fff', borderRadius: '20px', padding: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontWeight: 800 }}>{modal==='name'? 'Change Name' : modal==='email'? 'Change Email' : 'Change Password'}</h3>
+          <div onClick={e=>e.stopPropagation()} style={{ width: '100%', maxWidth: '360px', background: darkMode? '#1e1e1e' : '#fff', borderRadius: '20px', padding: '18px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.1rem' }}>{modal==='name'? 'Change Name' : modal==='email'? 'Change Email' : 'Change Password'}</h3>
               <button onClick={()=>setModal(null)} style={{ background: darkMode? '#2a2a2c' : '#f0f0f0', border: 'none', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18}/></button>
             </div>
 
             {modal==='name' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <input value={newName} onChange={e=>setNewName(e.target.value)} style={inputStyle} placeholder="New name"/>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={()=>setModal(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: 'none', color: darkMode? '#fff' : '#000', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-                  <button onClick={handleSaveName} disabled={saving} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#6366f1', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving? 'Saving...' : 'Change Name'}</button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
+                <div style={inputWrap}><input value={newName} onChange={e=>setNewName(e.target.value)} style={inputStyle} placeholder="New name"/></div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                  <button onClick={()=>setModal(null)} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: 'none', color: darkMode? '#fff' : '#000', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={handleSaveName} disabled={saving} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: 'none', background: '#6366f1', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving? '...' : 'Change Name'}</button>
                 </div>
               </div>
             )}
 
             {modal==='email' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <input value={newEmail} onChange={e=>setNewEmail(e.target.value)} style={inputStyle} placeholder="New email"/>
-                <input type={showPass? "text" : "password"} value={currentPass} onChange={e=>setCurrentPass(e.target.value)} style={inputStyle} placeholder="Current password"/>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={()=>setModal(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: 'none', color: darkMode? '#fff' : '#000', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-                  <button onClick={handleSaveEmail} disabled={saving} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#f59e0b', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving? 'Saving...' : 'Change Email'}</button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
+                <div style={inputWrap}><input value={newEmail} onChange={e=>setNewEmail(e.target.value)} style={inputStyle} placeholder="New email"/></div>
+                <div style={inputWrap}>
+                  <input type={showCurrent? "text" : "password"} value={currentPass} onChange={e=>setCurrentPass(e.target.value)} style={inputWithEye} placeholder="Current password"/>
+                  <button onClick={()=>setShowCurrent(!showCurrent)} style={eyeBtn}>{showCurrent? <EyeOff size={18}/> : <Eye size={18}/>}</button>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                  <button onClick={()=>setModal(null)} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: 'none', color: darkMode? '#fff' : '#000', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={handleSaveEmail} disabled={saving} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: 'none', background: '#f59e0b', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving? '...' : 'Change Email'}</button>
                 </div>
               </div>
             )}
 
             {modal==='password' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <input type={showPass? "text" : "password"} value={currentPass} onChange={e=>setCurrentPass(e.target.value)} style={inputStyle} placeholder="Current password"/>
-                <div style={{ position: 'relative' }}>
-                  <input type={showPass? "text" : "password"} value={newPass} onChange={e=>setNewPass(e.target.value)} style={inputStyle} placeholder="New password"/>
-                  <button onClick={()=>setShowPass(!showPass)} style={{ position: 'absolute', right: '12px', top: '14px', background: 'none', border: 'none', cursor: 'pointer' }}>{showPass? <EyeOff size={18}/> : <Eye size={18}/>}</button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
+                <div style={inputWrap}>
+                  <input type={showCurrent? "text" : "password"} value={currentPass} onChange={e=>setCurrentPass(e.target.value)} style={inputWithEye} placeholder="Current password"/>
+                  <button onClick={()=>setShowCurrent(!showCurrent)} style={eyeBtn}>{showCurrent? <EyeOff size={18}/> : <Eye size={18}/>}</button>
                 </div>
-                <input type={showPass? "text" : "password"} value={confirmPass} onChange={e=>setConfirmPass(e.target.value)} style={inputStyle} placeholder="Confirm password"/>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={()=>setModal(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: 'none', color: darkMode? '#fff' : '#000', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-                  <button onClick={handleChangePassword} disabled={saving} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving? 'Saving...' : 'Change Password'}</button>
+                <div style={inputWrap}>
+                  <input type={showNew? "text" : "password"} value={newPass} onChange={e=>setNewPass(e.target.value)} style={inputWithEye} placeholder="New password"/>
+                  <button onClick={()=>setShowNew(!showNew)} style={eyeBtn}>{showNew? <EyeOff size={18}/> : <Eye size={18}/>}</button>
+                </div>
+                <div style={inputWrap}>
+                  <input type={showConfirm? "text" : "password"} value={confirmPass} onChange={e=>setConfirmPass(e.target.value)} style={inputWithEye} placeholder="Confirm password"/>
+                  <button onClick={()=>setShowConfirm(!showConfirm)} style={eyeBtn}>{showConfirm? <EyeOff size={18}/> : <Eye size={18}/>}</button>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                  <button onClick={()=>setModal(null)} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: 'none', color: darkMode? '#fff' : '#000', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={handleChangePassword} disabled={saving} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving? '...' : 'Change Password'}</button>
                 </div>
               </div>
             )}
@@ -223,4 +229,4 @@ export default function SettingPage() {
       </div>
     </div>
   );
-}
+  }
