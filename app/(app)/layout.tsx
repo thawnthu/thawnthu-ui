@@ -76,31 +76,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, []);
 
+  // FIXED - WhatsApp ang chiah - chat open hma chu Chat(1) reng
   useEffect(() => {
     let unsubChats: any = null;
     const unsubAuth = onAuthStateChanged(auth, (user) => {
-      if (!user) return;
+      if (!user) { setChatUnread(0); return; }
       const q = query(collection(db, "chats"), where("participants", "array-contains", user.uid));
       unsubChats = onSnapshot(q, (snap) => {
-        const senders = new Set<string>();
+        let count = 0;
         snap.docs.forEach(d => {
           const data = d.data() as any;
-          if (data.lastSender && data.lastSender!== user.uid) {
-            const isUnread = data.seen === false || data.isRead === false || (data.unread && data.unread[user.uid] > 0);
-            if (isUnread) senders.add(data.lastSender);
+          if (data.unread && data.unread[user.uid] > 0) {
+            count += 1;
           }
         });
-        setChatUnread(senders.size);
+        setChatUnread(count);
       });
     });
     return () => { unsubAuth(); if (unsubChats) unsubChats(); };
   }, []);
-
-  useEffect(() => {
-    if (pathname.startsWith('/chat') && chatUnread > 0) {
-      setChatUnread(0);
-    }
-  }, [pathname]);
 
   const tabs = ['Home', 'Chat', 'Online', 'Notification', 'Group', 'Status', 'Profile', 'Users', 'Setting'];
   const currentPath = pathname.split('/')[1] || 'home';
@@ -117,7 +111,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const handleTab = (tab: string) => {
     if (tab === 'Status') { router.push('/category'); return; }
     const route = tab.toLowerCase();
-    if (tab === 'Chat') setChatUnread(0);
     router.push(`/${route}`);
   }
 
@@ -143,7 +136,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div style={{position: 'sticky', top: 0, zIndex: 30, background: '#8d31ce', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 4px 8px 16px'}}>
         <div style={{fontSize: '22px', fontWeight: '800', color: '#fff', letterSpacing: '-0.5px'}}>MzApp</div>
         <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-          {/* 1. SEARCH ICON WHITE CHIAH - BACKGROUND BIAL AWM LO */}
           <button onClick={()=>router.push('/search')} style={{background: 'none', border: 'none', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}>
             <Search size={22} color='#fff'/>
           </button>
@@ -186,4 +178,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div style={{padding: '0px'}}>{children}</div>
     </div>
   )
-                                     }
+  }
