@@ -173,19 +173,22 @@ export default function ChatDetailPage() {
   const filteredMessages = searchQ? messages.filter(m => m.text?.toLowerCase().includes(searchQ.toLowerCase())) : messages;
 
   return (
+    // FIX BER: Position fixed - he page chhungah hian message chiah a tawlh ang, header leh input a tawlh lo ang
     <div style={{
+      position: 'fixed',
+      top: '88px',
+      bottom: '0',
+      left: '0',
+      right: '0',
       display: 'flex',
       flexDirection: 'column',
-      height: 'calc(100dvh - 52px)',
       background: '#e5ddd5',
       overflow: 'hidden',
+      zIndex: 5,
     }}>
 
-      {/* 1. FIX - PURPLE HEADER KHA MENU HNUAIAH A PIL LO NA TUR - STICKY TOP 88px */}
+      {/* HEADER - FIXED, A TAWLH LO ANG */}
       <div style={{
-        position: 'sticky',
-        top: '88px',
-        zIndex: 25,
         background: '#8d31ce',
         display: 'flex',
         alignItems: 'center',
@@ -228,7 +231,7 @@ export default function ChatDetailPage() {
         </div>
       </div>
 
-      {/* MESSAGES */}
+      {/* MESSAGES CHIAH HI A TAWLH THEIH - HEI CHIAH */}
       <div
         style={{
           flex: 1,
@@ -236,6 +239,7 @@ export default function ChatDetailPage() {
           overflowX: 'hidden',
           padding: '10px 8px 6px 8px',
           background: '#e5ddd5',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         {filteredMessages.map((msg, idx) => {
@@ -295,9 +299,9 @@ export default function ChatDetailPage() {
         <div ref={messagesEndRef} style={{ height: '2px' }} />
       </div>
 
-      {/* 2. INPUT TI ZIM - A CHUNG LEH HNUAI */}
+      {/* INPUT - FIXED, A TAWLH LO ANG */}
       <div style={{
-        background: 'transparent',
+        background: '#e5ddd5',
         padding: '4px 6px 6px 6px',
         display: 'flex',
         alignItems: 'center',
@@ -338,4 +342,4 @@ export default function ChatDetailPage() {
 
     </div>
   );
-}
+    }
