@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, MoreVertical, Search, User, Ban, X, Check, CheckCheck } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, onSnapshot, orderBy, query, addDoc, serverTimestamp, setDoc, increment, writeBatch } from 'firebase/firestore';
+import { collection, doc, onSnapshot, orderBy, query, addDoc, serverTimestamp, setDoc, increment } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function ChatDetailPage() {
@@ -13,6 +13,7 @@ export default function ChatDetailPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [otherUser, setOtherUser] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
+  const [chatSeen, setChatSeen] = useState<any>(null);
   const [newMsg, setNewMsg] = useState('');
   const [showMenu, setShowMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -46,32 +47,32 @@ export default function ChatDetailPage() {
 
   const getChatId = (uid1: string, uid2: string) => [uid1, uid2].sort().join('_');
 
-  // FIX BER: Message en rual in GREEN nghal
+  // MESSAGE + SEEN
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
     const q = query(collection(db, "chats", chatId, "messages"), orderBy("timestamp", "asc"));
-    const unsub = onSnapshot(q, snap => {
-      const msgs = snap.docs.map(d => ({ id: d.id,...d.data() as any }));
-      setMessages(msgs);
-
-      // He chat a awm laia min rawn thawn zawng kha READ ah dah nghal - hei hian i thianpa message kha green a thlak ang
-      const batch = writeBatch(db);
-      let hasUpdate = false;
-      msgs.forEach(m => {
-        if (m.receiverId === currentUser.uid && m.status!== 'read') {
-          batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'read' });
-          hasUpdate = true;
-        }
-      });
-      if (hasUpdate) {
-        batch.commit().catch(()=>{});
-      }
-
-      // Unread 0 ah
-      setDoc(doc(db, "chats", chatId), { [`unread.${currentUser.uid}`]: 0 }, { merge: true }).catch(()=>{});
+    const unsubMsg = onSnapshot(q, snap => {
+      setMessages(snap.docs.map(d => ({ id: d.id,...d.data() as any })));
     });
-    return () => unsub();
+
+    // He chat a ka luh rual in ka seen time ka update - hemi hmang hian midang lam ah green a ni ang
+    const unsubChat = onSnapshot(doc(db, "chats", chatId), snap => {
+      if (snap.exists()) {
+        setChatSeen(snap.data() as any);
+      }
+    });
+
+    // Ka seen nghal
+    setDoc(doc(db, "chats", chatId), {
+      [`seen.${currentUser.uid}`]: serverTimestamp(),
+      [`unread.${currentUser.uid}`]: 0
+    }, { merge: true }).catch(()=>{});
+
+    return () => {
+      unsubMsg();
+      unsubChat();
+    };
   }, [currentUser, otherUid]);
 
   const isReallyOnline = (user: any) => {
@@ -82,21 +83,17 @@ export default function ChatDetailPage() {
     } catch { return false; }
   };
 
-  // Delivered - online chuan 2 tick
+  // Ka awm chhungin 5 sec dan ah ka seen ka refresh - open rual a green turin
   useEffect(() => {
-    if (!currentUser?.uid ||!otherUid || messages.length === 0) return;
-    if (!isReallyOnline(otherUser)) return;
+    if (!currentUser?.uid ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
-    const batch = writeBatch(db);
-    let has = false;
-    messages.forEach(m => {
-      if (m.senderId === currentUser.uid && m.status === 'sent') {
-        batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'delivered' });
-        has = true;
-      }
-    });
-    if (has) batch.commit().catch(()=>{});
-  }, [messages, otherUser, currentUser, otherUid]);
+    const interval = setInterval(() => {
+      setDoc(doc(db, "chats", chatId), {
+        [`seen.${currentUser.uid}`]: serverTimestamp(),
+      }, { merge: true }).catch(()=>{});
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [currentUser, otherUid]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -136,6 +133,7 @@ export default function ChatDetailPage() {
         updatedAt: serverTimestamp(),
         [`unread.${otherUid}`]: increment(1),
         [`unread.${currentUser.uid}`]: 0,
+        [`seen.${currentUser.uid}`]: serverTimestamp(),
       }, { merge: true });
       await addDoc(collection(db, "chats", chatId, "messages"), {
         text: text,
@@ -189,18 +187,41 @@ export default function ChatDetailPage() {
     } catch { return false; }
   };
 
-  const renderTick = (status: string, isMe: boolean) => {
+  // WHATSAPP ANG - OPEN RUAL A GREEN
+  const renderTick = (msg: any, isMe: boolean) => {
     if (!isMe) return null;
-    if (!status || status === 'sent') {
+
+    // Midangin he chat a a seen hnuhnung ber
+    const otherSeenTime = chatSeen?.seen?.[otherUid];
+    const myMsgTime = msg.timestamp;
+
+    if (!otherSeenTime ||!myMsgTime) {
+      // Seen ala awm lo - delivered check
+      if (chatSeen?.unread && chatSeen.unread[otherUid] === 0) {
+        // A hawng tawh - green
+        return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
+      }
       return <Check size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
-    if (status === 'delivered') {
+
+    try {
+      const seenDate = otherSeenTime.toDate? otherSeenTime.toDate() : new Date(otherSeenTime);
+      const msgDate = myMsgTime.toDate? myMsgTime.toDate() : new Date(myMsgTime);
+
+      // Ka message timestamp aia a seen a hnuhnung zawk chuan GREEN - a open tihna
+      if (seenDate.getTime() >= msgDate.getTime()) {
+        return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
+      } else {
+        // Ala open lo - delivered
+        return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
+      }
+    } catch {
+      // Fallback - unread 0 chuan green
+      if (chatSeen?.seen?.[otherUid]) {
+        return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
+      }
       return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
-    if (status === 'read') {
-      return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-    }
-    return null;
   };
 
   const filteredMessages = searchQ? messages.filter(m => m.text?.toLowerCase().includes(searchQ.toLowerCase())) : messages;
@@ -319,7 +340,7 @@ export default function ChatDetailPage() {
                     }}>
                       {formatMsgTime(msg.timestamp)}
                     </span>
-                    {renderTick(msg.status, isMe)}
+                    {renderTick(msg, isMe)}
                   </div>
                   <div style={{ clear: 'both' }}></div>
                 </div>
@@ -372,4 +393,4 @@ export default function ChatDetailPage() {
 
     </div>
   );
-              }
+                                                                                           }
