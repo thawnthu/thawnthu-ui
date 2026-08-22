@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Search, MoreVertical, LogOut, Mail } from 'lucide-react';
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, setDoc, serverTimestamp, collection, onSnapshot, query, where, updateDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, collection, onSnapshot, query, where } from "firebase/firestore";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -26,7 +26,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ONLINE SYSTEM
   useEffect(() => {
     let cleanupFn: (() => void) | null = null;
     let intervalId: any = null;
@@ -61,7 +60,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => { unsubAuth(); if (cleanupFn) cleanupFn(); if (intervalId) clearInterval(intervalId); };
   }, []);
 
-  // Users & Online count
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "users"), (snap) => {
       const allUsers = snap.docs.map(d => d.data() as any);
@@ -78,55 +76,47 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, []);
 
-  // THLAKNA: CHAT UNREAD COUNT - mi pahnih in min rawn chat chuan Chat(2)
   useEffect(() => {
     let unsubChats: any = null;
     const unsubAuth = onAuthStateChanged(auth, (user) => {
       if (!user) return;
-      // chats collection ah participants ah ka uid a awm, unread count
       const q = query(collection(db, "chats"), where("participants", "array-contains", user.uid));
       unsubChats = onSnapshot(q, (snap) => {
-        let count = 0;
+        const senders = new Set<string>();
         snap.docs.forEach(d => {
           const data = d.data() as any;
-          // structure 2 chi support: unreadCount object emaw unreadByUser
-          if (data.unread && typeof data.unread === 'object') {
-            if (data.unread[user.uid] && data.unread[user.uid] > 0) count += data.unread[user.uid];
-          } else if (data.unreadCount && data.lastSender!== user.uid && data.isRead === false) {
-            count += 1;
-          } else if (data.lastSender && data.lastSender!== user.uid && data.seen === false) {
-            count += 1;
+          if (data.lastSender && data.lastSender!== user.uid) {
+            const isUnread = data.seen === false || data.isRead === false || (data.unread && data.unread[user.uid] > 0);
+            if (isUnread) senders.add(data.lastSender);
           }
         });
-        setChatUnread(count);
+        setChatUnread(senders.size);
       });
     });
     return () => { unsubAuth(); if (unsubChats) unsubChats(); };
   }, []);
 
-  // Chat page kan open chuan 0 ah reset - seen ah mark
   useEffect(() => {
     if (pathname.startsWith('/chat') && chatUnread > 0) {
-      // local ah 0 nghal
       setChatUnread(0);
     }
   }, [pathname]);
 
-  const tabs = ['Home', 'Chat', 'Online', 'Notification', 'Group', 'Category', 'Profile', 'Users', 'Setting'];
+  const tabs = ['Home', 'Chat', 'Online', 'Notification', 'Group', 'Status', 'Profile', 'Users', 'Setting'];
   const currentPath = pathname.split('/')[1] || 'home';
-  const activeTab = currentPath === ''? 'Home' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1);
+  const activeTab = currentPath === ''? 'Home' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1) === 'Category'? 'Status' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1);
 
   const getTabLabel = (tab: string) => {
     if (tab === 'Users') return `Users(${usersCount})`;
     if (tab === 'Online') return `Online(${onlineCount})`;
-    if (tab === 'Chat') return chatUnread > 0? `Chat(${chatUnread})` : `Chat`;
+    if (tab === 'Chat') return `Chat(${chatUnread})`;
     if (tab === 'Notification') return `Notification(98)`;
     return tab;
   };
 
   const handleTab = (tab: string) => {
+    if (tab === 'Status') { router.push('/category'); return; }
     const route = tab.toLowerCase();
-    // EDIT CHIAH: Chat click chuan unread 0 ah dah nghal
     if (tab === 'Chat') setChatUnread(0);
     router.push(`/${route}`);
   }
@@ -152,23 +142,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* HEADER */}
       <div style={{position: 'sticky', top: 0, zIndex: 30, background: '#8d31ce', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 4px 8px 16px'}}>
         <div style={{fontSize: '22px', fontWeight: '800', color: '#fff', letterSpacing: '-0.5px'}}>MzApp</div>
-        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-
-          {/* THLAKNA: SEARCH VAR BIAL NALH - DOT 3 HMA AH */}
-          <button
-            onClick={()=>router.push('/search')}
-            style={{
-              background: '#fff',
-              border: 'none',
-              borderRadius: '50%',
-              width: '36px', height: '36px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
-            }}>
-            <Search size={18} color='#8d31ce'/>
+        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+          {/* 1. SEARCH ICON WHITE CHIAH - BACKGROUND BIAL AWM LO */}
+          <button onClick={()=>router.push('/search')} style={{background: 'none', border: 'none', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}>
+            <Search size={22} color='#fff'/>
           </button>
-
           <div style={{position: 'relative'}} ref={menuRef}>
             <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}>
               <MoreVertical size={22} color='#fff'/>
@@ -188,12 +166,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      {/* MENU - top 52px ah ding reng */}
       <div style={{position: 'sticky', top: '52px', zIndex: 20, background: card, display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 16px 4px 16px', borderBottom: `2px solid ${border}`, boxShadow: '0 2px 4px rgba(0,0,0,0.05)'}}>
         <div style={{display: 'flex', justifyContent: 'space-between', gap: '8px', overflowX: 'auto'}}>
           {tabs.slice(0,4).map(tab => {
             const isActive = activeTab === tab;
-            // EDIT CHIAH HEI HI: Chat(1) a awm chuan SEN in lang rawh
             const isChatUnread = tab === 'Chat' && chatUnread > 0;
             const tabColor = isChatUnread? '#ef4444' : isActive? activeColor : accent;
             return (<button key={tab} onClick={()=>handleTab(tab)} style={{padding: '6px 2px', border: 'none', background: 'none', color: tabColor, fontWeight: isChatUnread? '800' : '700', cursor: 'pointer', fontSize: '16px', whiteSpace: 'nowrap'}}>{getTabLabel(tab)}</button>)
@@ -207,8 +183,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      {/* CONTENT */}
       <div style={{padding: '0px'}}>{children}</div>
     </div>
   )
-      }
+                                     }
