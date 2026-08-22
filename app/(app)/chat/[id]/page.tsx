@@ -1,9 +1,9 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, MoreVertical, Search, User, Ban, Send, X } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Search, User, Ban, X, Check, CheckCheck } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, onSnapshot, orderBy, query, addDoc, serverTimestamp, setDoc, increment } from 'firebase/firestore';
+import { collection, doc, onSnapshot, orderBy, query, addDoc, serverTimestamp, setDoc, increment, updateDoc, writeBatch } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function ChatDetailPage() {
@@ -53,6 +53,34 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, [currentUser, otherUid]);
 
+  // TICK LOGIC: Message deliver & read mark
+  useEffect(() => {
+    if (!currentUser?.uid ||!otherUid || messages.length === 0) return;
+    const chatId = getChatId(currentUser.uid, otherUid);
+    const batch = writeBatch(db);
+    let hasUpdate = false;
+
+    messages.forEach(m => {
+      // Ka message a nih loh chuan - a rawn thleng tawh = delivered
+      if (m.receiverId === currentUser.uid && m.status === 'sent') {
+        batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'delivered' });
+        hasUpdate = true;
+      }
+      // Ka en chuan read ah mark - chat ka hawng mek
+      if (m.receiverId === currentUser.uid && (m.status === 'sent' || m.status === 'delivered')) {
+        batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'read' });
+        hasUpdate = true;
+      }
+    });
+
+    if (hasUpdate) batch.commit().catch(()=>{});
+
+    // Chat doc ah unread 0
+    if (currentUser.uid) {
+      setDoc(doc(db, "chats", chatId), { [`unread.${currentUser.uid}`]: 0 }, { merge: true }).catch(()=>{});
+    }
+  }, [messages, currentUser, otherUid]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -77,6 +105,7 @@ export default function ChatDetailPage() {
         senderId: currentUser.uid,
         receiverId: otherUid,
         timestamp: serverTimestamp(),
+        status: 'sent', // 1 tick
       });
     } catch (e: any) {
       setNewMsg(text);
@@ -103,7 +132,6 @@ export default function ChatDetailPage() {
 
   const getInitial = (name: string) => name?.charAt(0).toUpperCase() || 'T';
 
-  // TIME FORMAT - 12HRS AM/PM WHATSAPP ANG
   const formatMsgTime = (ts: any) => {
     if (!ts) return '';
     try {
@@ -135,21 +163,33 @@ export default function ChatDetailPage() {
     } catch { return false; }
   };
 
+  const renderTick = (status: string, isMe: boolean) => {
+    if (!isMe) return null;
+    if (!status || status === 'sent') {
+      return <Check size={14} color="rgba(255,255,255,0.85)" style={{ marginLeft: '4px' }} />;
+    }
+    if (status === 'delivered') {
+      return <CheckCheck size={14} color="rgba(255,255,255,0.85)" style={{ marginLeft: '4px' }} />;
+    }
+    if (status === 'read') {
+      return <CheckCheck size={14} color="#53bdeb" style={{ marginLeft: '4px' }} />;
+    }
+    return null;
+  };
+
   const filteredMessages = searchQ? messages.filter(m => m.text?.toLowerCase().includes(searchQ.toLowerCase())) : messages;
 
   return (
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      height: 'calc(100dvh - 102px)',
+      height: 'calc(100dvh - 120px)',
       background: '#e5ddd5',
       overflow: 'hidden',
-      margin: '-0px',
       overscrollBehavior: 'contain',
-      touchAction: 'pan-y'
     }}>
 
-      {/* HEADER FIXED - CHAT HEADER CHIAH */}
+      {/* HEADER */}
       <div style={{
         background: '#8d31ce',
         display: 'flex',
@@ -157,7 +197,8 @@ export default function ChatDetailPage() {
         justifyContent: 'space-between',
         padding: '8px 8px 8px 4px',
         flexShrink: 0,
-        height: '56px'
+        height: '56px',
+        zIndex: 10
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button onClick={() => router.back()} style={{ border: 'none', background: 'none', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
@@ -192,13 +233,13 @@ export default function ChatDetailPage() {
         </div>
       </div>
 
-      {/* MESSAGES - HEI CHIAH HI A KHAH HNU AH CHIAH TAWLH THEIH */}
+      {/* MESSAGES - 1. PIL BO FIX */}
       <div
         style={{
           flex: 1,
           overflowY: 'auto',
           overflowX: 'hidden',
-          padding: '10px 8px',
+          padding: '12px 8px 8px 8px',
           background: '#e5ddd5',
           overscrollBehavior: 'contain',
           WebkitOverflowScrolling: 'touch',
@@ -234,8 +275,8 @@ export default function ChatDetailPage() {
                   <div style={{
                     display: 'flex',
                     justifyContent: 'flex-end',
-                    alignItems: 'flex-end',
-                    gap: '4px',
+                    alignItems: 'center',
+                    gap: '2px',
                     marginTop: '2px',
                     float: 'right',
                     marginLeft: '12px',
@@ -250,6 +291,7 @@ export default function ChatDetailPage() {
                     }}>
                       {formatMsgTime(msg.timestamp)}
                     </span>
+                    {renderTick(msg.status, isMe)}
                   </div>
                   <div style={{ clear: 'both' }}></div>
                 </div>
@@ -260,30 +302,48 @@ export default function ChatDetailPage() {
         <div ref={messagesEndRef} style={{ height: '2px' }} />
       </div>
 
-      {/* INPUT FIXED BOTTOM */}
+      {/* INPUT - 4. BACKGROUND A NGAILO, 3. ENTER THEIH, 5. ARROW NGIL */}
       <div style={{
-        background: '#f0f0f0',
-        padding: '6px 8px 8px 8px',
+        background: 'transparent',
+        padding: '6px 8px 10px 8px',
         display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
+        alignItems: 'flex-end',
+        gap: '8px',
         flexShrink: 0,
-        borderTop: '1px solid #ddd'
       }}>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '24px', padding: '4px 14px', boxShadow: '0 1px 1px rgba(0,0,0,0.08)' }}>
-          <input
+        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', background: '#fff', borderRadius: '24px', padding: '6px 14px', boxShadow: '0 1px 1px rgba(0,0,0,0.08)', minHeight: '44px' }}>
+          <textarea
             value={newMsg}
             onChange={(e) => setNewMsg(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
             placeholder="Type a message..."
-            style={{ flex: 1, border: 'none', outline: 'none', fontSize: '16px', background: 'none', padding: '8px 0' }}
+            rows={1}
+            style={{
+              flex: 1,
+              border: 'none',
+              outline: 'none',
+              fontSize: '16px',
+              background: 'none',
+              padding: '8px 0',
+              resize: 'none',
+              maxHeight: '100px',
+              lineHeight: '20px',
+              fontFamily: 'inherit'
+            }}
+            onInput={(e) => {
+              const target = e.target as HTMLTextAreaElement;
+              target.style.height = 'auto';
+              target.style.height = Math.min(target.scrollHeight, 100) + 'px';
+            }}
           />
         </div>
         <button onClick={handleSend} style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#8d31ce', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-          <Send size={20} color="#fff" style={{ marginLeft: '2px' }} />
+          {/* 5. ARROW NGIL - WHATSAPP ANG */}
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff" style={{ transform: 'rotate(0deg)', marginLeft: '2px' }}>
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+          </svg>
         </button>
       </div>
 
     </div>
   );
-              }
+                             }
