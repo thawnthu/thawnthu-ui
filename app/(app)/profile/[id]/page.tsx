@@ -1,11 +1,10 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, MessageCircle, Ban, Edit3, Check, X, Mail, Calendar, MapPin, Camera, Loader2 } from 'lucide-react';
+import { MessageCircle, Ban, Edit3, Check, X, Mail, Calendar, MapPin, Camera, Loader2 } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { doc, onSnapshot, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function UniversalProfilePage() {
   const params = useParams();
@@ -39,7 +38,6 @@ export default function UniversalProfilePage() {
   }, [profileId]);
 
   const isOwn = currentUser?.uid === profileId;
-
   const isOnline = (u: any) => {
     if (!u?.online ||!u?.lastSeen) return false;
     try {
@@ -60,46 +58,52 @@ export default function UniversalProfilePage() {
     setEditMode(false);
   };
 
-  // PROFILE PIC UPLOAD - Firebase Storage
+  // IMAGE COMPRESS - Storage ngai lo, Firestore ah direct lang nghal
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          if (width > 300) {
+            height = (height * 300) / width;
+            width = 300;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handlePicClick = () => {
-    if (!isOwn) return;
+    if (!isOwn || uploading) return;
     fileInputRef.current?.click();
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file ||!currentUser?.uid) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert("File lian lutuk - 5MB ai a tlem zawk thlang rawh");
-      return;
-    }
     setUploading(true);
     try {
-      const storage = getStorage();
-      const storageRef = ref(storage, `profilePics/${currentUser.uid}.jpg`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
+      const base64 = await compressImage(file);
       await updateDoc(doc(db, "users", currentUser.uid), {
-        photoURL: url,
+        photoURL: base64,
         updatedAt: serverTimestamp(),
       });
     } catch (err: any) {
-      // Storage enable loh chuan base64 in Firestore ah dah mai
-      console.log("Storage error, using base64 fallback", err);
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          await updateDoc(doc(db, "users", currentUser.uid), {
-            photoURL: reader.result as string,
-            updatedAt: serverTimestamp(),
-          });
-        } catch (e) {
-          alert("Upload failed: " + err.message);
-        }
-      };
-      reader.readAsDataURL(file);
+      alert("Upload failed: " + err.message);
     }
     setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleBlock = async () => {
@@ -120,91 +124,83 @@ export default function UniversalProfilePage() {
   }
 
   return (
-    <div style={{ background: '#f0f2f5', minHeight: '100vh', paddingBottom: '30px' }}>
+    <div style={{ background: '#f0f2f5', minHeight: 'calc(100vh - 135px)', paddingBottom: '30px' }}>
 
-      {/* Cover - Fixed overlap bo tawh */}
+      {/* Cover - arrow bo tawh, a pil tawh lo */}
       <div style={{
-        height: '130px',
-        background: 'linear-gradient(135deg,#8d31ce 0%,#a855f7 60%,#e9d5ff 100%)',
-        position: 'relative',
-        margin: '0 -16px',
-        marginTop: '-16px'
+        height: '100px',
+        background: 'linear-gradient(135deg,#8d31ce 0%,#a855f7 100%)',
+        borderRadius: '0 0 20px 20px',
       }}>
-        <button onClick={() => router.back()} style={{ position: 'absolute', top: '12px', left: '16px', background: 'rgba(0,0,0,0.25)', border: 'none', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)' }}>
-          <ArrowLeft size={18} color="#fff" />
-        </button>
       </div>
 
-      {/* Card */}
-      <div style={{ padding: '0 4px', marginTop: '-45px' }}>
-        <div style={{ background: '#fff', borderRadius: '24px', padding: '18px', boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '14px', marginTop: '-45px' }}>
-            <div style={{ position: 'relative' }} onClick={handlePicClick}>
+      {/* Card - pil tawh lo */}
+      <div style={{ marginTop: '-40px', padding: '0 12px' }}>
+        <div style={{ background: '#fff', borderRadius: '20px', padding: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+            <div style={{ position: 'relative', marginTop: '-28px', flexShrink: 0 }} onClick={handlePicClick}>
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
               {userData.photoURL? (
-                <img src={userData.photoURL} alt="profile" style={{ width: '84px', height: '84px', borderRadius: '22px', objectFit: 'cover', border: '4px solid #fff', boxShadow: '0 6px 20px rgba(0,0,0,0.15)' }} />
+                <img src={userData.photoURL} alt="profile" style={{ width: '78px', height: '78px', borderRadius: '20px', objectFit: 'cover', border: '4px solid #fff', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'block' }} />
               ) : (
-                <div style={{ width: '84px', height: '84px', borderRadius: '22px', background: '#8d31ce', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', fontWeight: '800', border: '4px solid #fff', boxShadow: '0 6px 20px rgba(141,49,206,0.3)' }}>
+                <div style={{ width: '78px', height: '78px', borderRadius: '20px', background: '#8d31ce', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px', fontWeight: '800', border: '4px solid #fff', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
                   {(userData.name || 'U').charAt(0).toUpperCase()}
                 </div>
               )}
               {isOwn && (
-                <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '28px', height: '28px', background: '#111', border: '2px solid #fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                  {uploading? <Loader2 size={12} color="#fff" className="animate-spin" /> : <Camera size={12} color="#fff" />}
+                <div style={{ position: 'absolute', bottom: '0', right: '0', width: '24px', height: '24px', background: '#111', border: '2px solid #fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  {uploading? <Loader2 size={10} color="#fff" className="animate-spin" /> : <Camera size={10} color="#fff" />}
                 </div>
               )}
-              {isOnline(userData) &&!isOwn && <div style={{ position: 'absolute', bottom: '2px', right: '2px', width: '14px', height: '14px', background: '#22c55e', border: '2px solid #fff', borderRadius: '50%' }}></div>}
             </div>
 
-            <div style={{ flex: 1, paddingBottom: '4px' }}>
+            <div style={{ flex: 1, minWidth: 0, paddingTop: '4px' }}>
               {isOwn && editMode? (
-                <input value={name} onChange={e => setName(e.target.value)} style={{ width: '100%', fontWeight: '800', fontSize: '17px', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '4px 8px' }} />
+                <input value={name} onChange={e => setName(e.target.value)} autoFocus style={{ width: '100%', fontWeight: '700', fontSize: '16px', border: '1px solid #ddd', borderRadius: '8px', padding: '6px 8px' }} />
               ) : (
-                <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '800', lineHeight: '18px' }}>{userData.name}</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <h1 style={{ margin: 0, fontSize: '17px', fontWeight: '800', color: '#111', lineHeight: '17px' }}>{userData.name}</h1>
+                  {isOwn &&!editMode && (
+                    <button onClick={() => setEditMode(true)} style={{ background: '#f3f0ff', border: 'none', borderRadius: '8px', padding: '4px 8px', fontWeight: '700', fontSize: '11px', color: '#8d31ce', display: 'flex', alignItems: 'center', gap: '3px' }}><Edit3 size={12}/> Edit</button>
+                  )}
+                  {isOwn && editMode && (
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button onClick={() => setEditMode(false)} style={{ background: '#f3f4f6', border: 'none', width: '28px', height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={12}/></button>
+                      <button onClick={handleSave} disabled={saving} style={{ background: '#8d31ce', border: 'none', width: '28px', height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{saving? <Loader2 size={12} color="#fff" className="animate-spin"/> : <Check size={12} color="#fff"/>}</button>
+                    </div>
+                  )}
+                </div>
               )}
               <p style={{ margin: '4px 0 0', fontSize: '12px', fontWeight: '700', color: isOnline(userData)? '#22c55e' : '#999' }}>{isOnline(userData)? '● Online' : '○ Offline'}</p>
             </div>
-
-            {isOwn? (
-             !editMode? (
-                <button onClick={() => setEditMode(true)} style={{ background: '#f3f0ff', border: 'none', borderRadius: '10px', padding: '8px 12px', fontWeight: '700', fontSize: '12px', color: '#8d31ce', display: 'flex', alignItems: 'center', gap: '4px' }}><Edit3 size={14}/> Edit</button>
-              ) : (
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button onClick={() => setEditMode(false)} style={{ background: '#f3f4f6', border: 'none', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14}/></button>
-                  <button onClick={handleSave} disabled={saving} style={{ background: '#8d31ce', border: 'none', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{saving? <Loader2 size={14} color="#fff" className="animate-spin"/> : <Check size={14} color="#fff"/>}</button>
-                </div>
-              )
-            ) : null}
           </div>
 
-          <div style={{ marginTop: '14px' }}>
+          <div style={{ marginTop: '12px' }}>
             {isOwn && editMode? (
-              <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Bio ziak rawh..." rows={3} style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '10px', fontSize: '14px', fontFamily: 'inherit', resize: 'none' }} />
+              <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Bio ziak rawh..." rows={2} style={{ width: '100%', border: '1px solid #ddd', borderRadius: '10px', padding: '8px 10px', fontSize: '13px', fontFamily: 'inherit', resize: 'none', boxSizing: 'border-box' }} />
             ) : (
-              <p style={{ margin: 0, fontSize: '14px', color: '#444', lineHeight: '20px' }}>{userData.bio || (isOwn? "Bio la awm lo, Edit hmangin ziak rawh." : "Bio a nei lo.")}</p>
+              <p style={{ margin: 0, fontSize: '13px', color: '#444', lineHeight: '18px' }}>{userData.bio || (isOwn? "Bio la awm lo, Edit hmangin ziak rawh." : "Bio a nei lo.")}</p>
             )}
           </div>
 
           {!isOwn && (
-            <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
-              <button onClick={() => router.push(`/chat/${profileId}`)} style={{ flex: 1, background: '#8d31ce', color: '#fff', border: 'none', borderRadius: '12px', padding: '12px', fontWeight: '700', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><MessageCircle size={18}/> Message</button>
-              <button onClick={handleBlock} style={{ width: '44px', height: '44px', background: '#fef2f2', border: 'none', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ban size={18} color="#ef4444"/></button>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+              <button onClick={() => router.push(`/chat/${profileId}`)} style={{ flex: 1, background: '#8d31ce', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px', fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><MessageCircle size={16}/> Message</button>
+              <button onClick={handleBlock} style={{ width: '40px', height: '40px', background: '#fef2f2', border: 'none', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ban size={16} color="#ef4444"/></button>
             </div>
           )}
         </div>
       </div>
 
-      <div style={{ padding: '14px 4px 0 4px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ background: '#fff', borderRadius: '16px', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#555' }}><Mail size={16} color="#8d31ce"/>{userData.email}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#555' }}><Calendar size={16} color="#8d31ce"/> Joined {userData.createdAt?.toDate? userData.createdAt.toDate().toLocaleDateString('en-GB') : '21/08/2026'}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#555' }}><MapPin size={16} color="#8d31ce"/> Mizoram, India</div>
+      <div style={{ padding: '12px 12px 0 12px' }}>
+        <div style={{ background: '#fff', borderRadius: '14px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#555' }}><Mail size={14} color="#8d31ce"/>{userData.email}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#555' }}><Calendar size={14} color="#8d31ce"/> Joined {userData.createdAt?.toDate? userData.createdAt.toDate().toLocaleDateString('en-GB') : '21/08/2026'}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#555' }}><MapPin size={14} color="#8d31ce"/> Mizoram, India</div>
         </div>
-
-        {isOwn && (
-          <p style={{ fontSize: '11px', color: '#999', textAlign: 'center', marginTop: '8px' }}>Profile pic chu a chung a camera icon kha click la thlang rawh</p>
-        )}
+        {isOwn && <p style={{ fontSize: '10px', color: '#aaa', textAlign: 'center', marginTop: '10px' }}>Pic thlak duh chuan pic kha click rawh</p>}
       </div>
     </div>
   );
-                                                                                                                 }
+                }
