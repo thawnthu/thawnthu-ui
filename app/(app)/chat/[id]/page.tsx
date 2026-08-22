@@ -13,7 +13,7 @@ export default function ChatDetailPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [otherUser, setOtherUser] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
-  const [chatSeen, setChatSeen] = useState<any>(null);
+  const [chatData, setChatData] = useState<any>(null);
   const [newMsg, setNewMsg] = useState('');
   const [showMenu, setShowMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -47,33 +47,49 @@ export default function ChatDetailPage() {
 
   const getChatId = (uid1: string, uid2: string) => [uid1, uid2].sort().join('_');
 
-  // MESSAGE + SEEN
+  // Messages chiah ngaihthlak - WRITE AWM LO - a chak zawk
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
     const q = query(collection(db, "chats", chatId, "messages"), orderBy("timestamp", "asc"));
-    const unsubMsg = onSnapshot(q, snap => {
+    const unsub = onSnapshot(q, snap => {
       setMessages(snap.docs.map(d => ({ id: d.id,...d.data() as any })));
     });
+    return () => unsub();
+  }, [currentUser, otherUid]);
 
-    // He chat a ka luh rual in ka seen time ka update - hemi hmang hian midang lam ah green a ni ang
-    const unsubChat = onSnapshot(doc(db, "chats", chatId), snap => {
-      if (snap.exists()) {
-        setChatSeen(snap.data() as any);
-      }
+  // Chat data (seen/unread) ngaihthlak
+  useEffect(() => {
+    if (!currentUser?.uid ||!otherUid) return;
+    const chatId = getChatId(currentUser.uid, otherUid);
+    const unsub = onSnapshot(doc(db, "chats", chatId), snap => {
+      if (snap.exists()) setChatData(snap.data());
     });
+    return () => unsub();
+  }, [currentUser, otherUid]);
 
-    // Ka seen nghal
+  // Chat luh ruala SEEN vawi 1 chiah - muang lo
+  useEffect(() => {
+    if (!currentUser?.uid ||!otherUid) return;
+    const chatId = getChatId(currentUser.uid, otherUid);
     setDoc(doc(db, "chats", chatId), {
       [`seen.${currentUser.uid}`]: serverTimestamp(),
       [`unread.${currentUser.uid}`]: 0
     }, { merge: true }).catch(()=>{});
-
-    return () => {
-      unsubMsg();
-      unsubChat();
-    };
   }, [currentUser, otherUid]);
+
+  // Message thar a lo thlen apiangin seen update leh
+  useEffect(() => {
+    if (!currentUser?.uid ||!otherUid || messages.length === 0) return;
+    const chatId = getChatId(currentUser.uid, otherUid);
+    const last = messages[messages.length - 1];
+    if (last.receiverId === currentUser.uid) {
+      setDoc(doc(db, "chats", chatId), {
+        [`seen.${currentUser.uid}`]: serverTimestamp(),
+        [`unread.${currentUser.uid}`]: 0
+      }, { merge: true }).catch(()=>{});
+    }
+  }, [messages, currentUser, otherUid]);
 
   const isReallyOnline = (user: any) => {
     if (!user?.online ||!user?.lastSeen) return false;
@@ -82,18 +98,6 @@ export default function ChatDetailPage() {
       return Date.now() - last.getTime() < 2 * 60 * 1000;
     } catch { return false; }
   };
-
-  // Ka awm chhungin 5 sec dan ah ka seen ka refresh - open rual a green turin
-  useEffect(() => {
-    if (!currentUser?.uid ||!otherUid) return;
-    const chatId = getChatId(currentUser.uid, otherUid);
-    const interval = setInterval(() => {
-      setDoc(doc(db, "chats", chatId), {
-        [`seen.${currentUser.uid}`]: serverTimestamp(),
-      }, { merge: true }).catch(()=>{});
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [currentUser, otherUid]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -140,7 +144,6 @@ export default function ChatDetailPage() {
         senderId: currentUser.uid,
         receiverId: otherUid,
         timestamp: serverTimestamp(),
-        status: 'sent',
       });
     } catch (e: any) {
       setNewMsg(text);
@@ -187,41 +190,50 @@ export default function ChatDetailPage() {
     } catch { return false; }
   };
 
-  // WHATSAPP ANG - OPEN RUAL A GREEN
+  // FIX BER: 1 tick leh 2 tick leh green - a inang vek tawh ang
   const renderTick = (msg: any, isMe: boolean) => {
     if (!isMe) return null;
 
-    // Midangin he chat a a seen hnuhnung ber
-    const otherSeenTime = chatSeen?.seen?.[otherUid];
-    const myMsgTime = msg.timestamp;
+    const otherSeen = chatData?.seen?.[otherUid];
+    const msgTime = msg.timestamp;
 
-    if (!otherSeenTime ||!myMsgTime) {
-      // Seen ala awm lo - delivered check
-      if (chatSeen?.unread && chatSeen.unread[otherUid] === 0) {
-        // A hawng tawh - green
-        return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
+    // Default 1 tick
+    let tickType: 'sent' | 'delivered' | 'read' = 'sent';
+
+    if (chatData) {
+      // Other user chat ah a lut tawh chuan delivered tal
+      if (otherSeen) {
+        try {
+          const seenDate = otherSeen.toDate? otherSeen.toDate() : new Date(otherSeen);
+          const mDate = msgTime?.toDate? msgTime.toDate() : (msgTime? new Date(msgTime) : new Date());
+          if (msgTime) {
+            if (seenDate.getTime() >= mDate.getTime()) {
+              tickType = 'read'; // OPEN tawh -> GREEN
+            } else {
+              tickType = 'delivered'; // Chat ah awm tawh -> 2 tick white
+            }
+          } else {
+            tickType = 'delivered';
+          }
+        } catch {
+          tickType = 'delivered';
+        }
+      } else if (isReallyOnline(otherUser) || chatData?.participants) {
+        // Online emaw chat a awm tawh chuan delivered
+        tickType = 'delivered';
       }
+    }
+
+    if (tickType === 'sent') {
       return <Check size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
-
-    try {
-      const seenDate = otherSeenTime.toDate? otherSeenTime.toDate() : new Date(otherSeenTime);
-      const msgDate = myMsgTime.toDate? myMsgTime.toDate() : new Date(myMsgTime);
-
-      // Ka message timestamp aia a seen a hnuhnung zawk chuan GREEN - a open tihna
-      if (seenDate.getTime() >= msgDate.getTime()) {
-        return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-      } else {
-        // Ala open lo - delivered
-        return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-      }
-    } catch {
-      // Fallback - unread 0 chuan green
-      if (chatSeen?.seen?.[otherUid]) {
-        return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-      }
+    if (tickType === 'delivered') {
       return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
+    if (tickType === 'read') {
+      return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
+    }
+    return null;
   };
 
   const filteredMessages = searchQ? messages.filter(m => m.text?.toLowerCase().includes(searchQ.toLowerCase())) : messages;
@@ -393,4 +405,4 @@ export default function ChatDetailPage() {
 
     </div>
   );
-                                                                                           }
+    }
