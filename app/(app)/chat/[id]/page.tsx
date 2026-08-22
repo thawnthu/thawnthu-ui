@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, MoreVertical, Search, User, Ban, X, Check, CheckCheck } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, onSnapshot, orderBy, query, addDoc, serverTimestamp, setDoc, increment, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, doc, onSnapshot, orderBy, query, addDoc, serverTimestamp, setDoc, increment, writeBatch } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function ChatDetailPage() {
@@ -46,12 +46,30 @@ export default function ChatDetailPage() {
 
   const getChatId = (uid1: string, uid2: string) => [uid1, uid2].sort().join('_');
 
+  // FIX BER: Message en rual in GREEN nghal
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
     const q = query(collection(db, "chats", chatId, "messages"), orderBy("timestamp", "asc"));
     const unsub = onSnapshot(q, snap => {
-      setMessages(snap.docs.map(d => ({ id: d.id,...d.data() })));
+      const msgs = snap.docs.map(d => ({ id: d.id,...d.data() as any }));
+      setMessages(msgs);
+
+      // He chat a awm laia min rawn thawn zawng kha READ ah dah nghal - hei hian i thianpa message kha green a thlak ang
+      const batch = writeBatch(db);
+      let hasUpdate = false;
+      msgs.forEach(m => {
+        if (m.receiverId === currentUser.uid && m.status!== 'read') {
+          batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'read' });
+          hasUpdate = true;
+        }
+      });
+      if (hasUpdate) {
+        batch.commit().catch(()=>{});
+      }
+
+      // Unread 0 ah
+      setDoc(doc(db, "chats", chatId), { [`unread.${currentUser.uid}`]: 0 }, { merge: true }).catch(()=>{});
     });
     return () => unsub();
   }, [currentUser, otherUid]);
@@ -64,58 +82,21 @@ export default function ChatDetailPage() {
     } catch { return false; }
   };
 
+  // Delivered - online chuan 2 tick
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid || messages.length === 0) return;
+    if (!isReallyOnline(otherUser)) return;
     const chatId = getChatId(currentUser.uid, otherUid);
     const batch = writeBatch(db);
-    let hasUpdate = false;
+    let has = false;
     messages.forEach(m => {
-      if (m.receiverId === currentUser.uid && m.status!== 'read') {
-        batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'read' });
-        hasUpdate = true;
+      if (m.senderId === currentUser.uid && m.status === 'sent') {
+        batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'delivered' });
+        has = true;
       }
     });
-    if (hasUpdate) batch.commit().catch(()=>{});
-    setDoc(doc(db, "chats", chatId), { [`unread.${currentUser.uid}`]: 0 }, { merge: true }).catch(()=>{});
-  }, [messages, currentUser, otherUid]);
-
-  // FIX CHIAH: A open hrim hrim pawn GREEN TICK
-  useEffect(() => {
-    if (!currentUser?.uid ||!otherUid) return;
-    const chatId = getChatId(currentUser.uid, otherUid);
-    const unsub = onSnapshot(doc(db, "chats", chatId), async (snap) => {
-      const data = snap.data() as any;
-      if (!data) return;
-
-      // Midangin chat a hawng a, a unread 0 a nih chuan ka thawn zawng kha a hmu tawh tihna - reply kher ngailo
-      if (data.unread && data.unread[otherUid] === 0) {
-        const msgsSnap = await getDocs(collection(db, "chats", chatId, "messages"));
-        const batch = writeBatch(db);
-        let has = false;
-        msgsSnap.forEach(d => {
-          const m = d.data() as any;
-          if (m.senderId === currentUser.uid && m.status!== 'read') {
-            batch.update(d.ref, { status: 'read' });
-            has = true;
-          }
-        });
-        if (has) batch.commit().catch(()=>{});
-      } else if (isReallyOnline(otherUser)) {
-        const msgsSnap = await getDocs(collection(db, "chats", chatId, "messages"));
-        const batch = writeBatch(db);
-        let has = false;
-        msgsSnap.forEach(d => {
-          const m = d.data() as any;
-          if (m.senderId === currentUser.uid && m.status === 'sent') {
-            batch.update(d.ref, { status: 'delivered' });
-            has = true;
-          }
-        });
-        if (has) batch.commit().catch(()=>{});
-      }
-    });
-    return () => unsub();
-  }, [currentUser, otherUid, otherUser]);
+    if (has) batch.commit().catch(()=>{});
+  }, [messages, otherUser, currentUser, otherUid]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -391,4 +372,4 @@ export default function ChatDetailPage() {
 
     </div>
   );
-  }
+              }
