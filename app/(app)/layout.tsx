@@ -18,9 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current &&!menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
+      if (menuRef.current &&!menuRef.current.contains(event.target as Node)) setShowMenu(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -29,12 +27,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cleanupFn: (() => void) | null = null;
     let intervalId: any = null;
-    const setOnline = async (uid: string) => {
-      try { await setDoc(doc(db, "users", uid), { online: true, lastSeen: serverTimestamp() }, { merge: true }); } catch {}
-    };
-    const setOffline = async (uid: string) => {
-      try { await setDoc(doc(db, "users", uid), { online: false, lastSeen: serverTimestamp() }, { merge: true }); } catch {}
-    };
+    const setOnline = async (uid: string) => { try { await setDoc(doc(db, "users", uid), { online: true, lastSeen: serverTimestamp() }, { merge: true }); } catch {} };
+    const setOffline = async (uid: string) => { try { await setDoc(doc(db, "users", uid), { online: false, lastSeen: serverTimestamp() }, { merge: true }); } catch {} };
     const unsubAuth = onAuthStateChanged(auth, (user) => {
       if (cleanupFn) { cleanupFn(); cleanupFn = null; }
       if (intervalId) clearInterval(intervalId);
@@ -42,9 +36,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       const uid = user.uid;
       setOnline(uid);
       intervalId = setInterval(() => setOnline(uid), 30000);
-      const handleVisibility = () => {
-        if (document.visibilityState === 'visible') setOnline(uid); else setOffline(uid);
-      };
+      const handleVisibility = () => { if (document.visibilityState === 'visible') setOnline(uid); else setOffline(uid); };
       const handleBeforeUnload = () => setOffline(uid);
       document.addEventListener('visibilitychange', handleVisibility);
       window.addEventListener('beforeunload', handleBeforeUnload);
@@ -66,16 +58,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       setUsersCount(allUsers.length - 1 < 0? allUsers.length : allUsers.length - 1);
       const online = allUsers.filter(u => {
         if (!u.online ||!u.lastSeen) return false;
-        try {
-          const last = u.lastSeen.toDate? u.lastSeen.toDate() : new Date(u.lastSeen);
-          return Date.now() - last.getTime() < 2 * 60 * 1000;
-        } catch { return false; }
+        try { const last = u.lastSeen.toDate? u.lastSeen.toDate() : new Date(u.lastSeen); return Date.now() - last.getTime() < 2 * 60 * 1000; } catch { return false; }
       });
       setOnlineCount(online.length > 0 && online.find(o => o.uid === auth.currentUser?.uid)? online.length - 1 : online.length);
     });
     return () => unsub();
   }, []);
 
+  // FIXED CHAT COUNT - tick ngai lo, lastSender!= nangmah chuan Chat(1)
   useEffect(() => {
     let unsubChats: any = null;
     const unsubAuth = onAuthStateChanged(auth, (user) => {
@@ -85,8 +75,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         let count = 0;
         snap.docs.forEach(d => {
           const data = d.data() as any;
-          if (data.unread && data.unread[user.uid] > 0) {
-            count += 1;
+          if (data.lastSender && data.lastSender!== user.uid) {
+            const unread = data.unread?.[user.uid] || 0;
+            if (unread > 0) { count += 1; return; }
+            // fallback - unread 0 pawh nise lastSender midang a nih chuan seen check
+            if (!data.seen ||!data.seen[user.uid]) { count += 1; return; }
+            try {
+              const lastT = data.lastTimestamp?.toDate?.()?.getTime() || data.updatedAt?.toDate?.()?.getTime() || 0;
+              const seenT = data.seen[user.uid]?.toDate?.()?.getTime() || 0;
+              if (lastT > seenT + 1000) count += 1;
+            } catch { count += 1; }
           }
         });
         setChatUnread(count);
@@ -98,7 +96,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const tabs = ['Home', 'Chat', 'Online', 'Notification', 'Group', 'Status', 'Profile', 'Users', 'Setting'];
   const currentPath = pathname.split('/')[1] || 'home';
   const activeTab = currentPath === ''? 'Home' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1) === 'Category'? 'Status' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1);
-
   const getTabLabel = (tab: string) => {
     if (tab === 'Users') return `Users(${usersCount})`;
     if (tab === 'Online') return `Online(${onlineCount})`;
@@ -106,49 +103,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (tab === 'Notification') return `Notification(98)`;
     return tab;
   };
-
   const handleTab = (tab: string) => {
     if (tab === 'Status') { router.push('/category'); return; }
-    const route = tab.toLowerCase();
-    router.push(`/${route}`);
+    router.push(`/${tab.toLowerCase()}`);
   }
-
   const handleLogout = async () => {
     try {
-      if (auth.currentUser) {
-        await setDoc(doc(db, "users", auth.currentUser.uid), { online: false, lastSeen: serverTimestamp() }, { merge: true });
-      }
+      if (auth.currentUser) await setDoc(doc(db, "users", auth.currentUser.uid), { online: false, lastSeen: serverTimestamp() }, { merge: true });
       await signOut(auth);
       router.replace('/');
     } catch (e) { console.log("Logout error", e); }
   }
-
   const accent = '#2563eb';
   const activeColor = '#ff6b35';
   const card = dark? '#1a1a1c' : '#ffffff';
   const border = dark? '#2a2a2c' : '#e0e0e0';
-
   return (
     <div style={{background: dark? '#0f0f10' : '#f5f5f5', minHeight: '100vh', fontFamily: 'Inter, sans-serif'}}>
       <div style={{position: 'sticky', top: 0, zIndex: 30, background: '#8d31ce', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 4px 8px 16px'}}>
-        <div style={{fontSize: '22px', fontWeight: '800', color: '#fff', letterSpacing: '-0.5px'}}>MzApp</div>
+        <div style={{fontSize: '22px', fontWeight: '800', color: '#fff'}}>MzApp</div>
         <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-          <button onClick={()=>router.push('/search')} style={{background: 'none', border: 'none', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}>
-            <Search size={22} color='#fff'/>
-          </button>
+          <button onClick={()=>router.push('/search')} style={{background: 'none', border: 'none', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><Search size={22} color='#fff'/></button>
           <div style={{position: 'relative'}} ref={menuRef}>
-            <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}>
-              <MoreVertical size={22} color='#fff'/>
-            </button>
+            <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><MoreVertical size={22} color='#fff'/></button>
             {showMenu && (
               <div style={{position: 'absolute', right: 0, top: '44px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px', width: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 40}}>
-                <button onClick={()=>router.push('/contact')} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: '#666', fontWeight: '700', fontSize: '16px'}}>
-                  <Mail size={20}/> Contact us
-                </button>
+                <button onClick={()=>router.push('/contact')} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: '#666', fontWeight: '700', fontSize: '16px'}}><Mail size={20}/> Contact us</button>
                 <div style={{height: '1px', background: border, margin: '4px 0'}}></div>
-                <button onClick={handleLogout} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: 'red', fontWeight: '700', fontSize: '16px'}}>
-                  <LogOut size={20}/> Log out
-                </button>
+                <button onClick={handleLogout} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: 'red', fontWeight: '700', fontSize: '16px'}}><LogOut size={20}/> Log out</button>
               </div>
             )}
           </div>
@@ -173,4 +155,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div style={{padding: '0px'}}>{children}</div>
     </div>
   )
-                             }
+}
