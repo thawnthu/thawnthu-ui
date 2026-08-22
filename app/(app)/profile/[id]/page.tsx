@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MessageCircle, Ban, Camera, Loader2, Gamepad2, Heart, Home, UserPlus, Users, Cake, Save, Check, X, Clock, Mail, Edit3 } from 'lucide-react';
+import { MessageCircle, Camera, Loader2, Gamepad2, Heart, Home, UserPlus, Users, Cake, Save, Check, X, Clock, Mail, Phone, Eye, EyeOff, FileText } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { doc, onSnapshot, updateDoc, setDoc, getDoc, collection, onSnapshot as onSnapCol, query, where, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -12,7 +12,7 @@ export default function FinalProfilePage() {
   const profileId = params.id as string;
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userData, setUserData] = useState<any>(null);
-  const [form, setForm] = useState({ name: '', bio: '', dob: '', village: '', games: '', hobby: '' });
+  const [form, setForm] = useState({ name: '', bio: '', dob: '', village: '', games: '', hobby: '', phone: '', phonePublic: false });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [friends, setFriends] = useState<any[]>([]);
@@ -24,7 +24,17 @@ export default function FinalProfilePage() {
   useEffect(()=>{ const u=onAuthStateChanged(auth, x=>{if(x) setCurrentUser(x)}); return()=>u(); },[]);
   useEffect(()=>{
     if(!profileId) return;
-    const unsub = onSnapshot(doc(db,"users",profileId), s=>{ if(s.exists()){ const d=s.data(); setUserData({id:s.id,...d}); setForm({name:d.name||'',bio:d.bio||'',dob:d.dob||'',village:d.village||'',games:d.favoriteGames||'',hobby:d.hobby||''}); }});
+    const unsub = onSnapshot(doc(db,"users",profileId), s=>{
+      if(s.exists()){
+        const d=s.data();
+        setUserData({id:s.id,...d});
+        setForm({
+          name:d.name||'', bio:d.bio||'', dob:d.dob||'', village:d.village||'',
+          games:d.favoriteGames||'', hobby:d.hobby||'',
+          phone:d.phone||'', phonePublic:d.phonePublic||false
+        });
+      }
+    });
     return()=>unsub();
   },[profileId]);
   useEffect(()=>{
@@ -65,7 +75,12 @@ export default function FinalProfilePage() {
   };
   const save = async()=>{
     setSaving(true);
-    await updateDoc(doc(db,"users",currentUser.uid),{name:form.name.trim(),bio:form.bio.trim(),dob:form.dob,village:form.village.trim(),favoriteGames:form.games.trim(),hobby:form.hobby.trim(),updatedAt:serverTimestamp()});
+    await updateDoc(doc(db,"users",currentUser.uid),{
+      name:form.name.trim(), bio:form.bio.trim(), dob:form.dob, village:form.village.trim(),
+      favoriteGames:form.games.trim(), hobby:form.hobby.trim(),
+      phone:form.phone.trim(), phonePublic:form.phonePublic,
+      updatedAt:serverTimestamp()
+    });
     setSaving(false); setOwnTab('friends');
   };
   const sendReq = async()=>{ await setDoc(doc(db,"friendRequests",`${currentUser.uid}_${profileId}`),{fromUid:currentUser.uid,toUid:profileId,fromName:form.name,fromPhoto:userData.photoURL||'',toName:userData.name,createdAt:serverTimestamp()}); setStatus('pending'); };
@@ -83,6 +98,9 @@ export default function FinalProfilePage() {
 
   if(!userData) return <div style={{padding:40,display:'flex',justifyContent:'center'}}><Loader2 className="animate-spin" color="#8d31ce"/></div>;
 
+  // Phone show logic
+  const canSeePhone = isOwn || userData.phonePublic;
+
   return (
     <div style={{background:'#f0f2f5',minHeight:'calc(100vh - 135px)',paddingBottom:30}}>
       <div style={{height:120,background:'linear-gradient(135deg,#8d31ce,#a855f7)',borderRadius:'0 0 22px 22px'}}></div>
@@ -99,12 +117,8 @@ export default function FinalProfilePage() {
           <h2 style={{margin:'12px 0 0',fontSize:20,fontWeight:800}}>{userData.name}</h2>
           <p style={{margin:'4px 0 0',fontSize:13,fontWeight:700,color:'#22c55e'}}>● Online • {friends.length} Friends</p>
 
-          {/* BIO - tawi */}
-          <div style={{marginTop:10,background:'#f8f5ff',borderRadius:12,padding:'10px 12px'}}>
-            <p style={{margin:0,fontSize:14,lineHeight:'20px'}}>{userData.bio||"Ka account thar"}</p>
-          </div>
+          {/* 3. BIO BO - A chung ami ka la bo */}
 
-          {/* 2. MENU - Edit button bo, hemi ang hian */}
           {isOwn? (
             <div style={{display:'flex',gap:6,marginTop:12,background:'#f3f4f6',borderRadius:12,padding:4}}>
               <button onClick={()=>setOwnTab('friends')} style={{flex:1,background:ownTab==='friends'?'#8d31ce':'transparent',color:ownTab==='friends'?'#fff':'#666',border:'none',borderRadius:9,padding:'8px 4px',fontWeight:800,fontSize:12}}>Friends ({friends.length})</button>
@@ -114,7 +128,7 @@ export default function FinalProfilePage() {
           ):(
             <div style={{display:'flex',gap:8,marginTop:12}}>
               <button onClick={()=>router.push(`/chat/${profileId}`)} style={{flex:1,background:'#8d31ce',color:'#fff',border:'none',borderRadius:12,padding:11,fontWeight:700,fontSize:14}}>Chat</button>
-              {status==='none'&& <button onClick={sendReq} style={{flex:1,background:'#e9e5ff',color:'#8d31ce',border:'none',borderRadius:12,padding:11,fontWeight:700,fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',gap:5}}><UserPlus size={16}/>Add</button>}
+              {status==='none'&& <button onClick={sendReq} style={{flex:1,background:'#e9e5ff',color:'#8d31ce',border:'none',borderRadius:12,padding:11,fontWeight:700,fontSize:14}}><UserPlus size={16}/> Add</button>}
               {status==='pending'&& <button onClick={cancelReq} style={{flex:1,background:'#fff7ed',color:'#f97316',border:'1px solid #fed7aa',borderRadius:12,padding:11,fontWeight:700,fontSize:12}}><Clock size={14}/> Requested</button>}
               {status==='incoming'&& <button onClick={confirmIncoming} style={{flex:1,background:'#22c55e',color:'#fff',border:'none',borderRadius:12,padding:11,fontWeight:700,fontSize:14}}><Check size={16}/> Confirm</button>}
               {status==='friends'&& <button style={{flex:1,background:'#f3f4f6',border:'none',borderRadius:12,padding:11,fontWeight:700,fontSize:14}}><Users size={16}/> Friends</button>}
@@ -123,20 +137,22 @@ export default function FinalProfilePage() {
         </div>
       </div>
 
-      <div style={{padding:'10px 12px 0'}}>
-        {/* OWN TABS CONTENT */}
+      <div style={{padding:'10px 12px 0',display:'flex',flexDirection:'column',gap:10}}>
+
+        {/* 2. FRIEND LIST - User list ang */}
         {isOwn && ownTab==='friends' && (
           <div style={{background:'#fff',borderRadius:16,padding:14}}>
             <h3 style={{margin:'0 0 10px',fontSize:15,fontWeight:800}}>Friends ({friends.length})</h3>
             {friends.length===0? <p style={{fontSize:13,color:'#999',textAlign:'center',padding:10}}>Friend la nei lo</p> :
-              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10}}>
-                {friends.map((f:any,i:number)=>(
-                  <div key={i} onClick={()=>router.push(`/profile/${f.uid}`)} style={{textAlign:'center',cursor:'pointer'}}>
-                    {f.photoURL? <img src={f.photoURL} style={{width:56,height:56,borderRadius:16,objectFit:'cover'}} alt=""/> : <div style={{width:56,height:56,borderRadius:16,background:'#eee',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,margin:'0 auto'}}>{f.name?.charAt(0)}</div>}
-                    <div style={{fontSize:12,fontWeight:700,marginTop:4,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{f.name}</div>
+              friends.map((f:any,i:number)=>(
+                <div key={i} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 0',borderBottom:'1px solid #f3f4f6'}}>
+                  <div onClick={()=>router.push(`/profile/${f.uid}`)} style={{display:'flex',alignItems:'center',gap:12,flex:1,cursor:'pointer'}}>
+                    {f.photoURL? <img src={f.photoURL} style={{width:44,height:44,borderRadius:12,objectFit:'cover'}} alt=""/> : <div style={{width:44,height:44,borderRadius:12,background:'#eee',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800}}>{f.name?.charAt(0)}</div>}
+                    <div><div style={{fontSize:14,fontWeight:700}}>{f.name}</div><div style={{fontSize:11,color:'#22c55e'}}>● Online</div></div>
                   </div>
-                ))}
-              </div>
+                  <button onClick={()=>router.push(`/chat/${f.uid}`)} style={{width:36,height:36,background:'#f3f0ff',border:'none',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center'}}><MessageCircle size={16} color="#8d31ce"/></button>
+                </div>
+              ))
             }
           </div>
         )}
@@ -146,70 +162,67 @@ export default function FinalProfilePage() {
             <h3 style={{margin:'0 0 10px',fontSize:15,fontWeight:800}}>Friend Requests ({requests.length})</h3>
             {requests.length===0? <p style={{fontSize:13,color:'#999',textAlign:'center',padding:10}}>Request awm lo</p> :
               requests.map((r:any)=>(
-                <div key={r.id} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid #f3f4f6'}}>
-                  {r.fromPhoto? <img src={r.fromPhoto} style={{width:44,height:44,borderRadius:12,objectFit:'cover'}} alt=""/> : <div style={{width:44,height:44,borderRadius:12,background:'#8d31ce',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800}}>{r.fromName?.charAt(0)}</div>}
-                  <div style={{flex:1}}><div style={{fontSize:14,fontWeight:700}}>{r.fromName}</div><div style={{fontSize:11,color:'#888'}}>Wants to be friends</div></div>
-                  <button onClick={()=>confirmReq(r.fromUid,r.id,r.fromName,r.fromPhoto)} style={{background:'#22c55e',color:'#fff',border:'none',borderRadius:8,padding:'6px 12px',fontWeight:700,fontSize:12}}><Check size={12}/> Confirm</button>
-                  <button onClick={async()=>await deleteDoc(doc(db,"friendRequests",r.id))} style={{background:'#fef2f2',border:'none',borderRadius:8,width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center'}}><X size={14} color="#ef4444"/></button>
+                <div key={r.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 0',borderBottom:'1px solid #f3f4f6'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:12,flex:1}}>
+                    {r.fromPhoto? <img src={r.fromPhoto} style={{width:44,height:44,borderRadius:12,objectFit:'cover'}} alt=""/> : <div style={{width:44,height:44,borderRadius:12,background:'#8d31ce',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800}}>{r.fromName?.charAt(0)}</div>}
+                    <div><div style={{fontSize:14,fontWeight:700}}>{r.fromName}</div><div style={{fontSize:11,color:'#888'}}>Wants to be friends</div></div>
+                  </div>
+                  <button onClick={()=>confirmReq(r.fromUid,r.id,r.fromName,r.fromPhoto)} style={{background:'#8d31ce',color:'#fff',border:'none',borderRadius:10,padding:'7px 12px',fontWeight:700,fontSize:12}}>Confirm</button>
+                  <button onClick={async()=>await deleteDoc(doc(db,"friendRequests",r.id))} style={{background:'#f3f4f6',border:'none',borderRadius:10,width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center'}}><X size={14}/></button>
                 </div>
               ))
             }
           </div>
         )}
 
-        {isOwn && ownTab==='edit' && (
+        {/* 1. EDIT / ABOUT - a zawng a lang tawh */}
+        {((isOwn && ownTab==='edit') ||!isOwn) && (
           <div style={{background:'#fff',borderRadius:16,padding:14}}>
-            <h3 style={{margin:'0 0 12px',fontSize:15,fontWeight:800}}>Edit Profile</h3>
-            {/* INPUT TAWI */}
-            <div style={{display:'flex',flexDirection:'column',gap:10}}>
-              <div>
-                <label style={{fontSize:12,color:'#888',fontWeight:600}}>Name</label>
-                <input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} style={{width:'100%',border:'1.5px solid #e5e7eb',borderRadius:10,padding:'8px 10px',fontSize:14,boxSizing:'border-box'}}/>
-              </div>
-              <div>
-                <label style={{fontSize:12,color:'#888',fontWeight:600}}>Bio</label>
-                <textarea value={form.bio} onChange={e=>setForm({...form,bio:e.target.value})} rows={2} style={{width:'100%',border:'1.5px solid #e5e7eb',borderRadius:10,padding:'8px 10px',fontSize:14,resize:'none',boxSizing:'border-box'}}/>
-              </div>
-              {/* Grid tawi */}
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-                <div>
-                  <label style={{fontSize:11,color:'#888'}}>Date of Birth</label>
-                  <input type="date" value={form.dob} onChange={e=>setForm({...form,dob:e.target.value})} style={{width:'100%',border:'1.5px solid #e5e7eb',borderRadius:10,padding:'7px 8px',fontSize:13,boxSizing:'border-box'}}/>
-                </div>
-                <div>
-                  <label style={{fontSize:11,color:'#888'}}>Village</label>
-                  <input value={form.village} onChange={e=>setForm({...form,village:e.target.value})} placeholder="Muang" style={{width:'100%',border:'1.5px solid #e5e7eb',borderRadius:10,padding:'7px 8px',fontSize:13,boxSizing:'border-box'}}/>
-                </div>
-                <div>
-                  <label style={{fontSize:11,color:'#888'}}>Favorite Games</label>
-                  <input value={form.games} onChange={e=>setForm({...form,games:e.target.value})} style={{width:'100%',border:'1.5px solid #e5e7eb',borderRadius:10,padding:'7px 8px',fontSize:13,boxSizing:'border-box'}}/>
-                </div>
-                <div>
-                  <label style={{fontSize:11,color:'#888'}}>Hobby</label>
-                  <input value={form.hobby} onChange={e=>setForm({...form,hobby:e.target.value})} style={{width:'100%',border:'1.5px solid #e5e7eb',borderRadius:10,padding:'7px 8px',fontSize:13,boxSizing:'border-box'}}/>
-                </div>
-              </div>
-              <div style={{display:'flex',gap:8,marginTop:6}}>
-                <button onClick={()=>setOwnTab('friends')} style={{flex:1,background:'#f3f4f6',border:'none',borderRadius:10,padding:10,fontWeight:700,fontSize:13}}>Cancel</button>
-                <button onClick={save} disabled={saving} style={{flex:1,background:'#8d31ce',color:'#fff',border:'none',borderRadius:10,padding:10,fontWeight:700,fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',gap:5}}>{saving? <Loader2 size={14} className="animate-spin"/> : <Save size={14}/>} Save</button>
-              </div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+              <h3 style={{margin:0,fontSize:15,fontWeight:800}}>About</h3>
+              {isOwn && ownTab==='edit' && <span style={{fontSize:11,color:'#8d31ce',fontWeight:700}}>Edit mode</span>}
             </div>
-          </div>
-        )}
 
-        {/* Mi profile tan About tawi */}
-        {!isOwn && (
-          <div style={{background:'#fff',borderRadius:16,padding:14}}>
-            <h3 style={{margin:'0 0 10px',fontSize:15,fontWeight:800}}>About</h3>
-            <div style={{display:'flex',flexDirection:'column',gap:8,fontSize:13}}>
-              <div style={{display:'flex',gap:8}}><Mail size={14} color="#8d31ce"/> {userData.email}</div>
-              <div style={{display:'flex',gap:8}}><Home size={14} color="#22c55e"/> {userData.village||'Mizoram'}</div>
-              <div style={{display:'flex',gap:8}}><Gamepad2 size={14} color="#3b82f6"/> {userData.favoriteGames||'Not set'}</div>
-              <div style={{display:'flex',gap:8}}><Heart size={14} color="#ec4899"/> {userData.hobby||'Not set'}</div>
-            </div>
+            {isOwn && ownTab==='edit'? (
+              <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                  <div><label style={{fontSize:11,color:'#888',fontWeight:600}}>Name</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} style={{width:'100%',border:'1.5px solid #e5e7eb',borderRadius:10,padding:'7px 8px',fontSize:13,boxSizing:'border-box'}}/></div>
+                  <div><label style={{fontSize:11,color:'#888',fontWeight:600}}>Village</label><input value={form.village} onChange={e=>setForm({...form,village:e.target.value})} style={{width:'100%',border:'1.5px solid #e5e7eb',borderRadius:10,padding:'7px 8px',fontSize:13,boxSizing:'border-box'}}/></div>
+                </div>
+
+                <div><label style={{fontSize:11,color:'#888',fontWeight:600,display:'flex',alignItems:'center',gap:4}}><FileText size={12}/> Bio</label><textarea value={form.bio} onChange={e=>setForm({...form,bio:e.target.value})} rows={2} style={{width:'100%',border:'1.5px solid #e5e7eb',borderRadius:10,padding:'7px 8px',fontSize:13,boxSizing:'border-box',resize:'none'}}/></div>
+
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                  <div><label style={{fontSize:11,color:'#888'}}>Date of Birth</label><input type="date" value={form.dob} onChange={e=>setForm({...form,dob:e.target.value})} style={{width:'100%',border:'1.5px solid #e5e7eb',borderRadius:10,padding:'7px 8px',fontSize:13,boxSizing:'border-box'}}/></div>
+                  <div><label style={{fontSize:11,color:'#888'}}>Favorite Games</label><input value={form.games} onChange={e=>setForm({...form,games:e.target.value})} style={{width:'100%',border:'1.5px solid #e5e7eb',borderRadius:10,padding:'7px 8px',fontSize:13,boxSizing:'border-box'}}/></div>
+                  <div><label style={{fontSize:11,color:'#888'}}>Hobby</label><input value={form.hobby} onChange={e=>setForm({...form,hobby:e.target.value})} style={{width:'100%',border:'1.5px solid #e5e7eb',borderRadius:10,padding:'7px 8px',fontSize:13,boxSizing:'border-box'}}/></div>
+                  <div>
+                    <label style={{fontSize:11,color:'#888',display:'flex',justifyContent:'space-between'}}>Phone <span onClick={()=>setForm({...form,phonePublic:!form.phonePublic})} style={{color:form.phonePublic?'#22c55e':'#999',cursor:'pointer',display:'flex',alignItems:'center',gap:2}}>{form.phonePublic? <><Eye size={10}/> Public</> : <><EyeOff size={10}/> Private</>}</span></label>
+                    <input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="9862..." style={{width:'100%',border:'1.5px solid #e5e7eb',borderRadius:10,padding:'7px 8px',fontSize:13,boxSizing:'border-box'}}/>
+                  </div>
+                </div>
+
+                <div style={{display:'flex',gap:8,marginTop:6}}>
+                  <button onClick={()=>setOwnTab('friends')} style={{flex:1,background:'#f3f4f6',border:'none',borderRadius:10,padding:10,fontWeight:700,fontSize:13}}>Cancel</button>
+                  <button onClick={save} disabled={saving} style={{flex:1,background:'#8d31ce',color:'#fff',border:'none',borderRadius:10,padding:10,fontWeight:700,fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',gap:5}}>{saving? <Loader2 size={14} className="animate-spin"/> : <Save size={14}/>} Save</button>
+                </div>
+              </div>
+            ):(
+              <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                <div style={{display:'flex',gap:10,alignItems:'flex-start'}}><div style={{width:32,height:32,background:'#f5f3ff',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><FileText size={14} color="#8d31ce"/></div><div><div style={{fontSize:11,color:'#999',fontWeight:600}}>Bio</div><div style={{fontSize:14,fontWeight:600,marginTop:2}}>{userData.bio||"Ka account thar"}</div></div></div>
+                <div style={{display:'flex',gap:10}}><div style={{width:32,height:32,background:'#fef3f2',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center'}}><Cake size={14} color="#ef4444"/></div><div><div style={{fontSize:11,color:'#999'}}>Date of Birth</div><div style={{fontSize:14,fontWeight:600}}>{userData.dob||'Not set'}</div></div></div>
+                <div style={{display:'flex',gap:10}}><div style={{width:32,height:32,background:'#f0fdf4',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center'}}><Home size={14} color="#22c55e"/></div><div><div style={{fontSize:11,color:'#999'}}>Village</div><div style={{fontSize:14,fontWeight:600}}>{userData.village||'Mizoram'}</div></div></div>
+                <div style={{display:'flex',gap:10}}><div style={{width:32,height:32,background:'#eff6ff',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center'}}><Gamepad2 size={14} color="#3b82f6"/></div><div><div style={{fontSize:11,color:'#999'}}>Favorite Games</div><div style={{fontSize:14,fontWeight:600}}>{userData.favoriteGames||'Not set'}</div></div></div>
+                <div style={{display:'flex',gap:10}}><div style={{width:32,height:32,background:'#fdf2f8',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center'}}><Heart size={14} color="#ec4899"/></div><div><div style={{fontSize:11,color:'#999'}}>Hobby</div><div style={{fontSize:14,fontWeight:600}}>{userData.hobby||'Not set'}</div></div></div>
+                {canSeePhone && userData.phone && (
+                  <div style={{display:'flex',gap:10}}><div style={{width:32,height:32,background:'#f0fdf4',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center'}}><Phone size={14} color="#22c55e"/></div><div><div style={{fontSize:11,color:'#999'}}>Phone {userData.phonePublic? '(Public)' : '(Private)'} </div><div style={{fontSize:14,fontWeight:600}}>{userData.phone}</div></div></div>
+                )}
+                <div style={{display:'flex',gap:10}}><div style={{width:32,height:32,background:'#f3f0ff',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center'}}><Mail size={14} color="#8d31ce"/></div><div><div style={{fontSize:11,color:'#999'}}>Email</div><div style={{fontSize:14,fontWeight:600}}>{userData.email}</div></div></div>
+              </div>
+            )}
           </div>
         )}
       </div>
     </div>
   );
-          }
+      }
