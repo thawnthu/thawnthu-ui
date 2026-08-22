@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, MoreVertical, Search, User, Ban, X, Check, CheckCheck } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, onSnapshot, orderBy, query, addDoc, serverTimestamp, setDoc, increment, writeBatch } from 'firebase/firestore';
+import { collection, doc, onSnapshot, orderBy, query, addDoc, serverTimestamp, setDoc, increment, writeBatch, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function ChatDetailPage() {
@@ -64,6 +64,7 @@ export default function ChatDetailPage() {
     } catch { return false; }
   };
 
+  // 1. Min rawn thawn chu READ ah
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid || messages.length === 0) return;
     const chatId = getChatId(currentUser.uid, otherUid);
@@ -74,27 +75,49 @@ export default function ChatDetailPage() {
         batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'read' });
         hasUpdate = true;
       }
-      if (m.senderId === currentUser.uid && m.status === 'sent' && isReallyOnline(otherUser)) {
-        batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'delivered' });
-        hasUpdate = true;
-      }
     });
     if (hasUpdate) batch.commit().catch(()=>{});
     setDoc(doc(db, "chats", chatId), { [`unread.${currentUser.uid}`]: 0 }, { merge: true }).catch(()=>{});
-  }, [messages, currentUser, otherUid, otherUser]);
+  }, [messages, currentUser, otherUid]);
 
+  // 2. FIX BER: Ka thawn kha a rawn reply emaw a chat a hawn chuan GREEN TICK ah
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
-    const unsub = onSnapshot(doc(db, "chats", chatId), (snap) => {
+    const unsub = onSnapshot(doc(db, "chats", chatId), async (snap) => {
       const data = snap.data() as any;
       if (!data) return;
-      if (data.unread && data.unread[otherUid] === 0) {
+
+      const shouldMarkRead =
+        (data.lastSender === otherUid) || // A rawn reply chuan ka thawn hmasa zawng kha a hmu tawh tihna
+        (data.unread && data.unread[otherUid] === 0 && data.lastSender!== currentUser.uid);
+
+      if (shouldMarkRead) {
+        // Stale closure vangin DB atangin la thar leh rawh
+        const msgsSnap = await getDocs(collection(db, "chats", chatId, "messages"));
         const batch = writeBatch(db);
         let has = false;
-        messages.forEach(m => {
+        msgsSnap.forEach(d => {
+          const m = d.data() as any;
           if (m.senderId === currentUser.uid && m.status!== 'read') {
-            batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'read' });
+            batch.update(d.ref, { status: 'read' });
+            has = true;
+          }
+          if (m.senderId === currentUser.uid && m.status === 'sent') {
+            batch.update(d.ref, { status: 'delivered' });
+            has = true;
+          }
+        });
+        if (has) batch.commit().catch(()=>{});
+      } else if (isReallyOnline(otherUser)) {
+        // Online chuan delivered tal ah
+        const msgsSnap = await getDocs(collection(db, "chats", chatId, "messages"));
+        const batch = writeBatch(db);
+        let has = false;
+        msgsSnap.forEach(d => {
+          const m = d.data() as any;
+          if (m.senderId === currentUser.uid && m.status === 'sent') {
+            batch.update(d.ref, { status: 'delivered' });
             has = true;
           }
         });
@@ -102,38 +125,29 @@ export default function ChatDetailPage() {
       }
     });
     return () => unsub();
-  }, [messages, currentUser, otherUid]);
+  }, [currentUser, otherUid, otherUser]);
 
-  // FIX BER: A chung lam en laiin a tawlh thla tawh lo ang
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container || messages.length === 0) return;
-
     const isNewMessageAdded = messages.length > prevCountRef.current;
     const lastMsgIsMine = messages[messages.length - 1]?.senderId === currentUser?.uid;
-
-    // A tir a luh chiah in emaw, message thar ka thawn chiah in emaw chiah scroll thla rawh
     if (isFirstLoadRef.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
       isFirstLoadRef.current = false;
       prevCountRef.current = messages.length;
       return;
     }
-
     if (isNewMessageAdded) {
-      // Ka thawn a nih chuan scroll thla ngei rawh
       if (lastMsgIsMine) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       } else {
-        // Min rawn thawn a, ka awmna a hnuai lamah a awm tawh chuan chiah scroll thla rawh, chung lam ka en lai chuan scroll suh
         const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
         if (isNearBottom) {
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
       }
     }
-    // Tick status inthlak (sent->delivered->read) ah chuan scroll suh - hei hi a pawimawh ber
-
     prevCountRef.current = messages.length;
   }, [messages, currentUser]);
 
@@ -175,7 +189,6 @@ export default function ChatDetailPage() {
   };
 
   const getInitial = (name: string) => name?.charAt(0).toUpperCase() || 'T';
-
   const formatMsgTime = (ts: any) => {
     if (!ts) return '';
     try {
@@ -183,7 +196,6 @@ export default function ChatDetailPage() {
       return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
     } catch { return ''; }
   };
-
   const formatDateLabel = (ts: any) => {
     if (!ts) return '';
     try {
@@ -197,7 +209,6 @@ export default function ChatDetailPage() {
       return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: d.getFullYear()!== today.getFullYear()? 'numeric' : undefined });
     } catch { return ''; }
   };
-
   const shouldShowDate = (curr: any, prev: any) => {
     if (!prev) return true;
     try {
@@ -207,16 +218,18 @@ export default function ChatDetailPage() {
     } catch { return false; }
   };
 
+  // GREEN TICK - i duh ang in green ah ka dah ta
   const renderTick = (status: string, isMe: boolean) => {
     if (!isMe) return null;
     if (!status || status === 'sent') {
-      return <Check size={13} color="rgba(255,255,255,0.85)" style={{ marginLeft: '3px', flexShrink: 0 }} />;
+      return <Check size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
     if (status === 'delivered') {
-      return <CheckCheck size={13} color="rgba(255,255,255,0.85)" style={{ marginLeft: '3px', flexShrink: 0 }} />;
+      return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
     if (status === 'read') {
-      return <CheckCheck size={13} color="#53bdeb" style={{ marginLeft: '3px', flexShrink: 0 }} />;
+      // GREEN TICK - Seen tawh
+      return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
     return null;
   };
@@ -280,13 +293,14 @@ export default function ChatDetailPage() {
         </div>
       </div>
 
+      {/* SIR SPACE ZAU - 18px */}
       <div
         ref={messagesContainerRef}
         style={{
           flex: 1,
           overflowY: 'auto',
           overflowX: 'hidden',
-          padding: '10px 14px 6px 14px',
+          padding: '10px 18px 6px 18px',
           background: '#e5ddd5',
           WebkitOverflowScrolling: 'touch',
         }}
@@ -304,16 +318,17 @@ export default function ChatDetailPage() {
                   </span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: isMe? 'flex-end' : 'flex-start', marginBottom: '3px' }}>
+              {/* MESSAGE SIR SPACE - left/right a hlat deuh tawh ang */}
+              <div style={{ display: 'flex', justifyContent: isMe? 'flex-end' : 'flex-start', marginBottom: '4px', paddingLeft: isMe? '20px' : '0', paddingRight: isMe? '0' : '20px' }}>
                 <div style={{
-                  maxWidth: '76%',
-                  padding: '5px 7px 3px 9px',
+                  maxWidth: '74%',
+                  padding: '6px 8px 4px 10px',
                   borderRadius: isMe? '8px 8px 0 8px' : '8px 8px 8px 0',
                   background: isMe? '#8d31ce' : '#fff',
                   color: isMe? '#fff' : '#111b21',
                   boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)',
                   position: 'relative',
-                  minWidth: '80px'
+                  minWidth: '90px'
                 }}>
                   <span style={{ fontSize: '15px', lineHeight: '19px', fontWeight: '400', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
                     {msg.text}
@@ -323,13 +338,13 @@ export default function ChatDetailPage() {
                     justifyContent: 'flex-end',
                     alignItems: 'center',
                     gap: '2px',
-                    marginTop: '1px',
+                    marginTop: '2px',
                     float: 'right',
-                    marginLeft: '10px',
+                    marginLeft: '12px',
                     paddingTop: '3px'
                   }}>
                     <span style={{
-                      fontSize: '10px',
+                      fontSize: '10.5px',
                       color: isMe? 'rgba(255,255,255,0.85)' : '#667781',
                       fontWeight: '400',
                       lineHeight: '10px',
@@ -350,13 +365,13 @@ export default function ChatDetailPage() {
 
       <div style={{
         background: '#e5ddd5',
-        padding: '4px 10px 8px 10px',
+        padding: '6px 14px 10px 14px',
         display: 'flex',
         alignItems: 'center',
-        gap: '6px',
+        gap: '8px',
         flexShrink: 0,
       }}>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '20px', padding: '2px 12px', boxShadow: '0 1px 1px rgba(0,0,0,0.08)', minHeight: '38px' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '20px', padding: '2px 12px', boxShadow: '0 1px 1px rgba(0,0,0,0.08)', minHeight: '40px' }}>
           <textarea
             value={newMsg}
             onChange={(e) => setNewMsg(e.target.value)}
@@ -381,7 +396,7 @@ export default function ChatDetailPage() {
             }}
           />
         </div>
-        <button onClick={handleSend} style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#8d31ce', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+        <button onClick={handleSend} style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#8d31ce', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" style={{ marginLeft: '1px' }}>
             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
           </svg>
