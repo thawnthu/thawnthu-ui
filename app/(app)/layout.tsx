@@ -109,12 +109,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (pathname.startsWith('/chat') && chatUnread > 0) {
       // local ah 0 nghal
       setChatUnread(0);
-      // firestore ah pawh seen ah mark (a awm chuan)
-      const user = auth.currentUser;
-      if (user) {
-        // optional - chat te seen ah dah
-        // Hei hi i chat structure azirin a dang mai thei
-      }
     }
   }, [pathname]);
 
@@ -132,6 +126,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const handleTab = (tab: string) => {
     const route = tab.toLowerCase();
+    // EDIT CHIAH: Chat click chuan unread 0 ah dah nghal
+    if (tab === 'Chat') setChatUnread(0);
     router.push(`/${route}`);
   }
 
@@ -197,7 +193,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div style={{display: 'flex', justifyContent: 'space-between', gap: '8px', overflowX: 'auto'}}>
           {tabs.slice(0,4).map(tab => {
             const isActive = activeTab === tab;
-            return (<button key={tab} onClick={()=>handleTab(tab)} style={{padding: '6px 2px', border: 'none', background: 'none', color: isActive? activeColor : accent, fontWeight: '700', cursor: 'pointer', fontSize: '16px', whiteSpace: 'nowrap'}}>{getTabLabel(tab)}</button>)
+            // EDIT CHIAH HEI HI: Chat(1) a awm chuan SEN in lang rawh
+            const isChatUnread = tab === 'Chat' && chatUnread > 0;
+            const tabColor = isChatUnread? '#ef4444' : isActive? activeColor : accent;
+            return (<button key={tab} onClick={()=>handleTab(tab)} style={{padding: '6px 2px', border: 'none', background: 'none', color: tabColor, fontWeight: isChatUnread? '800' : '700', cursor: 'pointer', fontSize: '16px', whiteSpace: 'nowrap'}}>{getTabLabel(tab)}</button>)
           })}
         </div>
         <div style={{display: 'flex', justifyContent: 'space-between', gap: '8px', overflowX: 'auto'}}>
@@ -212,4 +211,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div style={{padding: '0px'}}>{children}</div>
     </div>
   )
-}
+      }
