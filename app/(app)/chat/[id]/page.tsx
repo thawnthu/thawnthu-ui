@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, MoreVertical, Search, User, Ban, X, Check, CheckCheck } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, onSnapshot, orderBy, query, addDoc, serverTimestamp, setDoc, increment, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, onSnapshot, orderBy, query, addDoc, serverTimestamp, setDoc, increment, writeBatch } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function ChatDetailPage() {
@@ -53,29 +53,22 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, [currentUser, otherUid]);
 
-  // TICK LOGIC: Message deliver & read mark
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid || messages.length === 0) return;
     const chatId = getChatId(currentUser.uid, otherUid);
     const batch = writeBatch(db);
     let hasUpdate = false;
-
     messages.forEach(m => {
-      // Ka message a nih loh chuan - a rawn thleng tawh = delivered
       if (m.receiverId === currentUser.uid && m.status === 'sent') {
         batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'delivered' });
         hasUpdate = true;
       }
-      // Ka en chuan read ah mark - chat ka hawng mek
       if (m.receiverId === currentUser.uid && (m.status === 'sent' || m.status === 'delivered')) {
         batch.update(doc(db, "chats", chatId, "messages", m.id), { status: 'read' });
         hasUpdate = true;
       }
     });
-
     if (hasUpdate) batch.commit().catch(()=>{});
-
-    // Chat doc ah unread 0
     if (currentUser.uid) {
       setDoc(doc(db, "chats", chatId), { [`unread.${currentUser.uid}`]: 0 }, { merge: true }).catch(()=>{});
     }
@@ -105,7 +98,7 @@ export default function ChatDetailPage() {
         senderId: currentUser.uid,
         receiverId: otherUid,
         timestamp: serverTimestamp(),
-        status: 'sent', // 1 tick
+        status: 'sent',
       });
     } catch (e: any) {
       setNewMsg(text);
@@ -166,13 +159,13 @@ export default function ChatDetailPage() {
   const renderTick = (status: string, isMe: boolean) => {
     if (!isMe) return null;
     if (!status || status === 'sent') {
-      return <Check size={14} color="rgba(255,255,255,0.85)" style={{ marginLeft: '4px' }} />;
+      return <Check size={13} color="rgba(255,255,255,0.85)" style={{ marginLeft: '3px', flexShrink: 0 }} />;
     }
     if (status === 'delivered') {
-      return <CheckCheck size={14} color="rgba(255,255,255,0.85)" style={{ marginLeft: '4px' }} />;
+      return <CheckCheck size={13} color="rgba(255,255,255,0.85)" style={{ marginLeft: '3px', flexShrink: 0 }} />;
     }
     if (status === 'read') {
-      return <CheckCheck size={14} color="#53bdeb" style={{ marginLeft: '4px' }} />;
+      return <CheckCheck size={13} color="#53bdeb" style={{ marginLeft: '3px', flexShrink: 0 }} />;
     }
     return null;
   };
@@ -183,66 +176,66 @@ export default function ChatDetailPage() {
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      height: 'calc(100dvh - 120px)',
+      height: 'calc(100dvh - 52px)',
       background: '#e5ddd5',
       overflow: 'hidden',
-      overscrollBehavior: 'contain',
     }}>
 
-      {/* HEADER */}
+      {/* 1. FIX - PURPLE HEADER KHA MENU HNUAIAH A PIL LO NA TUR - STICKY TOP 88px */}
       <div style={{
+        position: 'sticky',
+        top: '88px',
+        zIndex: 25,
         background: '#8d31ce',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '8px 8px 8px 4px',
+        padding: '6px 8px 6px 4px',
         flexShrink: 0,
-        height: '56px',
-        zIndex: 10
+        height: '54px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button onClick={() => router.back()} style={{ border: 'none', background: 'none', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <ArrowLeft size={24} color="#fff" />
+          <button onClick={() => router.back()} style={{ border: 'none', background: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <ArrowLeft size={22} color="#fff" />
           </button>
-          <div onClick={() => router.push(`/profile/${otherUid}`)} style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#fff', color: '#8d31ce', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '16px', cursor: 'pointer' }}>
-            {getInitial(otherUser?.name || 'F')}
+          <div onClick={() => router.push(`/profile/${otherUid}`)} style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#fff', color: '#8d31ce', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '15px', cursor: 'pointer' }}>
+            {getInitial(otherUser?.name || 'T')}
           </div>
           <div onClick={() => router.push(`/profile/${otherUid}`)} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ color: '#fff', fontWeight: '700', fontSize: '15px', lineHeight: '15px' }}>{otherUser?.name || 'Fela'}</span>
+            <span style={{ color: '#fff', fontWeight: '700', fontSize: '15px', lineHeight: '15px' }}>{otherUser?.name || 'User'}</span>
             <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '11px', marginTop: '2px' }}>{isReallyOnline(otherUser)? 'Online' : 'Offline'}</span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={menuRef}>
           {showSearch? (
-            <div style={{ display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '20px', padding: '5px 10px' }}>
-              <Search size={16} color="#888" />
-              <input autoFocus value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Search" style={{ border: 'none', outline: 'none', marginLeft: '6px', width: '80px', fontSize: '13px' }} />
-              <button onClick={() => { setShowSearch(false); setSearchQ(''); }} style={{ border: 'none', background: 'none' }}><X size={16} color="#888" /></button>
+            <div style={{ display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '20px', padding: '4px 10px' }}>
+              <Search size={14} color="#888" />
+              <input autoFocus value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Search" style={{ border: 'none', outline: 'none', marginLeft: '6px', width: '70px', fontSize: '12px' }} />
+              <button onClick={() => { setShowSearch(false); setSearchQ(''); }} style={{ border: 'none', background: 'none' }}><X size={14} color="#888" /></button>
             </div>
           ) : null}
-          <button onClick={() => setShowMenu(!showMenu)} style={{ border: 'none', background: 'none', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <MoreVertical size={20} color="#fff" />
+          <button onClick={() => setShowMenu(!showMenu)} style={{ border: 'none', background: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <MoreVertical size={18} color="#fff" />
           </button>
           {showMenu && (
-            <div style={{ position: 'absolute', right: '0', top: '40px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '160px', overflow: 'hidden', zIndex: 50 }}>
-              <button onClick={() => { router.push(`/profile/${otherUid}`); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px', border: 'none', borderBottom: '1px solid #f0f0f0', background: 'none', fontSize: '14px', fontWeight: '700' }}><User size={16} /> Profile</button>
-              <button onClick={handleBlock} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px', border: 'none', borderBottom: '1px solid #f0f0f0', background: 'none', fontSize: '14px', fontWeight: '700', color: '#ef4444' }}><Ban size={16} /> Block</button>
-              <button onClick={() => { setShowSearch(true); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px', border: 'none', background: 'none', fontSize: '14px', fontWeight: '700' }}><Search size={16} /> Search</button>
+            <div style={{ position: 'absolute', right: '0', top: '38px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '150px', overflow: 'hidden', zIndex: 50 }}>
+              <button onClick={() => { router.push(`/profile/${otherUid}`); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px', border: 'none', borderBottom: '1px solid #f0f0f0', background: 'none', fontSize: '13px', fontWeight: '700' }}><User size={14} /> Profile</button>
+              <button onClick={handleBlock} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px', border: 'none', borderBottom: '1px solid #f0f0f0', background: 'none', fontSize: '13px', fontWeight: '700', color: '#ef4444' }}><Ban size={14} /> Block</button>
+              <button onClick={() => { setShowSearch(true); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px', border: 'none', background: 'none', fontSize: '13px', fontWeight: '700' }}><Search size={14} /> Search</button>
             </div>
           )}
         </div>
       </div>
 
-      {/* MESSAGES - 1. PIL BO FIX */}
+      {/* MESSAGES */}
       <div
         style={{
           flex: 1,
           overflowY: 'auto',
           overflowX: 'hidden',
-          padding: '12px 8px 8px 8px',
+          padding: '10px 8px 6px 8px',
           background: '#e5ddd5',
-          overscrollBehavior: 'contain',
-          WebkitOverflowScrolling: 'touch',
         }}
       >
         {filteredMessages.map((msg, idx) => {
@@ -252,24 +245,24 @@ export default function ChatDetailPage() {
           return (
             <div key={msg.id}>
               {showDate && (
-                <div style={{ display: 'flex', justifyContent: 'center', margin: '12px 0' }}>
-                  <span style={{ background: '#fff', color: '#54656f', fontSize: '11px', padding: '4px 10px', borderRadius: '8px', boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)', fontWeight: '500' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0' }}>
+                  <span style={{ background: '#fff', color: '#54656f', fontSize: '11px', padding: '3px 9px', borderRadius: '8px', boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)', fontWeight: '500' }}>
                     {formatDateLabel(msg.timestamp)}
                   </span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: isMe? 'flex-end' : 'flex-start', marginBottom: '3px' }}>
+              <div style={{ display: 'flex', justifyContent: isMe? 'flex-end' : 'flex-start', marginBottom: '2px' }}>
                 <div style={{
                   maxWidth: '78%',
-                  padding: '6px 7px 4px 9px',
+                  padding: '5px 6px 3px 8px',
                   borderRadius: isMe? '8px 8px 0 8px' : '8px 8px 8px 0',
                   background: isMe? '#8d31ce' : '#fff',
                   color: isMe? '#fff' : '#111b21',
                   boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)',
                   position: 'relative',
-                  minWidth: '90px'
+                  minWidth: '80px'
                 }}>
-                  <span style={{ fontSize: '16.5px', lineHeight: '20px', fontWeight: '400', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                  <span style={{ fontSize: '15px', lineHeight: '19px', fontWeight: '400', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
                     {msg.text}
                   </span>
                   <div style={{
@@ -277,16 +270,16 @@ export default function ChatDetailPage() {
                     justifyContent: 'flex-end',
                     alignItems: 'center',
                     gap: '2px',
-                    marginTop: '2px',
+                    marginTop: '1px',
                     float: 'right',
-                    marginLeft: '12px',
-                    paddingTop: '4px'
+                    marginLeft: '10px',
+                    paddingTop: '3px'
                   }}>
                     <span style={{
-                      fontSize: '10.5px',
+                      fontSize: '10px',
                       color: isMe? 'rgba(255,255,255,0.85)' : '#667781',
                       fontWeight: '400',
-                      lineHeight: '11px',
+                      lineHeight: '10px',
                       whiteSpace: 'nowrap'
                     }}>
                       {formatMsgTime(msg.timestamp)}
@@ -302,16 +295,16 @@ export default function ChatDetailPage() {
         <div ref={messagesEndRef} style={{ height: '2px' }} />
       </div>
 
-      {/* INPUT - 4. BACKGROUND A NGAILO, 3. ENTER THEIH, 5. ARROW NGIL */}
+      {/* 2. INPUT TI ZIM - A CHUNG LEH HNUAI */}
       <div style={{
         background: 'transparent',
-        padding: '6px 8px 10px 8px',
+        padding: '4px 6px 6px 6px',
         display: 'flex',
-        alignItems: 'flex-end',
-        gap: '8px',
+        alignItems: 'center',
+        gap: '6px',
         flexShrink: 0,
       }}>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', background: '#fff', borderRadius: '24px', padding: '6px 14px', boxShadow: '0 1px 1px rgba(0,0,0,0.08)', minHeight: '44px' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '20px', padding: '2px 12px', boxShadow: '0 1px 1px rgba(0,0,0,0.08)', minHeight: '38px' }}>
           <textarea
             value={newMsg}
             onChange={(e) => setNewMsg(e.target.value)}
@@ -321,24 +314,23 @@ export default function ChatDetailPage() {
               flex: 1,
               border: 'none',
               outline: 'none',
-              fontSize: '16px',
+              fontSize: '15px',
               background: 'none',
-              padding: '8px 0',
+              padding: '6px 0',
               resize: 'none',
-              maxHeight: '100px',
-              lineHeight: '20px',
+              maxHeight: '80px',
+              lineHeight: '18px',
               fontFamily: 'inherit'
             }}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement;
               target.style.height = 'auto';
-              target.style.height = Math.min(target.scrollHeight, 100) + 'px';
+              target.style.height = Math.min(target.scrollHeight, 80) + 'px';
             }}
           />
         </div>
-        <button onClick={handleSend} style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#8d31ce', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-          {/* 5. ARROW NGIL - WHATSAPP ANG */}
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff" style={{ transform: 'rotate(0deg)', marginLeft: '2px' }}>
+        <button onClick={handleSend} style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#8d31ce', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" style={{ marginLeft: '1px' }}>
             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
           </svg>
         </button>
@@ -346,4 +338,4 @@ export default function ChatDetailPage() {
 
     </div>
   );
-                             }
+}
