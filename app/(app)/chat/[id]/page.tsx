@@ -70,18 +70,6 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, [currentUser, otherUid]);
 
-  // EDIT - Hei hi ka paih, hei vangin Chat(0) a ni nghal zel
-  // WhatsApp ang chuan message a hmuh chiah in chauh 0 ni tur
-  // useEffect(() => {
-  // if (!currentUser?.uid ||!otherUid) return;
-  // const chatId = getChatId(currentUser.uid, otherUid);
-  // setDoc(doc(db, "chats", chatId), {
-  // [`seen.${currentUser.uid}`]: serverTimestamp(),
-  // [`unread.${currentUser.uid}`]: 0
-  // }, { merge: true }).catch(()=>{});
-  // }, [currentUser, otherUid]);
-
-  // Hei chiah hi awm tur - message a hmuh chiah in 0
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid || messages.length === 0) return;
     const last = messages[messages.length - 1];
@@ -178,6 +166,7 @@ export default function ChatDetailPage() {
     if (!isMe) return null;
     const msgTime = msg.timestamp?.toDate? msg.timestamp.toDate().getTime() : (msg.timestamp? new Date(msg.timestamp).getTime() : 0);
     if (!msgTime) return <Check size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
+
     const hasReplyAfter = allMsgs.some((m: any) => {
       if (m.senderId!== otherUid) return false;
       const t = m.timestamp?.toDate? m.timestamp.toDate().getTime() : (m.timestamp? new Date(m.timestamp).getTime() : 0);
@@ -186,23 +175,24 @@ export default function ChatDetailPage() {
     if (hasReplyAfter) {
       return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
+
     if (chatData?.seen?.[otherUid]) {
       try {
         const seenDate = chatData.seen[otherUid].toDate? chatData.seen[otherUid].toDate() : new Date(chatData.seen[otherUid]);
-        if (seenDate.getTime() >= msgTime) {
+        if (seenDate.getTime() >= msgTime - 1000) {
           return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
         }
       } catch {}
     }
-    if (chatData?.unread && typeof chatData.unread[otherUid] === 'number' && chatData.unread[otherUid] > 0) {
-      return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
-    }
+
     if (chatData?.unread && chatData.unread[otherUid] === 0 && chatData?.seen?.[otherUid]) {
       return <CheckCheck size={14} color="#4ade80" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
+
     if (chatData) {
       return <CheckCheck size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
     }
+
     return <Check size={14} color="rgba(255,255,255,0.8)" style={{ marginLeft: '4px', flexShrink: 0 }} />;
   };
 
@@ -332,4 +322,4 @@ export default function ChatDetailPage() {
       </div>
     </div>
   );
-}
+    }
