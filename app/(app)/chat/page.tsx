@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, MoreVertical, Trash2 } from 'lucide-react';
+import { Search, MoreVertical, Trash2, Check, CheckCheck } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, orderBy, doc, deleteDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -12,9 +12,10 @@ type ChatItem = {
   lastMessage: string;
   lastSender: string;
   lastTimestamp: any;
-  updatedAt?: any; // FIX: hemi ka add
+  updatedAt?: any;
   unread?: any;
   otherUser?: any;
+  seen?: boolean;
 };
 
 export default function ChatListPage() {
@@ -23,6 +24,7 @@ export default function ChatListPage() {
   const [chats, setChats] = useState<ChatItem[]>([]);
   const [search, setSearch] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null); // 4. delete modal tan
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, u => { if (u) setCurrentUid(u.uid); });
@@ -50,6 +52,7 @@ export default function ChatListPage() {
         }
         list.push({ id: d.id, otherUser,...data } as ChatItem);
       }
+      // 3. Message thar chung ber zel - orderBy updatedAt desc tawh, whatsapp ang
       setChats(list);
     });
     return () => unsub();
@@ -58,22 +61,17 @@ export default function ChatListPage() {
   const getInitial = (name: string) => name?.charAt(0).toUpperCase() || '?';
   const getColor = (name: string) => ['#2563eb','#ef4444','#ff6b35','#f59e0b','#8d31ce'][(name?.length || 0) % 5];
 
+  // 2. TIME FORMAT 12h am/pm
   const formatTime = (ts: any) => {
     if (!ts) return '';
     try {
       const date = ts.toDate? ts.toDate() : new Date(ts);
-      const now = new Date();
-      const diff = now.getTime() - date.getTime();
-      const days = Math.floor(diff / (1000*60*60*24));
-      if (days === 0) {
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      } else if (days === 1) {
-        return 'Yesterday';
-      } else if (days < 7) {
-        return date.toLocaleDateString([], { weekday: 'short' });
-      } else {
-        return date.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: '2-digit' });
-      }
+      let h = date.getHours();
+      const m = date.getMinutes().toString().padStart(2, '0');
+      const ampm = h >= 12? 'pm' : 'am';
+      h = h % 12;
+      h = h? h : 12;
+      return `${h}:${m} ${ampm}`;
     } catch { return ''; }
   };
 
@@ -83,6 +81,31 @@ export default function ChatListPage() {
       return chat.unread[currentUid] || 0;
     }
     return 0;
+  };
+
+  const getOtherUnread = (chat: ChatItem) => {
+    if (!chat.unread ||!currentUid) return 0;
+    const otherId = chat.participants.find(p => p!== currentUid);
+    if (otherId && typeof chat.unread === 'object') {
+      return chat.unread[otherId] || 0;
+    }
+    return 0;
+  };
+
+  // 1. TICK LOGIC - You: tih lo in
+  const getTick = (chat: ChatItem) => {
+    if (chat.lastSender!== currentUid) return null;
+    const otherUnread = getOtherUnread(chat);
+    // seen chuan green double
+    if (otherUnread === 0 && chat.lastMessage) {
+      return <CheckCheck size={16} color="#4fc3f7" style={{ flexShrink: 0 }} />;
+    }
+    // deliver chuan double gray
+    if (chat.lastMessage) {
+      return <CheckCheck size={16} color="#888" style={{ flexShrink: 0 }} />;
+    }
+    // send chuan single
+    return <Check size={16} color="#888" style={{ flexShrink: 0 }} />;
   };
 
   const handleOpenChat = async (chat: ChatItem) => {
@@ -97,14 +120,28 @@ export default function ChatListPage() {
     router.push(`/chat/${otherId}`);
   };
 
-  const handleDelete = async (chatId: string) => {
-    if (!confirm('He chat hi delete i duh em?')) return;
+  // 4. DELETE MODAL MAWI - confirm/alert hmang lo
+  const handleDelete = async () => {
+    if (!deleteId) return;
     try {
-      await deleteDoc(doc(db, "chats", chatId));
+      await deleteDoc(doc(db, "chats", deleteId));
     } catch (e) {
-      alert('Delete failed');
+      console.log('Delete failed');
     }
+    setDeleteId(null);
     setOpenMenuId(null);
+  };
+
+  // 5. SEARCH HIGHLIGHT
+  const highlightText = (text: string, q: string) => {
+    if (!q ||!text) return text;
+    try {
+      const regex = new RegExp(`(${q})`, 'gi');
+      const parts = text.split(regex);
+      return parts.map((part, i) =>
+        regex.test(part)? <span key={i} style={{ background: '#ffeb3b', color: '#000', fontWeight: 700, borderRadius: '3px', padding: '0 2px' }}>{part}</span> : part
+      );
+    } catch { return text; }
   };
 
   const filtered = chats.filter(c => {
@@ -143,7 +180,7 @@ export default function ChatListPage() {
         <div style={{ background: '#fff', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
           {filtered.length===0? (
             <p style={{ textAlign: 'center', color: '#888', padding: '40px 20px' }}>
-              {search? `No chat for "${search}"` : 'Chat ala awm lo - Users atangin chat tan rawh'}
+              {search? <span>No chat for "{highlightText(search, search)}"</span> : 'Chat ala awm lo - Users atangin chat tan rawh'}
             </p>
           ) : filtered.map((chat) => {
             const unread = getUnreadCount(chat);
@@ -158,18 +195,26 @@ export default function ChatListPage() {
                 <div style={{ flex: 1, overflow: 'hidden' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <p style={{ margin: 0, fontSize: '16px', fontWeight: unread>0? '700' : '600', color: '#000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>
-                      {chat.otherUser?.name || 'Unknown'}
+                      {highlightText(chat.otherUser?.name || 'Unknown', search)}
                     </p>
-                    <span style={{ fontSize: '12px', color: unread>0? '#8d31ce' : '#888', fontWeight: unread>0? '700' : '400' }}>
-                      {formatTime((chat as any).lastTimestamp || (chat as any).updatedAt)}
-                    </span>
+                    {/* 2. Time am/pm + 2. unread badge bul hnai ah */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '12px', color: unread>0? '#8d31ce' : '#888', fontWeight: unread>0? '700' : '400' }}>
+                        {formatTime((chat as any).lastTimestamp || (chat as any).updatedAt)}
+                      </span>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3px' }}>
-                    <p style={{ margin: 0, fontSize: '14px', color: unread>0? '#000' : '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px', fontWeight: unread>0? '600' : '400' }}>
-                      {chat.lastSender===currentUid? 'You: ' : ''}{chat.lastMessage || '...'}
+                    <p style={{ margin: 0, fontSize: '14px', color: unread>0? '#000' : '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px', fontWeight: unread>0? '600' : '400', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {/* 1. TICK dah, You: tih lo */}
+                      {getTick(chat)}
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {highlightText(chat.lastMessage || '...', search)}
+                      </span>
                     </p>
+                    {/* 2. UNREAD COUNT - time bul hnai ah awm tawh */}
                     {unread>0 && (
-                      <span style={{ background: '#8d31ce', color: '#fff', fontSize: '12px', fontWeight: '700', minWidth: '22px', height: '22px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px' }}>
+                      <span style={{ background: '#25d366', color: '#fff', fontSize: '12px', fontWeight: '700', minWidth: '22px', height: '22px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px' }}>
                         {unread>9? '9+' : unread}
                       </span>
                     )}
@@ -182,7 +227,7 @@ export default function ChatListPage() {
                   </button>
                   {openMenuId===chat.id && (
                     <div style={{ position: 'absolute', right: 0, top: '32px', background: '#fff', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '120px', zIndex: 10, overflow: 'hidden' }}>
-                      <button onClick={()=>handleDelete(chat.id)} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '12px', border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
+                      <button onClick={()=>{ setDeleteId(chat.id); setOpenMenuId(null); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '12px', border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
                         <Trash2 size={16}/> Delete
                       </button>
                     </div>
@@ -193,6 +238,23 @@ export default function ChatListPage() {
           })}
         </div>
       </div>
+
+      {/* 4. DELETE CHAT MODAL MAWI - thawnthu says awm lo */}
+      {deleteId && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={()=>setDeleteId(null)}>
+          <div onClick={e=>e.stopPropagation()} style={{ width: '100%', maxWidth: '330px', background: '#fff', borderRadius: '20px', padding: '20px', textAlign: 'center', boxSizing: 'border-box' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}>
+              <Trash2 size={22} color="#ef4444" />
+            </div>
+            <h3 style={{ margin: '0 0 6px 0', fontWeight: 800, fontSize: '1.1rem' }}>Delete chat?</h3>
+            <p style={{ margin: '0 0 18px 0', color: '#666', fontSize: '0.9rem' }}>Are you sure you want to delete this chat?</p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={()=>setDeleteId(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #ddd', background: '#fff', color: '#000', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleDelete} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-                }
+ }
