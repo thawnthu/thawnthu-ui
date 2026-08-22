@@ -35,7 +35,7 @@ export default function UsersPage() {
       {/* THLAKNA: top 109px -> 110px ah ka dah sang, background solid, a hnuai a list a lut tawh lo ang */}
       <div style={{ 
         position: 'sticky', 
-        top: '112px', 
+        top: '120px', 
         zIndex: 15, 
         padding: '10px 12px 12px 12px', 
         background: '#f5f5f5',
