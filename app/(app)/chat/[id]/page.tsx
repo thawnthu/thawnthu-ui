@@ -25,7 +25,6 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, []);
 
-  // click outside menu
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (menuRef.current &&!menuRef.current.contains(e.target as Node)) setShowMenu(false);
@@ -34,7 +33,6 @@ export default function ChatDetailPage() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // other user info
   useEffect(() => {
     if (!otherUid) return;
     const unsub = onSnapshot(doc(db, "users", otherUid), snap => {
@@ -43,12 +41,10 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, [otherUid]);
 
-  // chatId siam - pahnih uid sort
   const getChatId = (uid1: string, uid2: string) => {
     return [uid1, uid2].sort().join('_');
   };
 
-  // messages load
   useEffect(() => {
     if (!currentUser ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
@@ -59,7 +55,6 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, [currentUser, otherUid]);
 
-  // auto scroll down
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -67,7 +62,6 @@ export default function ChatDetailPage() {
   const handleSend = async () => {
     if (!newMsg.trim() ||!currentUser ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
-    // chat doc siam / update
     await setDoc(doc(db, "chats", chatId), {
       participants: [currentUser.uid, otherUid],
       lastMessage: newMsg,
@@ -110,12 +104,11 @@ export default function ChatDetailPage() {
   const filteredMessages = searchQ? messages.filter(m => m.text?.toLowerCase().includes(searchQ.toLowerCase())) : messages;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 130px)', background: '#f0f0f0' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 130px)', background: '#e5ddd5' }}>
 
-      {/* 1. CHAT HEADER - CLASS NALH, MENU HNUAIAH DING RENG */}
       <div style={{
         position: 'sticky',
-        top: '130px', // i duh ang 130px
+        top: '130px',
         zIndex: 18,
         background: '#8d31ce',
         display: 'flex',
@@ -146,20 +139,19 @@ export default function ChatDetailPage() {
             </div>
           ) : null}
 
-          {/* 2. DOT 3 TAWP AH */}
           <button onClick={() => setShowMenu(!showMenu)} style={{ border: 'none', background: 'none', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <MoreVertical size={22} color="#fff" />
           </button>
 
           {showMenu && (
-            <div style={{ position: 'absolute', right: '0', top: '44px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '160px', overflow: 'hidden', zIndex: 30 }}>
-              <button onClick={() => { router.push(`/profile/${otherUid}`); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px 14px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '15px' }}>
+            <div style={{ position: 'absolute', right: '0', top: '44px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '170px', overflow: 'hidden', zIndex: 30 }}>
+              <button onClick={() => { router.push(`/profile/${otherUid}`); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '14px 14px', border: 'none', borderBottom: '1px solid #f0f0f0', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '15px', fontWeight: '700', color: '#000' }}>
                 <User size={18} /> Profile
               </button>
-              <button onClick={handleBlock} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px 14px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '15px', color: '#ef4444' }}>
+              <button onClick={handleBlock} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '14px 14px', border: 'none', borderBottom: '1px solid #f0f0f0', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '15px', fontWeight: '700', color: '#ef4444' }}>
                 <Ban size={18} /> Block
               </button>
-              <button onClick={() => { setShowSearch(true); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px 14px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '15px' }}>
+              <button onClick={() => { setShowSearch(true); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '14px 14px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '15px', fontWeight: '700', color: '#000' }}>
                 <Search size={18} /> Search
               </button>
             </div>
@@ -167,8 +159,7 @@ export default function ChatDetailPage() {
         </div>
       </div>
 
-      {/* 3. MESSAGES - CHIAH TAWLH CHHO */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px', background: '#e5ddd5' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px', paddingBottom: '70px', background: '#e5ddd5' }}>
         {filteredMessages.map((msg) => {
           const isMe = msg.senderId === currentUser?.uid;
           return (
@@ -191,19 +182,19 @@ export default function ChatDetailPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* 4. MESSAGE INPUT - FOOTER DING RENG, WHATSAPP ANG */}
       <div style={{
-        position: 'sticky',
-        bottom: 0,
+        position: 'fixed',
+        bottom: '8px',
+        left: '0',
+        right: '0',
         zIndex: 18,
-        background: '#f0f0f0',
+        background: 'transparent',
         padding: '8px 10px',
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
-        borderTop: '1px solid #ddd'
       }}>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '24px', padding: '6px 14px' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '24px', padding: '8px 16px', boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
           <input
             value={newMsg}
             onChange={(e) => setNewMsg(e.target.value)}
@@ -212,11 +203,11 @@ export default function ChatDetailPage() {
             style={{ flex: 1, border: 'none', outline: 'none', fontSize: '16px', background: 'none', padding: '6px 0' }}
           />
         </div>
-        <button onClick={handleSend} style={{ width: '46px', height: '46px', borderRadius: '50%', background: '#8d31ce', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-          <Send size={20} color="#fff" />
+        <button onClick={handleSend} style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#8d31ce', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
+          <Send size={22} color="#fff" style={{ transform: 'rotate(0deg) translateX(1px)', marginLeft: '2px' }} />
         </button>
       </div>
 
     </div>
   );
-                                                                                                           }
+                              }
