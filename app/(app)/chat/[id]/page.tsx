@@ -60,15 +60,7 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, [currentUser, otherUid]);
 
-  useEffect(() => {
-    if (!currentUser?.uid ||!otherUid) return;
-    const chatId = getChatId(currentUser.uid, otherUid);
-    setDoc(doc(db, "chats", chatId), {
-      [`seen.${currentUser.uid}`]: serverTimestamp(),
-      [`unread.${currentUser.uid}`]: 0
-    }, { merge: true }).catch(()=>{});
-  }, [currentUser, otherUid]);
-
+  // Receiver tan chiah seen mark - thawn tu tan nilo
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid || messages.length === 0) return;
     const last = messages[messages.length - 1];
@@ -120,9 +112,7 @@ export default function ChatDetailPage() {
   const handleBlock = async () => {
     if (!currentUser ||!otherUid) return;
     if (!confirm(`${otherUser?.name} block i duh tak tak em?`)) return;
-    await setDoc(doc(db, "users", currentUser.uid, "blocked", otherUid), {
-      uid: otherUid, name: otherUser?.name, blockedAt: serverTimestamp(),
-    });
+    await setDoc(doc(db, "users", currentUser.uid, "blocked", otherUid), { uid: otherUid, name: otherUser?.name, blockedAt: serverTimestamp() });
     setShowMenu(false);
     router.push('/users');
   };
@@ -169,10 +159,7 @@ export default function ChatDetailPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button onClick={() => router.back()} style={{ border: 'none', background: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><ArrowLeft size={22} color="#fff" /></button>
           <div onClick={() => router.push(`/profile/${otherUid}`)} style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#fff', color: '#8d31ce', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '15px', cursor: 'pointer' }}>{getInitial(otherUser?.name || 'T')}</div>
-          <div onClick={() => router.push(`/profile/${otherUid}`)} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ color: '#fff', fontWeight: '700', fontSize: '15px', lineHeight: '15px' }}>{otherUser?.name || 'User'}</span>
-            <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '11px', marginTop: '2px' }}>{isReallyOnline(otherUser)? 'Online' : 'Offline'}</span>
-          </div>
+          <div onClick={() => router.push(`/profile/${otherUid}`)} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column' }}><span style={{ color: '#fff', fontWeight: '700', fontSize: '15px', lineHeight: '15px' }}>{otherUser?.name || 'User'}</span><span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '11px', marginTop: '2px' }}>{isReallyOnline(otherUser)? 'Online' : 'Offline'}</span></div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={menuRef}>
           {showSearch? (<div style={{ display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '20px', padding: '4px 10px' }}><Search size={14} color="#888" /><input autoFocus value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Search" style={{ border: 'none', outline: 'none', marginLeft: '6px', width: '70px', fontSize: '12px' }} /><button onClick={() => { setShowSearch(false); setSearchQ(''); }} style={{ border: 'none', background: 'none' }}><X size={14} color="#888" /></button></div>) : null}
@@ -187,30 +174,15 @@ export default function ChatDetailPage() {
             const isMe = msg.senderId === currentUser?.uid;
             const prev = idx > 0? filteredMessages[idx - 1] : null;
             const showDate = shouldShowDate(msg, prev);
-            return (
-              <div key={msg.id}>
-                {showDate && (<div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0' }}><span style={{ background: '#fff', color: '#54656f', fontSize: '11px', padding: '3px 9px', borderRadius: '8px', boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)', fontWeight: '500' }}>{formatDateLabel(msg.timestamp)}</span></div>)}
-                <div style={{ display: 'flex', justifyContent: isMe? 'flex-end' : 'flex-start', marginBottom: '4px', paddingLeft: isMe? '20px' : '0', paddingRight: isMe? '0' : '20px' }}>
-                  <div style={{ maxWidth: '74%', padding: '6px 8px 4px 10px', borderRadius: isMe? '8px 8px 0 8px' : '8px 8px 8px 0', background: isMe? '#8d31ce' : '#fff', color: isMe? '#fff' : '#111b21', boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)', position: 'relative', minWidth: '90px' }}>
-                    <span style={{ fontSize: '15px', lineHeight: '19px', fontWeight: '400', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{msg.text}</span>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '2px', marginTop: '2px', float: 'right', marginLeft: '12px', paddingTop: '3px' }}>
-                      <span style={{ fontSize: '10.5px', color: isMe? 'rgba(255,255,255,0.85)' : '#667781', fontWeight: '400', lineHeight: '10px', whiteSpace: 'nowrap' }}>{formatMsgTime(msg.timestamp)}</span>
-                    </div>
-                    <div style={{ clear: 'both' }}></div>
-                  </div>
-                </div>
-              </div>
-            );
+            return (<div key={msg.id}>{showDate && (<div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0' }}><span style={{ background: '#fff', color: '#54656f', fontSize: '11px', padding: '3px 9px', borderRadius: '8px', boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)', fontWeight: '500' }}>{formatDateLabel(msg.timestamp)}</span></div>)}<div style={{ display: 'flex', justifyContent: isMe? 'flex-end' : 'flex-start', marginBottom: '4px', paddingLeft: isMe? '20px' : '0', paddingRight: isMe? '0' : '20px' }}><div style={{ maxWidth: '74%', padding: '6px 8px 4px 10px', borderRadius: isMe? '8px 8px 0 8px' : '8px 8px 8px 0', background: isMe? '#8d31ce' : '#fff', color: isMe? '#fff' : '#111b21', boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)', position: 'relative', minWidth: '90px' }}><span style={{ fontSize: '15px', lineHeight: '19px', fontWeight: '400', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{msg.text}</span><div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '2px', marginTop: '2px', float: 'right', marginLeft: '12px', paddingTop: '3px' }}><span style={{ fontSize: '10.5px', color: isMe? 'rgba(255,255,255,0.85)' : '#667781', fontWeight: '400', lineHeight: '10px', whiteSpace: 'nowrap' }}>{formatMsgTime(msg.timestamp)}</span></div><div style={{ clear: 'both' }}></div></div></div></div>);
           })}
           <div ref={messagesEndRef} style={{ height: '2px' }} />
         </div>
       </div>
       <div style={{ background: '#e5ddd5', padding: '6px 14px 10px 14px', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '20px', padding: '2px 12px', boxShadow: '0 1px 1px rgba(0,0,0,0.08)', minHeight: '40px' }}>
-          <textarea value={newMsg} onChange={(e) => setNewMsg(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' &&!e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder="Type a message..." rows={1} style={{ flex: 1, border: 'none', outline: 'none', fontSize: '15px', background: 'none', padding: '6px 0', resize: 'none', maxHeight: '80px', lineHeight: '18px', fontFamily: 'inherit' }} onInput={(e) => { const target = e.target as HTMLTextAreaElement; target.style.height = 'auto'; target.style.height = Math.min(target.scrollHeight, 80) + 'px'; }} />
-        </div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '20px', padding: '2px 12px', boxShadow: '0 1px 1px rgba(0,0,0,0.08)', minHeight: '40px' }}><textarea value={newMsg} onChange={(e) => setNewMsg(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' &&!e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder="Type a message..." rows={1} style={{ flex: 1, border: 'none', outline: 'none', fontSize: '15px', background: 'none', padding: '6px 0', resize: 'none', maxHeight: '80px', lineHeight: '18px', fontFamily: 'inherit' }} onInput={(e) => { const target = e.target as HTMLTextAreaElement; target.style.height = 'auto'; target.style.height = Math.min(target.scrollHeight, 80) + 'px'; }} /></div>
         <button onClick={handleSend} style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#8d31ce', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}><svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" style={{ marginLeft: '1px' }}><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg></button>
       </div>
     </div>
   );
-    }
+      }
