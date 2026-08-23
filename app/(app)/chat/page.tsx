@@ -69,7 +69,10 @@ export default function ChatListPage() {
 
   const getUnreadCount = (chat: ChatItem) => {
     if (!chat.lastSender || chat.lastSender === currentUid) return 0;
-    if (chat.unread && chat.unread[currentUid] > 0) return chat.unread[currentUid];
+    // FIX: 0 anih chuan 0 return nghal - seen check luh loh tur
+    if (chat.unread && typeof chat.unread[currentUid]!== 'undefined') {
+      return chat.unread[currentUid] || 0;
+    }
     if (!chat.seen ||!chat.seen[currentUid]) return 1;
     try {
       const lastT = chat.lastTimestamp?.toDate?.()?.getTime() || chat.updatedAt?.toDate?.()?.getTime() || 0;
@@ -80,6 +83,13 @@ export default function ChatListPage() {
   };
 
   const handleOpenChat = async (chat: ChatItem) => {
+    // FIX: Back arrow hmanga let leh a badge bo tur - local state update nghal
+    setChats(prev => prev.map(c =>
+      c.id === chat.id
+       ? {...c, unread: {...(c.unread||{}), [currentUid]: 0 }, seen: {...(c.seen||{}), [currentUid]: new Date() } }
+        : c
+    ));
+
     try {
       await setDoc(doc(db, "chats", chat.id), { [`unread.${currentUid}`]: 0, [`seen.${currentUid}`]: serverTimestamp() }, { merge: true });
     } catch {}
