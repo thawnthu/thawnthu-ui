@@ -103,7 +103,7 @@ export default function UsersPage() {
 
   return (
     <div style={{ background: '#f5f5f5', minHeight: '100vh' }}>
-      <div style={{ position: 'sticky', top: '130px', zIndex: 15, padding: '10px 12px 12px 12px', background: '#f5f5f5', borderBottom: '1px solid #f5f5f5' }}>
+      <div style={{ position: 'sticky', top: '70px', zIndex: 15, padding: '10px 12px 12px 12px', background: '#f5f5f5', borderBottom: '1px solid #f5f5f5' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fff', padding: '14px 16px', borderRadius: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #eee' }}>
           <Search size={20} color="#888" />
           <input type="text" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '16px' }} />
