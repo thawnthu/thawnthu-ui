@@ -1,7 +1,7 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { Search, MoreVertical, LogOut, Mail } from 'lucide-react';
+import { Search, MoreVertical, LogOut, Mail, Menu, X } from 'lucide-react';
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp, collection, onSnapshot, query, where } from "firebase/firestore";
@@ -11,14 +11,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [dark] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [usersCount, setUsersCount] = useState(0);
-  const [onlineCount, setOnlineCount] = useState(0);
-  const [chatUnread, setChatUnread] = useState(0);
+  const [showDropDown, setShowDropDown] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current &&!menuRef.current.contains(event.target as Node)) setShowMenu(false);
+      if (dropRef.current &&!dropRef.current.contains(event.target as Node)) setShowDropDown(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -52,46 +52,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => { unsubAuth(); if (cleanupFn) cleanupFn(); if (intervalId) clearInterval(intervalId); };
   }, []);
 
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, "users"), (snap) => {
-      const allUsers = snap.docs.map(d => d.data() as any);
-      setUsersCount(allUsers.length - 1 < 0? allUsers.length : allUsers.length - 1);
-      const online = allUsers.filter(u => {
-        if (!u.online ||!u.lastSeen) return false;
-        try { const last = u.lastSeen.toDate? u.lastSeen.toDate() : new Date(u.lastSeen); return Date.now() - last.getTime() < 2 * 60 * 1000; } catch { return false; }
-      });
-      setOnlineCount(online.length > 0 && online.find(o => o.uid === auth.currentUser?.uid)? online.length - 1 : online.length);
-    });
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    let unsubChats: any = null;
-    const unsubAuth = onAuthStateChanged(auth, (user) => {
-      if (!user) { setChatUnread(0); return; }
-      if (unsubChats) unsubChats();
-      const q = query(collection(db, "chats"), where("participants", "array-contains", user.uid));
-      unsubChats = onSnapshot(q, (snap) => {
-        let count = 0;
-        snap.docs.forEach(d => {
-          const data = d.data() as any;
-          if (data.lastSender && data.lastSender!== user.uid) {
-            const unread = data.unread?.[user.uid] || 0;
-            if (unread > 0) count += 1;
-          }
-        });
-        setChatUnread(count);
-      });
-    });
-    return () => { unsubAuth(); if (unsubChats) unsubChats(); };
-  }, []);
-
+  // Status leh Online tel lo - Chat ah kan dah tawh ang i tih angin
   const tabs = [
     { name: 'Home', icon: '🏠', bg: '#e0f2fe' },
     { name: 'Chat', icon: '💬', bg: '#dcfce7' },
-    { name: 'Status', icon: '⭕', bg: '#fef9c3' },
     { name: 'Notification', icon: '🔔', bg: '#fee2e2' },
-    { name: 'Online', icon: '📶', bg: '#e0e7ff' },
     { name: 'Group', icon: '👥', bg: '#f3e8ff' },
     { name: 'Users', icon: '👤', bg: '#ffedd5' },
     { name: 'Profile', icon: '🙍', bg: '#d1fae5' },
@@ -100,7 +65,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const currentPath = pathname.split('/')[1] || 'home';
   const activeTab = currentPath === ''? 'Home' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1);
-  const handleTab = (tab: string) => { router.push(`/${tab.toLowerCase()}`); }
+  const handleTab = (tab: string) => { setShowDropDown(false); router.push(`/${tab.toLowerCase()}`); }
   const handleLogout = async () => {
     try {
       if (auth.currentUser) await setDoc(doc(db, "users", auth.currentUser.uid), { online: false, lastSeen: serverTimestamp() }, { merge: true });
@@ -113,9 +78,89 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{background: dark? '#0f0f10' : '#f5f5f5', minHeight: '100vh', fontFamily: 'Inter, sans-serif'}}>
-      {/* 1. HEADER FIXED - Home header hnuaiah lut tawh lo */}
-      <div style={{position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, background: '#8d31ce', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 8px 0 12px', height: '50px'}}>
-        <div style={{fontSize: '28px', fontWeight: '900', fontFamily: 'Outfit, Poppins, sans-serif', background: 'linear-gradient(90deg, #ffffff, #ffde59, #ffffff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-1px'}}>MzApp</div>
+      {/* HEADER - MzApp hma ah dropdown icon */}
+      <div style={{position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, background: '#8d31ce', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 8px 0 8px', height: '52px'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+          {/* I thlalak ami ang dropdown menu icon */}
+          <div style={{position: 'relative'}} ref={dropRef}>
+            <button
+              onClick={()=>setShowDropDown(!showDropDown)}
+              style={{
+                background: '#fff',
+                border: '2px solid #6d6d6d',
+                borderRadius: '6px',
+                width: '38px',
+                height: '38px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{width: '20px', height: '4px', background: '#6d6d6d', borderRadius: '10px'}}></div>
+              <div style={{width: '20px', height: '4px', background: '#6d6d6d', borderRadius: '10px'}}></div>
+              <div style={{width: '20px', height: '4px', background: '#6d6d6d', borderRadius: '10px'}}></div>
+            </button>
+
+            {/* DROP DOWN MENU - design ngai vek */}
+            {showDropDown && (
+              <div style={{
+                position: 'absolute',
+                left: 0,
+                top: '48px',
+                background: card,
+                border: `1px solid ${border}`,
+                borderRadius: '14px',
+                width: '200px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                zIndex: 60,
+                overflow: 'hidden',
+                padding: '6px 0'
+              }}>
+                {tabs.map((tab, idx) => {
+                  const isActive = activeTab.toLowerCase() === tab.name.toLowerCase();
+                  return (
+                    <div key={tab.name}>
+                      <button onClick={()=>handleTab(tab.name)} style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '12px 14px',
+                        border: 'none',
+                        background: isActive? '#f3e8ff' : 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        borderLeft: isActive? '4px solid #8d31ce' : '4px solid transparent'
+                      }}>
+                        <div style={{width: '30px', height: '30px', borderRadius: '8px', background: tab.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0}}>
+                          {tab.icon}
+                        </div>
+                        <span style={{fontSize: '14.5px', fontWeight: isActive? '800' : '600', color: isActive? '#8d31ce' : '#333'}}>{tab.name}</span>
+                      </button>
+                      {idx < tabs.length - 1 && <div style={{height: '1px', background: '#f0f0f0', margin: '0 12px'}}></div>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div style={{
+            fontSize: '28px',
+            fontWeight: '900',
+            fontFamily: 'Outfit, Poppins, sans-serif',
+            background: 'linear-gradient(90deg, #ffffff, #ffde59, #ffffff)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            letterSpacing: '-1px'
+          }}>
+            MzApp
+          </div>
+        </div>
+
         <div style={{display: 'flex', alignItems: 'center', gap: '2px'}}>
           <button type="button" onClick={()=>router.push('/search')} style={{background: 'none', border: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><Search size={22} color='#fff' strokeWidth={3}/></button>
           <div style={{position: 'relative'}} ref={menuRef}>
@@ -131,29 +176,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      {/* 1. HEADER hnuaiah lut lo turin paddingTop 50px */}
-      <div style={{display: 'flex', paddingTop: '50px', minHeight: '100vh'}}>
-        {/* 3. Menu fonts lian + ti zim */}
-        <div style={{width: '30%', maxWidth: '125px', minWidth: '105px', background: card, borderRight: `1px solid ${border}`, position: 'fixed', top: '50px', left: 0, bottom: 0, overflowY: 'auto', padding: '6px 0', zIndex: 20}}>
-          {tabs.map((tab, idx) => {
-            const isActive = activeTab.toLowerCase() === tab.name.toLowerCase();
-            return (
-              <div key={tab.name}>
-                <button onClick={()=>handleTab(tab.name)} style={{width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 8px', border: 'none', background: isActive? '#f3e8ff' : 'none', cursor: 'pointer', textAlign: 'left', borderLeft: isActive? '4px solid #8d31ce' : '4px solid transparent'}}>
-                  <div style={{width: '26px', height: '26px', borderRadius: '7px', background: tab.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', flexShrink: 0}}>{tab.icon}</div>
-                  <span style={{fontSize: '13.5px', fontWeight: isActive? '800' : '600', color: isActive? '#8d31ce' : '#333', whiteSpace: 'nowrap'}}>{tab.name}</span>
-                </button>
-                {idx < tabs.length - 1 && <div style={{height: '1px', background: '#f0f0f0', margin: '0 8px'}}></div>}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Dinglam - 3. Menu zim vangin 70% */}
-        <div style={{marginLeft: '30%', width: '70%', flex: 1, background: dark? '#0f0f10' : '#f5f5f5', minHeight: 'calc(100vh - 50px)'}}>
-          <div style={{padding: '0px'}}>{children}</div>
+      {/* Content - veilam menu a awm tawh lo - full width */}
+      <div style={{paddingTop: '52px', minHeight: '100vh', background: dark? '#0f0f10' : '#f5f5f5'}}>
+        <div style={{width: '100%', maxWidth: '100%'}}>
+          {children}
         </div>
       </div>
+
+      {/* Background overlay dropdown hawn lai */}
+      {showDropDown && (
+        <div onClick={()=>setShowDropDown(false)} style={{position: 'fixed', inset: 0, top: '52px', background: 'rgba(0,0,0,0.2)', zIndex: 40}}></div>
+      )}
     </div>
   )
-}
+                             }
