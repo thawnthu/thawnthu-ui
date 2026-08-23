@@ -1,16 +1,18 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MessageCircle, Camera, Loader2, Gamepad2, Heart, Home, Cake, Save, X, Mail, Phone, Eye, EyeOff, FileText, UserPlus, Clock, Users, Edit3 } from 'lucide-react';
+import { MessageCircle, Camera, Loader2, Gamepad2, Heart, Home, Cake, Save, X, Mail, Phone, Eye, EyeOff, FileText, UserPlus, Clock, Users, Edit3, UserMinus } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { doc, onSnapshot, updateDoc, setDoc, getDoc, collection, onSnapshot as onSnapCol, query, where, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import CustomConfirm from '@/app/components/CustomConfirm';
 
 export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
   const profileId = params.id as string;
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUserData, setCurrentUserData] = useState<any>(null);
   const [userData, setUserData] = useState<any>(null);
   const [form, setForm] = useState({ name: '', bio: '', dob: '', village: '', games: '', hobby: '', phone: '', phonePublic: false });
   const [editAbout, setEditAbout] = useState(false);
@@ -21,18 +23,39 @@ export default function ProfilePage() {
   const [status, setStatus] = useState('none');
   const [showFriends, setShowFriends] = useState(false);
   const [showRequests, setShowRequests] = useState(false);
+  const [confirmData, setConfirmData] = useState<any>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { const u = onAuthStateChanged(auth, (x) => { if (x) setCurrentUser(x); }); return () => u(); }, []);
+  useEffect(() => {
+    const u = onAuthStateChanged(auth, (x) => {
+      if (x) {
+        setCurrentUser(x);
+        // FIX 1: get current user data for correct fromName
+        onSnapshot(doc(db, 'users', x.uid), (s) => {
+          if(s.exists()) setCurrentUserData(s.data());
+        });
+      }
+    });
+    return () => u();
+  }, []);
+
   useEffect(() => {
     if (!profileId) return;
     return onSnapshot(doc(db, 'users', profileId), (s) => {
-      if (s.exists()) { const d = s.data(); setUserData({ id: s.id,...d });
-        setForm({ name: d.name||'', bio: d.bio||'', dob: d.dob||'', village: d.village||'', games: d.favoriteGames||'', hobby: d.hobby||'', phone: d.phone||'', phonePublic: d.phonePublic||false }); }
+      if (s.exists()) {
+        const d = s.data();
+        setUserData({ id: s.id,...d });
+        // FIX 3: Don't overwrite form while editing - this was causing reset
+        if(!editAbout){
+          setForm({ name: d.name||'', bio: d.bio||'', dob: d.dob||'', village: d.village||'', games: d.favoriteGames||'', hobby: d.hobby||'', phone: d.phone||'', phonePublic: d.phonePublic||false });
+        }
+      }
     });
-  }, [profileId]);
+  }, [profileId, editAbout]);
+
   useEffect(() => { if (!profileId) return; return onSnapCol(collection(db, 'users', profileId, 'friends'), (snap) => setFriends(snap.docs.map((d) => d.data()))); }, [profileId]);
   useEffect(() => { if (!currentUser?.uid) return; const q = query(collection(db, 'friendRequests'), where('toUid', '==', currentUser.uid)); return onSnapCol(q, (snap) => setRequests(snap.docs.map((d) => ({ id: d.id,...d.data() })))); }, [currentUser]);
+
   useEffect(() => {
     if (!currentUser?.uid ||!profileId || currentUser.uid === profileId) return;
     (async () => {
@@ -43,9 +66,10 @@ export default function ProfilePage() {
       const inc = await getDoc(doc(db, 'friendRequests', profileId + '_' + currentUser.uid));
       if (inc.exists()) { setStatus('incoming'); return; } setStatus('none');
     })();
-  }, [currentUser, profileId]);
+  }, [currentUser, profileId, friends, requests]);
 
   const isOwn = currentUser?.uid === profileId;
+
   const onFile = async (e: any) => {
     const file = e.target.files?.[0]; if (!file) return; setUploading(true);
     const reader = new FileReader();
@@ -56,21 +80,81 @@ export default function ProfilePage() {
         await updateDoc(doc(db, 'users', currentUser.uid), { photoURL: b64 }); setUploading(false); };
       img.src = ev.target?.result as string; }; reader.readAsDataURL(file);
   };
-  const save = async () => { setSaving(true);
+
+  const save = async () => {
+    setSaving(true);
     await updateDoc(doc(db, 'users', currentUser.uid), { name: form.name.trim(), bio: form.bio.trim(), dob: form.dob, village: form.village.trim(), favoriteGames: form.games.trim(), hobby: form.hobby.trim(), phone: form.phone.trim(), phonePublic: form.phonePublic, updatedAt: serverTimestamp() });
-    setSaving(false); setEditAbout(false); };
-  const sendReq = async () => { await setDoc(doc(db, 'friendRequests', currentUser.uid + '_' + profileId), { fromUid: currentUser.uid, toUid: profileId, fromName: form.name, fromPhoto: userData.photoURL||'', toName: userData.name, createdAt: serverTimestamp() }); setStatus('pending'); };
+    setSaving(false); setEditAbout(false);
+  };
+
+  // FIX 1: Corrected sendReq - use currentUserData not target userData
+  const sendReq = async () => {
+    const fromName = currentUserData?.name || currentUser?.displayName || 'User';
+    const fromPhoto = currentUserData?.photoURL || currentUser?.photoURL || '';
+    await setDoc(doc(db, 'friendRequests', currentUser.uid + '_' + profileId), {
+      fromUid: currentUser.uid,
+      toUid: profileId,
+      fromName: fromName,
+      fromPhoto: fromPhoto,
+      toName: userData.name,
+      createdAt: serverTimestamp()
+    });
+    // Also create notification for receiver
+    await setDoc(doc(db, 'users', profileId, 'notifications', currentUser.uid + '_' + Date.now()), {
+      type: 'friendRequest',
+      fromUid: currentUser.uid,
+      fromName: fromName,
+      fromPhoto: fromPhoto,
+      message: `${fromName} sent you a friend request`,
+      createdAt: serverTimestamp(),
+      read: false
+    });
+    setStatus('pending');
+  };
+
   const cancelReq = async () => { await deleteDoc(doc(db, 'friendRequests', currentUser.uid + '_' + profileId)); setStatus('none'); };
+
   const confirmIncoming = async () => {
-    await setDoc(doc(db, 'users', currentUser.uid, 'friends', profileId), { uid: profileId, name: userData.name, photoURL: userData.photoURL||'', addedAt: serverTimestamp() });
-    await setDoc(doc(db, 'users', profileId, 'friends', currentUser.uid), { uid: currentUser.uid, name: form.name, photoURL: userData.photoURL||'', addedAt: serverTimestamp() });
-    await deleteDoc(doc(db, 'friendRequests', profileId + '_' + currentUser.uid)); setStatus('friends'); };
+    const fromName = userData.name;
+    const fromPhoto = userData.photoURL||'';
+    const myName = currentUserData?.name || form.name || currentUser.displayName;
+    const myPhoto = currentUserData?.photoURL || userData.photoURL || '';
+    await setDoc(doc(db, 'users', currentUser.uid, 'friends', profileId), { uid: profileId, name: fromName, photoURL: fromPhoto, addedAt: serverTimestamp() });
+    await setDoc(doc(db, 'users', profileId, 'friends', currentUser.uid), { uid: currentUser.uid, name: myName, photoURL: myPhoto, addedAt: serverTimestamp() });
+    await deleteDoc(doc(db, 'friendRequests', profileId + '_' + currentUser.uid));
+    setStatus('friends');
+  };
+
   const confirmReq = async (fromId: string, reqId: string, fromName: string, fromPhoto: string) => {
+    const myName = currentUserData?.name || form.name;
+    const myPhoto = currentUserData?.photoURL || '';
     await setDoc(doc(db, 'users', currentUser.uid, 'friends', fromId), { uid: fromId, name: fromName, photoURL: fromPhoto, addedAt: serverTimestamp() });
-    await setDoc(doc(db, 'users', fromId, 'friends', currentUser.uid), { uid: currentUser.uid, name: form.name, photoURL: userData.photoURL||'', addedAt: serverTimestamp() });
-    await deleteDoc(doc(db, 'friendRequests', reqId)); };
+    await setDoc(doc(db, 'users', fromId, 'friends', currentUser.uid), { uid: currentUser.uid, name: myName, photoURL: myPhoto, addedAt: serverTimestamp() });
+    await deleteDoc(doc(db, 'friendRequests', reqId));
+  };
+
+  // FIX 2: Unfriend function
+  const handleUnfriend = () => {
+    setConfirmData({
+      type: 'delete',
+      title: 'Unfriend?',
+      message: `Are you sure you want to unfriend ${userData.name}?`,
+      confirmText: 'Unfriend',
+      cancelText: 'Cancel',
+      showCancel: true,
+      onConfirm: async () => {
+        setConfirmData(null);
+        await deleteDoc(doc(db, 'users', currentUser.uid, 'friends', profileId));
+        await deleteDoc(doc(db, 'users', profileId, 'friends', currentUser.uid));
+        setStatus('none');
+      },
+      onCancel: () => setConfirmData(null)
+    });
+  };
+
   if (!userData) return <div style={{ padding: 40, textAlign: 'center' }}><Loader2 className="animate-spin" color="#8d31ce" /></div>;
-    return (
+
+  return (
     <div style={{ background: '#f0f2f5', minHeight: '100vh', paddingBottom: 20 }}>
       <div style={{ height: 110, background: 'linear-gradient(135deg,#8d31ce,#a855f7)', borderRadius: '0 0 22px 22px' }} />
       <div style={{ marginTop: -55, padding: '0 12px' }}>
@@ -96,7 +180,7 @@ export default function ProfilePage() {
                 {status === 'none' && <button onClick={sendReq} style={{ flex: 1, background: '#e9e5ff', color: '#8d31ce', border: 'none', borderRadius: 12, padding: 11, fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><UserPlus size={16} /> Add Friend</button>}
                 {status === 'pending' && <button onClick={cancelReq} style={{ flex: 1, background: '#fff7ed', color: '#f97316', border: '1px solid #fed7aa', borderRadius: 12, padding: 11, fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><Clock size={14} /> Request Sent</button>}
                 {status === 'incoming' && <button onClick={confirmIncoming} style={{ flex: 1, background: '#22c55e', color: '#fff', border: 'none', borderRadius: 12, padding: 11, fontWeight: 700, fontSize: 14 }}>Confirm</button>}
-                {status === 'friends' && <button style={{ flex: 1, background: '#f3f4f6', color: '#333', border: 'none', borderRadius: 12, padding: 11, fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><Users size={16} /> Friends</button>}
+                {status === 'friends' && <button onClick={handleUnfriend} style={{ flex: 1, background: '#fee2e2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: 12, padding: 11, fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><UserMinus size={16} /> Unfriend</button>}
               </div>
             )}
           </div>
@@ -168,6 +252,13 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {confirmData && (
+        <CustomConfirm
+          isOpen={!!confirmData}
+          {...confirmData}
+        />
+      )}
     </div>
   );
 }
