@@ -89,7 +89,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-          <button type="button" onClick={()=>router.push('/search')} style={{background: 'none', border: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><Search size={22} color='#fff' strokeWidth={3}/></button>
+          <button type="button" onClick={()=>router.push('/search')} style={{background: 'none', border: 'none', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><Search size={28} color='#fff' strokeWidth={3}/></button>
 
           {/* Dot 3 awmna ah humberger menu - i sawi ang chiah */}
           <div style={{position: 'relative'}} ref={dropRef}>
