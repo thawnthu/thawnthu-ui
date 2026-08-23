@@ -65,6 +65,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, []);
 
+  // FIX 1: Chat(0) -> Chat(1) realtime - unread >0 chiah count
   useEffect(() => {
     let unsubChats: any = null;
     const unsubAuth = onAuthStateChanged(auth, (user) => {
@@ -75,6 +76,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         let count = 0;
         snap.docs.forEach(d => {
           const data = d.data() as any;
+          // Receiver tan chiah - lastSender midang a nih chuan unread check
           if (data.lastSender && data.lastSender!== user.uid) {
             const unread = data.unread?.[user.uid] || 0;
             if (unread > 0) count += 1;
@@ -148,4 +150,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div style={{padding: '0px'}}>{children}</div>
     </div>
   )
-}
+                }
