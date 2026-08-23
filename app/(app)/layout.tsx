@@ -87,15 +87,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   const tabs = [
-    { name: 'Home', icon: '🏠', bg: '#e0f2fe', color: '#0284c7' },
-    { name: 'Chat', icon: '💬', bg: '#dcfce7', color: '#16a34a' },
-    { name: 'Status', icon: '⭕', bg: '#fef9c3', color: '#ca8a04' },
-    { name: 'Notification', icon: '🔔', bg: '#fee2e2', color: '#dc2626' },
-    { name: 'Online', icon: '📶', bg: '#e0e7ff', color: '#4f46e5' },
-    { name: 'Group', icon: '👥', bg: '#f3e8ff', color: '#9333ea' },
-    { name: 'Users', icon: '👤', bg: '#ffedd5', color: '#ea580c' },
-    { name: 'Profile', icon: '🙍', bg: '#d1fae5', color: '#059669' },
-    { name: 'Setting', icon: '⚙️', bg: '#ede9fe', color: '#7c3aed' },
+    { name: 'Home', icon: '🏠', bg: '#e0f2fe' },
+    { name: 'Chat', icon: '💬', bg: '#dcfce7' },
+    { name: 'Status', icon: '⭕', bg: '#fef9c3' },
+    { name: 'Notification', icon: '🔔', bg: '#fee2e2' },
+    { name: 'Online', icon: '📶', bg: '#e0e7ff' },
+    { name: 'Group', icon: '👥', bg: '#f3e8ff' },
+    { name: 'Users', icon: '👤', bg: '#ffedd5' },
+    { name: 'Profile', icon: '🙍', bg: '#d1fae5' },
+    { name: 'Setting', icon: '⚙️', bg: '#ede9fe' },
   ];
 
   const currentPath = pathname.split('/')[1] || 'home';
@@ -103,13 +103,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const handleTab = (tab: string) => {
     router.push(`/${tab.toLowerCase()}`);
-  }
-
-  // 2. SEARCH FIX - Setting ah kal lo tur
-  const handleSearch = () => {
-    setShowMenu(false);
-    // site pumpui search page kan siam sa kha
-    window.location.href = '/search';
   }
 
   const handleLogout = async () => {
@@ -138,7 +131,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           MzApp
         </div>
         <div style={{display: 'flex', alignItems: 'center', gap: '2px'}}>
-          <button onClick={handleSearch} style={{background: 'none', border: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}>
+          {/* SEARCH - FIX - Setting ah kal lo - search page ah chiah kal ang */}
+          <button
+            type="button"
+            onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); router.push('/search'); }}
+            style={{background: 'none', border: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}
+          >
             <Search size={22} color='#fff' strokeWidth={3}/>
           </button>
           <div style={{position: 'relative'}} ref={menuRef}>
@@ -155,25 +153,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <div style={{display: 'flex', minHeight: 'calc(100vh - 48px)'}}>
-        {/* 1. NOTIFICATION TI ZAU - 30% atanga 38% ah */}
-        <div style={{width: '38%', maxWidth: '165px', minWidth: '135px', background: card, borderRight: `1px solid ${border}`, position: 'sticky', top: '48px', height: 'calc(100vh - 48px)', overflowY: 'auto', padding: '6px 0'}}>
+        {/* 1. MENU TI TAWI - 38% atanga 32% ah - Notification lang kim tho */}
+        <div style={{width: '32%', maxWidth: '138px', minWidth: '122px', background: card, borderRight: `1px solid ${border}`, position: 'sticky', top: '48px', height: 'calc(100vh - 48px)', overflowY: 'auto', padding: '6px 0'}}>
           {tabs.map((tab, idx) => {
             const isActive = activeTab.toLowerCase() === tab.name.toLowerCase();
             return (
               <div key={tab.name}>
-                <button onClick={()=>handleTab(tab.name)} style={{width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 10px', border: 'none', background: isActive? '#f3e8ff' : 'none', cursor: 'pointer', textAlign: 'left', borderLeft: isActive? '4px solid #8d31ce' : '4px solid transparent'}}>
-                  <div style={{width: '28px', height: '28px', borderRadius: '8px', background: tab.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0}}>
+                <button onClick={()=>handleTab(tab.name)} style={{width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 8px', border: 'none', background: isActive? '#f3e8ff' : 'none', cursor: 'pointer', textAlign: 'left', borderLeft: isActive? '4px solid #8d31ce' : '4px solid transparent'}}>
+                  <div style={{width: '26px', height: '26px', borderRadius: '7px', background: tab.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', flexShrink: 0}}>
                     {tab.icon}
                   </div>
-                  <span style={{fontSize: '13px', fontWeight: isActive? '800' : '600', color: isActive? '#8d31ce' : '#333', whiteSpace: 'nowrap'}}>{tab.name}</span>
+                  <span style={{fontSize: '12px', fontWeight: isActive? '800' : '600', color: isActive? '#8d31ce' : '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{tab.name}</span>
                 </button>
-                {idx < tabs.length - 1 && <div style={{height: '1px', background: '#f0f0f0', margin: '0 10px'}}></div>}
+                {idx < tabs.length - 1 && <div style={{height: '1px', background: '#f0f0f0', margin: '0 8px'}}></div>}
               </div>
             );
           })}
         </div>
 
-        <div style={{width: '62%', flex: 1, background: dark? '#0f0f10' : '#f5f5f5', overflowY: 'auto'}}>
+        <div style={{width: '68%', flex: 1, background: dark? '#0f0f10' : '#f5f5f5', overflowY: 'auto'}}>
           <div style={{padding: '0px'}}>{children}</div>
         </div>
       </div>
