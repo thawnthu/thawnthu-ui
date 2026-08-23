@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, MessageCircle, UserPlus, Check, Clock } from 'lucide-react';
-import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 
 type User = { id: string; uid: string; name: string; email: string; online?: boolean; lastSeen?: any; photoURL?: string; };
@@ -19,7 +19,7 @@ export default function UsersPage() {
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "users"), (snap) => {
       const list = snap.docs.map(d => ({ id: d.id,...d.data() } as User));
-      setUsers(list.filter(u => u.uid!== auth.currentUser?.uid));
+      setUsers(list.filter(u => (u.uid || u.id) !== auth.currentUser?.uid));
       setLoading(false);
     });
     return () => unsub();
@@ -29,29 +29,20 @@ export default function UsersPage() {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
 
-    const unsubFriends = onSnapshot(doc(db, "users", uid), (snap) => {
-      const data = snap.data() as any;
-      if (data?.friends && Array.isArray(data.friends)) {
-        setFriends(new Set(data.friends));
-      }
-    });
-
+    // FIX: friends subcollection chiah en - array field a ngai lo
     const unsubFriendsCol = onSnapshot(collection(db, "users", uid, "friends"), (snap) => {
       const ids = snap.docs.map(d => d.id);
-      setFriends(prev => {
-        const next = new Set(prev);
-        ids.forEach(id => next.add(id));
-        return next;
-      });
+      setFriends(new Set(ids));
     });
 
-    const q = query(collection(db, "friendRequests"), where("from", "==", uid), where("status", "==", "pending"));
+    // FIX: field hming dik - profile page nen in mil: fromUid / toUid
+    const q = query(collection(db, "friendRequests"), where("fromUid", "==", uid));
     const unsubReq = onSnapshot(q, (snap) => {
-      const ids = snap.docs.map(d => d.data().to);
+      const ids = snap.docs.map(d => d.data().toUid);
       setSentRequests(new Set(ids));
     });
 
-    return () => { unsubFriends(); unsubFriendsCol(); unsubReq(); };
+    return () => { unsubFriendsCol(); unsubReq(); };
   }, []);
 
   const handleAddFriend = async (targetUser: User) => {
@@ -62,23 +53,35 @@ export default function UsersPage() {
 
     setSending(targetUid);
     try {
+      // FIX: current user data dik tak la - displayName mai ni lo
+      const mySnap = await getDoc(doc(db, "users", uid));
+      const myData = mySnap.exists() ? mySnap.data() as any : {};
+      const fromName = myData.name || auth.currentUser?.displayName || "User";
+      const fromPhoto = myData.photoURL || auth.currentUser?.photoURL || "";
+
       const reqId = `${uid}_${targetUid}`;
+      // FIX: field hming profile page nen in mil vek
       await setDoc(doc(db, "friendRequests", reqId), {
-        from: uid,
-        to: targetUid,
-        fromName: auth.currentUser?.displayName || "User",
+        fromUid: uid,
+        toUid: targetUid,
+        fromName: fromName,
+        fromPhoto: fromPhoto,
         toName: targetUser.name,
         status: "pending",
         createdAt: serverTimestamp()
       });
-      await setDoc(doc(collection(db, "notifications")), {
-        toUid: targetUid,
+
+      // FIX: notification - target user hnen ah dah dik
+      await setDoc(doc(db, "users", targetUid, "notifications", uid + '_' + Date.now()), {
+        type: "friendRequest",
         fromUid: uid,
-        type: "friend_request",
-        message: "Friend request",
+        fromName: fromName,
+        fromPhoto: fromPhoto,
+        message: `${fromName} sent you a friend request`,
         read: false,
         createdAt: serverTimestamp()
       });
+
       setSentRequests(prev => {
         const next = new Set(prev);
         next.add(targetUid);
@@ -156,4 +159,4 @@ export default function UsersPage() {
       </div>
     </div>
   );
-  }
+}
