@@ -70,11 +70,9 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, [currentUser, otherUid]);
 
-  // FIX 1 & 2: Chat open rual a read nghal - Chat(3)->2 tur, typo siam that
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
-    // Open rual a mark nghal - messages awm lo pawh nise
     setDoc(doc(db, "chats", chatId), {
       [`seen.${currentUser.uid}`]: serverTimestamp(),
       [`unread.${currentUser.uid}`]: 0
@@ -83,12 +81,14 @@ export default function ChatDetailPage() {
 
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid || messages.length === 0) return;
-    // message thar lo thleng pawh read nghal zel
-    const chatId = getChatId(currentUser.uid, otherUid);
-    setDoc(doc(db, "chats", chatId), {
-      [`seen.${currentUser.uid}`]: serverTimestamp(),
-      [`unread.${currentUser.uid}`]: 0
-    }, { merge: true }).catch(()=>{});
+    const last = messages[messages.length - 1];
+    if (last.receiverId === currentUser.uid) {
+      const chatId = getChatId(currentUser.uid, otherUid);
+      setDoc(doc(db, "chats", chatId), {
+        [`seen.${currentUser.uid}`]: serverTimestamp(),
+        [`unread.${currentUser.uid}`]: 0
+      }, { merge: true }).catch(()=>{});
+    }
   }, [messages, currentUser, otherUid]);
 
   const isReallyOnline = (user: any) => {
