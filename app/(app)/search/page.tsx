@@ -11,22 +11,30 @@ export default function SearchPage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
+  const [usersMap, setUsersMap] = useState<Record<string, any>>({});
 
   useEffect(() => {
     const unsub1 = onSnapshot(collection(db, "posts"), s => setPosts(s.docs.map(d=>({id:d.id,...d.data()} as any))));
-    const unsub2 = onSnapshot(collection(db, "users"), s => setUsers(s.docs.map(d=>({id:d.id,...d.data()} as any))));
+    const unsub2 = onSnapshot(collection(db, "users"), s => {
+      const list = s.docs.map(d=>({id:d.id,...d.data()} as any));
+      setUsers(list);
+      const map: Record<string, any> = {};
+      list.forEach(u=>{ map[u.id]=u; if(u.uid) map[u.uid]=u; });
+      setUsersMap(map);
+    });
     const unsub3 = onSnapshot(collection(db, "groups"), s => setGroups(s.docs.map(d=>({id:d.id,...d.data()} as any))));
     return ()=>{unsub1(); unsub2(); unsub3();};
   }, []);
 
+  const getPic = (u:any) => u?.profilePic || u?.photoURL || u?.image || u?.avatar || u?.pic || '';
+
   const filter = (text: string) => text?.toLowerCase().includes(q.toLowerCase());
-  const filteredPosts = q? posts.filter(p => filter(p.title) || filter(p.content) || filter(p.category)) : [];
-  const filteredUsers = q? users.filter(u => filter(u.name) || filter(u.email)) : [];
+  const filteredPosts = q? posts.filter(p => filter(p.title) || filter(p.content) || filter(p.category) || filter(p.authorName)) : [];
+  const filteredUsers = q? users.filter(u => filter(u.name) || filter(u.email) || filter(u.displayName)) : [];
   const filteredGroups = q? groups.filter(g => filter(g.name)) : [];
 
   return (
     <div style={{minHeight: 'calc(100vh - 52px)', background: '#f5f5f5', display:'flex', flexDirection:'column'}}>
-      {/* FIX - full width, a te tawh lo - a lian tawh */}
       <div style={{
         position: 'fixed',
         top: '52px',
@@ -64,31 +72,67 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* Result */}
       <div style={{flex:1, overflowY:'auto', padding: '72px 14px 14px 14px'}}>
         {!q && <p style={{textAlign:'center', color:'#aaa', marginTop:'80px', fontSize:'15px'}}>Search all site...</p>}
 
         {q && (
-          <div style={{display:'flex', flexDirection:'column', gap:'8px', marginTop:'8px'}}>
-            {filteredUsers.length>0 && filteredUsers.slice(0,8).map(u=>(
-              <div key={u.id} onClick={()=>router.push(`/profile/${u.id}`)} style={{display:'flex', alignItems:'center', gap:'12px', padding:'12px', background:'#fff', borderRadius:'16px', cursor:'pointer', boxShadow:'0 1px 3px rgba(0,0,0,0.05)'}}>
-                <div style={{width:'44px', height:'44px', borderRadius:'50%', background:'#f59e0b', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, color:'#fff', fontSize:'18px'}}>{u.name?.[0]?.toUpperCase() || 'U'}</div>
-                <div style={{flex:1}}><div style={{fontWeight:700, fontSize:'15px'}}>{u.name}</div><div style={{fontSize:'12px', color:'#888'}}>{u.email}</div></div>
-              </div>
-            ))}
-            {filteredPosts.length>0 && filteredPosts.slice(0,10).map(p=>(
-              <div key={p.id} onClick={()=>router.push(`/home`)} style={{padding:'12px 14px', background:'#fff', borderRadius:'16px', cursor:'pointer', boxShadow:'0 1px 3px rgba(0,0,0,0.05)'}}>
-                <div style={{fontWeight:700, fontSize:'14px'}}>{p.title || p.content?.slice(0,50)}</div>
-                <div style={{fontSize:'12px', color:'#888'}}>{p.category} • {p.content?.slice(0,60)}</div>
-              </div>
-            ))}
-            {filteredGroups.length>0 && filteredGroups.map(g=>(
-              <div key={g.id} onClick={()=>router.push(`/group/${g.id}`)} style={{padding:'12px 14px', background:'#fff', borderRadius:'16px', cursor:'pointer', boxShadow:'0 1px 3px rgba(0,0,0,0.05)', fontWeight:700, fontSize:'14px'}}>{g.name}</div>
-            ))}
+          <div style={{display:'flex', flexDirection:'column', gap:'10px', marginTop:'8px'}}>
+            {/* USERS - profile pic lang vek */}
+            {filteredUsers.length>0 && filteredUsers.slice(0,10).map(u=>{
+              const pic = getPic(u);
+              return (
+                <div key={u.id} onClick={()=>router.push(`/users/${u.id}`)} style={{display:'flex', alignItems:'center', gap:'12px', padding:'12px', background:'#fff', borderRadius:'16px', cursor:'pointer', boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
+                  {pic? (
+                    <img src={pic} alt={u.name} style={{width:'46px', height:'46px', borderRadius:'50%', objectFit:'cover', flexShrink:0, border:'2px solid #f0f0f0'}}/>
+                  ) : (
+                    <div style={{width:'46px', height:'46px', borderRadius:'50%', background:'#8d31ce', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, color:'#fff', fontSize:'18px', flexShrink:0}}>{u.name?.[0]?.toUpperCase() || u.email?.[0]?.toUpperCase() || 'U'}</div>
+                  )}
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{fontWeight:700, fontSize:'15px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{u.name || u.displayName}</div>
+                    <div style={{fontSize:'12px', color:'#888', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{u.email}</div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* POSTS - author pic lang vek */}
+            {filteredPosts.length>0 && filteredPosts.slice(0,10).map(p=>{
+              const author = usersMap[p.authorId || p.uid || p.userId] || {};
+              const pic = getPic(author) || getPic(p);
+              return (
+                <div key={p.id} onClick={()=>router.push(`/home`)} style={{display:'flex', alignItems:'center', gap:'12px', padding:'12px 14px', background:'#fff', borderRadius:'16px', cursor:'pointer', boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
+                  {pic? (
+                    <img src={pic} alt="" style={{width:'42px', height:'42px', borderRadius:'50%', objectFit:'cover', flexShrink:0}}/>
+                  ) : (
+                    <div style={{width:'42px', height:'42px', borderRadius:'50%', background:'#e0e7ff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, flexShrink:0}}>{p.authorName?.[0] || 'P'}</div>
+                  )}
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{fontWeight:700, fontSize:'14px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.title || p.content?.slice(0,50)}</div>
+                    <div style={{fontSize:'12px', color:'#888', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.category} • {p.content?.slice(0,60)}</div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* GROUPS - group pic lang vek */}
+            {filteredGroups.length>0 && filteredGroups.map(g=>{
+              const pic = getPic(g);
+              return (
+                <div key={g.id} onClick={()=>router.push(`/group/${g.id}`)} style={{display:'flex', alignItems:'center', gap:'12px', padding:'12px 14px', background:'#fff', borderRadius:'16px', cursor:'pointer', boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
+                  {pic? (
+                    <img src={pic} alt="" style={{width:'42px', height:'42px', borderRadius:'50%', objectFit:'cover', flexShrink:0}}/>
+                  ) : (
+                    <div style={{width:'42px', height:'42px', borderRadius:'50%', background:'#f3e8ff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, flexShrink:0}}>G</div>
+                  )}
+                  <div style={{fontWeight:700, fontSize:'14px'}}>{g.name}</div>
+                </div>
+              );
+            })}
+
             {filteredUsers.length===0 && filteredPosts.length===0 && filteredGroups.length===0 && <p style={{textAlign:'center', color:'#888', marginTop:'20px'}}>No result for "{q}"</p>}
           </div>
         )}
       </div>
     </div>
   );
-                             }
+}
