@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, MoreVertical, Trash2 } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, orderBy, doc, deleteDoc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, deleteDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 type ChatItem = {
@@ -22,6 +22,7 @@ export default function ChatListPage() {
   const router = useRouter();
   const [currentUid, setCurrentUid] = useState<string>('');
   const [chats, setChats] = useState<ChatItem[]>([]);
+  const [usersMap, setUsersMap] = useState<any>({});
   const [search, setSearch] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -31,27 +32,37 @@ export default function ChatListPage() {
     return () => unsub();
   }, []);
 
+  // Users cache realtime - heihi vangin chat thar lo thleng pawh user hming a lang nghal
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "users"), snap => {
+      const map: any = {};
+      snap.docs.forEach(d => { map[d.id] = { id: d.id,...d.data() }; });
+      setUsersMap(map);
+    });
+    return () => unsub();
+  }, []);
+
+  // FIX REALTIME: orderBy paih, client ah sort - chat thar lo thleng rual a list a inthlak nghal
   useEffect(() => {
     if (!currentUid) return;
-    const q = query(collection(db, "chats"), where("participants", "array-contains", currentUid), orderBy("updatedAt", "desc"));
-    const unsub = onSnapshot(q, async (snap) => {
-      const list: ChatItem[] = [];
-      for (const d of snap.docs) {
+    const q = query(collection(db, "chats"), where("participants", "array-contains", currentUid));
+    const unsub = onSnapshot(q, snap => {
+      const list: ChatItem[] = snap.docs.map(d => {
         const data = d.data() as any;
         const otherId = data.participants.find((p: string) => p!== currentUid);
-        let otherUser = null;
-        if (otherId) {
-          try {
-            const uSnap = await getDoc(doc(db, "users", otherId));
-            if (uSnap.exists()) otherUser = { id: uSnap.id,...uSnap.data() };
-          } catch {}
-        }
-        list.push({ id: d.id, otherUser,...data } as ChatItem);
-      }
+        const otherUser = usersMap[otherId] || { id: otherId, name: 'User' };
+        return { id: d.id, otherUser,...data } as ChatItem;
+      });
+      // updatedAt hmang in sort - realtime
+      list.sort((a, b) => {
+        const ta = a.updatedAt?.toDate?.()?.getTime() || a.lastTimestamp?.toDate?.()?.getTime() || 0;
+        const tb = b.updatedAt?.toDate?.()?.getTime() || b.lastTimestamp?.toDate?.()?.getTime() || 0;
+        return tb - ta;
+      });
       setChats(list);
     });
     return () => unsub();
-  }, [currentUid]);
+  }, [currentUid, usersMap]);
 
   const getInitial = (name: string) => name?.charAt(0).toUpperCase() || '?';
   const getColor = (name: string) => ['#2563eb','#ef4444','#ff6b35','#f59e0b','#8d31ce'][(name?.length || 0) % 5];
@@ -67,27 +78,23 @@ export default function ChatListPage() {
     } catch { return ''; }
   };
 
-  // FIX 2 & 3: Receiver tan chiah unread, sender tan 0
   const getUnreadCount = (chat: ChatItem) => {
     if (!chat.lastSender || chat.lastSender === currentUid) return 0;
     return chat.unread?.[currentUid] || 0;
   };
 
-  // FIX 4: Sender tan Read/Unread - receiver open hnu ah Read ah thlak realtime
   const getSenderStatus = (chat: ChatItem) => {
     if (chat.lastSender!== currentUid) return null;
     const otherId = chat.participants.find(p => p!== currentUid);
     if (!otherId) return 'Sent';
     const otherUnread = chat.unread?.[otherId] || 0;
-    if (otherUnread > 0) return 'Unread';
-    return 'Read';
+    return otherUnread > 0? 'Unread' : 'Read';
   };
 
   const handleOpenChat = async (chat: ChatItem) => {
-    // Optimistic - open hma in blue bo nghal, Chat(0) tur
     setChats(prev => prev.map(c =>
       c.id === chat.id
-     ? {...c, unread: {...(c.unread||{}), [currentUid]: 0 }, seen: {...(c.seen||{}), [currentUid]: new Date() } }
+    ? {...c, unread: {...(c.unread||{}), [currentUid]: 0 }, seen: {...(c.seen||{}), [currentUid]: new Date() } }
         : c
     ));
     try {
@@ -142,7 +149,7 @@ export default function ChatListPage() {
               <div key={chat.id} style={{
                 display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 14px',
                 borderBottom: '1px solid #f0f0f0',
-                background: isUnread? '#e3f2fd' : '#fff', // FIX 2: chat thar danglam
+                background: isUnread? '#e3f2fd' : '#fff',
                 cursor: 'pointer', position: 'relative'
               }} onClick={() => handleOpenChat(chat)}>
                 <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: getColor(chat.otherUser?.name || 'U'), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '700', flexShrink: 0 }}>{getInitial(chat.otherUser?.name || '?')}</div>
@@ -151,7 +158,6 @@ export default function ChatListPage() {
                     <p style={{ margin: 0, fontSize: '16px', fontWeight: isUnread? '800' : '600', color: '#000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>{highlightText(chat.otherUser?.name || 'Unknown', search)}</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                       <span style={{ fontSize: '12px', color: isUnread? '#0b57d0' : '#888', fontWeight: isUnread? '800' : '400' }}>{formatTime(chat.lastTimestamp || chat.updatedAt)}</span>
-                      {/* FIX 2: time bul ah badge */}
                       {isUnread && (
                         <span style={{ background: '#2563eb', color: '#fff', fontSize: '12px', fontWeight: '800', minWidth: '24px', height: '24px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px' }}>
                           {unread>9? '9+' : unread}
@@ -160,12 +166,7 @@ export default function ChatListPage() {
                     </div>
                   </div>
                   <div style={{ marginTop: '3px' }}>
-                    <p style={{
-                      margin: 0, fontSize: '14px',
-                      color: isUnread? '#000' : '#666',
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '210px',
-                      fontWeight: isUnread? '700' : '400'
-                    }}>
+                    <p style={{ margin: 0, fontSize: '14px', color: isUnread? '#000' : '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '210px', fontWeight: isUnread? '700' : '400' }}>
                       {isMeSender? <><b>{senderStatus}:</b> {highlightText(chat.lastMessage || '...', search)}</> : <>{highlightText(chat.lastMessage || '...', search)}</>}
                     </p>
                   </div>
@@ -197,4 +198,4 @@ export default function ChatListPage() {
       )}
     </div>
   );
-                                                                                                   }
+      }
