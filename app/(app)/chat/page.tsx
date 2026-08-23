@@ -69,27 +69,32 @@ export default function ChatListPage() {
 
   const getUnreadCount = (chat: ChatItem) => {
     if (!chat.lastSender || chat.lastSender === currentUid) return 0;
-    // FIX: 0 anih chuan 0 return nghal - seen check luh loh tur
     if (chat.unread && typeof chat.unread[currentUid]!== 'undefined') {
       return chat.unread[currentUid] || 0;
     }
-    if (!chat.seen ||!chat.seen[currentUid]) return 1;
-    try {
-      const lastT = chat.lastTimestamp?.toDate?.()?.getTime() || chat.updatedAt?.toDate?.()?.getTime() || 0;
-      const seenT = chat.seen[currentUid]?.toDate?.()?.getTime() || 0;
-      if (lastT > seenT + 1000) return 1;
-    } catch {}
     return 0;
   };
 
+  const getSenderStatus = (chat: ChatItem) => {
+    if (chat.lastSender!== currentUid) return null;
+    const otherId = chat.participants.find(p => p!== currentUid);
+    if (!otherId) return 'Sent';
+    const otherUnread = chat.unread?.[otherId] || 0;
+    if (otherUnread > 0) return 'Unread';
+    try {
+      const lastT = chat.lastTimestamp?.toDate?.()?.getTime() || chat.updatedAt?.toDate?.()?.getTime() || 0;
+      const seenT = chat.seen?.[otherId]?.toDate?.()?.getTime() || 0;
+      if (seenT > 0 && lastT <= seenT + 1000) return 'Read';
+    } catch {}
+    return 'Unread';
+  };
+
   const handleOpenChat = async (chat: ChatItem) => {
-    // FIX: Back arrow hmanga let leh a badge bo tur - local state update nghal
     setChats(prev => prev.map(c =>
       c.id === chat.id
-       ? {...c, unread: {...(c.unread||{}), [currentUid]: 0 }, seen: {...(c.seen||{}), [currentUid]: new Date() } }
+     ? {...c, unread: {...(c.unread||{}), [currentUid]: 0 }, seen: {...(c.seen||{}), [currentUid]: new Date() } }
         : c
     ));
-
     try {
       await setDoc(doc(db, "chats", chat.id), { [`unread.${currentUid}`]: 0, [`seen.${currentUid}`]: serverTimestamp() }, { merge: true });
     } catch {}
@@ -136,6 +141,8 @@ export default function ChatListPage() {
           ) : filtered.map((chat) => {
             const unread = getUnreadCount(chat);
             const isUnread = unread > 0;
+            const senderStatus = getSenderStatus(chat);
+            const isMeSender = chat.lastSender === currentUid;
             return (
               <div key={chat.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 14px', borderBottom: '1px solid #f0f0f0', background: isUnread? '#eef7ff' : '#fff', cursor: 'pointer', position: 'relative' }} onClick={() => handleOpenChat(chat)}>
                 <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: getColor(chat.otherUser?.name || 'U'), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '700', flexShrink: 0 }}>{getInitial(chat.otherUser?.name || '?')}</div>
@@ -153,7 +160,7 @@ export default function ChatListPage() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3px' }}>
                     <p style={{ margin: 0, fontSize: '14px', color: isUnread? '#000' : '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px', fontWeight: isUnread? '700' : '400' }}>
-                      {isUnread? <b>Unread:</b> : 'Read:'} {highlightText(chat.lastMessage || '...', search)}
+                      {isMeSender? <><b>{senderStatus}:</b> {highlightText(chat.lastMessage || '...', search)}</> : <>{highlightText(chat.lastMessage || '...', search)}</>}
                     </p>
                   </div>
                 </div>
@@ -185,4 +192,4 @@ export default function ChatListPage() {
       )}
     </div>
   );
-}
+                    }
