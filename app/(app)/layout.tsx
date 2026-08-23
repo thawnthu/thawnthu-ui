@@ -1,7 +1,7 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { Search, MoreVertical, LogOut, Mail, Home, MessageCircle, Wifi, Bell, Users2, CircleDot, User, Users, Settings } from 'lucide-react';
+import { Search, MoreVertical, LogOut, Mail } from 'lucide-react';
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp, collection, onSnapshot, query, where } from "firebase/firestore";
@@ -86,17 +86,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => { unsubAuth(); if (unsubChats) unsubChats(); };
   }, []);
 
+  // 3. ORDER THAR - i sawi ang chiah
   const tabs = [
-    { name: 'Home', icon: Home },
-    { name: 'Chat', icon: MessageCircle },
-    { name: 'Online', icon: Wifi },
-    { name: 'Notification', icon: Bell },
-    { name: 'Group', icon: Users2 },
-    { name: 'Status', icon: CircleDot },
-    { name: 'Profile', icon: User },
-    { name: 'Users', icon: Users },
-    { name: 'Setting', icon: Settings },
+    { name: 'Home', icon: '🏠', bg: '#e0f2fe', color: '#0284c7' },
+    { name: 'Chat', icon: '💬', bg: '#dcfce7', color: '#16a34a' },
+    { name: 'Status', icon: '⭕', bg: '#fef9c3', color: '#ca8a04' },
+    { name: 'Notification', icon: '🔔', bg: '#fee2e2', color: '#dc2626' },
+    { name: 'Online', icon: '📶', bg: '#e0e7ff', color: '#4f46e5' },
+    { name: 'Group', icon: '👥', bg: '#f3e8ff', color: '#9333ea' },
+    { name: 'Users', icon: '👤', bg: '#ffedd5', color: '#ea580c' },
+    { name: 'Profile', icon: '🙍', bg: '#d1fae5', color: '#059669' },
+    { name: 'Setting', icon: '⚙️', bg: '#ede9fe', color: '#7c3aed' },
   ];
+
   const currentPath = pathname.split('/')[1] || 'home';
   const activeTab = currentPath === ''? 'Home' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1);
 
@@ -113,18 +115,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
   const card = dark? '#1a1a1c' : '#ffffff';
   const border = dark? '#2a2a2c' : '#e0e0e0';
+
   return (
     <div style={{background: dark? '#0f0f10' : '#f5f5f5', minHeight: '100vh', fontFamily: 'Inter, sans-serif'}}>
-      {/* 1 & 2 & 6 - HEADER padding ti zim, font mawi, search bold, page tin ah lang reng */}
+      {/* HEADER */}
       <div style={{position: 'sticky', top: 0, zIndex: 30, background: '#8d31ce', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 8px 0 12px', height: '48px'}}>
-        <div style={{fontSize: '26px', fontWeight: '900', color: '#fff', fontFamily: 'Outfit, Poppins, Inter, sans-serif', letterSpacing: '-0.8px'}}>MzApp</div>
+        {/* 4. MzApp Gradient font mawi */}
+        <div style={{
+          fontSize: '28px',
+          fontWeight: '900',
+          fontFamily: 'Outfit, Poppins, sans-serif',
+          background: 'linear-gradient(90deg, #ffffff, #ffde59, #ffffff)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          letterSpacing: '-1px',
+          filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))'
+        }}>
+          MzApp
+        </div>
         <div style={{display: 'flex', alignItems: 'center', gap: '2px'}}>
-          <button onClick={()=>router.push('/search')} style={{background: 'none', border: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><Search size={22} color='#fff' strokeWidth={3} /></button>
+          {/* 1. SEARCH - Site pumpui search ah kal tur FIX */}
+          <button onClick={()=>{ setShowMenu(false); router.push('/search'); }} style={{background: 'none', border: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}>
+            <Search size={22} color='#fff' strokeWidth={3}/>
+          </button>
           <div style={{position: 'relative'}} ref={menuRef}>
-            <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><MoreVertical size={22} color='#fff' strokeWidth={3} /></button>
+            <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><MoreVertical size={22} color='#fff' strokeWidth={3}/></button>
             {showMenu && (
               <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px', width: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 40}}>
-                <button onClick={()=>router.push('/contact')} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: '#666', fontWeight: '700', fontSize: '16px'}}><Mail size={20}/> Contact us</button>
+                <button onClick={()=>{setShowMenu(false); router.push('/contact');}} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: '#666', fontWeight: '700', fontSize: '16px'}}><Mail size={20}/> Contact us</button>
                 <div style={{height: '1px', background: border, margin: '4px 0'}}></div>
                 <button onClick={handleLogout} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: 'red', fontWeight: '700', fontSize: '16px'}}><LogOut size={20}/> Log out</button>
               </div>
@@ -133,18 +151,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      {/* 3,4,5,6 - 3+7 LAYOUT - Vertical menu veilam, count paih */}
+      {/* 3+7 LAYOUT */}
       <div style={{display: 'flex', minHeight: 'calc(100vh - 48px)'}}>
-        {/* VEILAM 3 - Menu */}
+        {/* VEILAM 3 - Menu Colour Icon */}
         <div style={{width: '30%', maxWidth: '150px', minWidth: '115px', background: card, borderRight: `1px solid ${border}`, position: 'sticky', top: '48px', height: 'calc(100vh - 48px)', overflowY: 'auto', padding: '6px 0'}}>
           {tabs.map((tab, idx) => {
-            const isActive = activeTab === tab.name;
-            const Icon = tab.icon;
+            const isActive = activeTab.toLowerCase() === tab.name.toLowerCase();
             return (
               <div key={tab.name}>
-                <button onClick={()=>handleTab(tab.name)} style={{width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '13px 10px', border: 'none', background: isActive? '#f3e8ff' : 'none', color: isActive? '#8d31ce' : '#333', fontWeight: isActive? '800' : '600', cursor: 'pointer', fontSize: '14.5px', textAlign: 'left', borderLeft: isActive? '4px solid #8d31ce' : '4px solid transparent'}}>
-                  <Icon size={18} color={isActive? '#8d31ce' : '#666'} strokeWidth={isActive? 2.6 : 2} />
-                  {tab.name}
+                <button onClick={()=>handleTab(tab.name)} style={{width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 10px', border: 'none', background: isActive? '#f3e8ff' : 'none', cursor: 'pointer', textAlign: 'left', borderLeft: isActive? '4px solid #8d31ce' : '4px solid transparent'}}>
+                  {/* 2. Colour icon - Setting icon ang */}
+                  <div style={{width: '28px', height: '28px', borderRadius: '8px', background: tab.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0}}>
+                    {tab.icon}
+                  </div>
+                  <span style={{fontSize: '13.5px', fontWeight: isActive? '800' : '600', color: isActive? '#8d31ce' : '#333'}}>{tab.name}</span>
                 </button>
                 {idx < tabs.length - 1 && <div style={{height: '1px', background: '#f0f0f0', margin: '0 10px'}}></div>}
               </div>
@@ -159,4 +179,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     </div>
   )
-                   }
+}
