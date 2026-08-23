@@ -4,6 +4,7 @@ import { User, Mail, Lock, Moon, ShieldBan, X, Edit3, ChevronRight, Type, Eye, E
 import { auth, db } from '@/lib/firebase';
 import { updateProfile, updatePassword, updateEmail, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { doc, onSnapshot, getDoc, setDoc, collection, deleteDoc, updateDoc } from 'firebase/firestore';
+import CustomConfirm from '@/components/CustomConfirm';
 
 export default function SettingPage() {
   const [name, setName] = useState('');
@@ -24,6 +25,18 @@ export default function SettingPage() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const [modal, setModal] = useState<'name' | 'email' | 'password' | null>(null);
+  const [confirmData, setConfirmData] = useState<any>(null);
+
+  const showAlert = (message: string, type: 'success' | 'warning' | 'info' = 'info') => {
+    setConfirmData({
+      type,
+      message,
+      showCancel: false,
+      confirmText: 'OK',
+      onConfirm: () => setConfirmData(null),
+      onCancel: () => setConfirmData(null)
+    });
+  };
 
   useEffect(() => {
     const uid = auth.currentUser?.uid;
@@ -50,19 +63,19 @@ export default function SettingPage() {
   };
 
   const handleSaveName = async () => {
-    if (!newName.trim()) return alert("Name empty");
+    if (!newName.trim()) return showAlert("Name cannot be empty.", "warning");
     setSaving(true);
     try {
       if (auth.currentUser) {
         await updateProfile(auth.currentUser, { displayName: newName });
         await setDoc(doc(db, "users", auth.currentUser.uid), { name: newName }, { merge: true });
-        setName(newName); setModal(null); alert("Name updated!");
+        setName(newName); setModal(null); showAlert("Name updated successfully!", "success");
       }
-    } catch (e:any){ alert(e.message); } setSaving(false);
+    } catch (e:any){ showAlert(e.message, "warning"); } setSaving(false);
   };
 
   const handleSaveEmail = async () => {
-    if (!currentPass) return alert("Current password dah rawh");
+    if (!currentPass) return showAlert("Please enter your current password.", "warning");
     setSaving(true);
     try {
       const user = auth.currentUser!; 
@@ -71,14 +84,14 @@ export default function SettingPage() {
       await updateEmail(user, newEmail);
       await setDoc(doc(db, "users", user.uid), { email: newEmail }, { merge: true });
       setEmail(newEmail); setModal(null); setCurrentPass('');
-      alert("Email updated!");
-    } catch (e:any){ alert(e.message); } setSaving(false);
+      showAlert("Email updated successfully!", "success");
+    } catch (e:any){ showAlert(e.message, "warning"); } setSaving(false);
   };
 
   const handleChangePassword = async () => {
-    if (newPass!== confirmPass) return alert("Password inmil lo");
-    if (newPass.length < 6) return alert("6+ char");
-    if (!currentPass) return alert("Current password dah rawh");
+    if (newPass!== confirmPass) return showAlert("Passwords do not match.", "warning");
+    if (newPass.length < 6) return showAlert("Password must be at least 6 characters.", "warning");
+    if (!currentPass) return showAlert("Please enter your current password.", "warning");
     setSaving(true);
     try {
       const user = auth.currentUser!; 
@@ -86,20 +99,32 @@ export default function SettingPage() {
       await reauthenticateWithCredential(user, cred);
       await updatePassword(user, newPass);
       setModal(null); setCurrentPass(''); setNewPass(''); setConfirmPass('');
-      alert("Password changed!");
-    } catch (e:any){ alert(e.message); } setSaving(false);
+      showAlert("Password changed successfully!", "success");
+    } catch (e:any){ showAlert(e.message, "warning"); } setSaving(false);
   };
 
   const handleUnblock = async (id: string) => {
     const uid = auth.currentUser?.uid; if (!uid) return;
-    await deleteDoc(doc(db, "users", uid, "blocked", id));
-    const snap = await getDoc(doc(db, "users", uid)); const data = snap.data() as any;
-    if (data?.blocked) await updateDoc(doc(db, "users", uid), { blocked: data.blocked.filter((x:string)=>x!==id) });
+    setConfirmData({
+      type: 'delete',
+      title: 'Unblock User?',
+      message: 'Are you sure you want to unblock this user?',
+      confirmText: 'Unblock',
+      cancelText: 'Cancel',
+      showCancel: true,
+      onConfirm: async () => {
+        setConfirmData(null);
+        await deleteDoc(doc(db, "users", uid, "blocked", id));
+        const snap = await getDoc(doc(db, "users", uid)); const data = snap.data() as any;
+        if (data?.blocked) await updateDoc(doc(db, "users", uid), { blocked: data.blocked.filter((x:string)=>x!==id) });
+        showAlert("User unblocked.", "success");
+      },
+      onCancel: () => setConfirmData(null)
+    });
   };
 
   const card = { background: darkMode? '#1a1a1c' : '#fff', borderRadius: '16px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${darkMode? '#2a2a2c' : '#eee'}` };
   const inputWrap = { position: 'relative' as const, width: '100%' };
-  // EDIT - INPUT TAWI, BOX-SIZING
   const inputStyle = { width: '100%', boxSizing: 'border-box' as const, padding: '12px 14px', borderRadius: '12px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: darkMode? '#222' : '#f9f9f9', color: darkMode? '#fff' : '#000', outline: 'none', fontSize: '0.95rem' };
   const inputWithEye = { ...inputStyle, paddingRight: '42px' };
   const rowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 4px', cursor: 'pointer' };
@@ -148,24 +173,24 @@ export default function SettingPage() {
 
             {modal==='name' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
-                <div style={inputWrap}><input value={newName} onChange={e=>setNewName(e.target.value)} style={inputStyle} placeholder="New name"/></div>
+                <div style={inputWrap}><input value={newName} onChange={e=>setNewName(e.target.value)} style={inputStyle} placeholder="Enter new name"/></div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                   <button onClick={()=>setModal(null)} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: 'none', color: darkMode? '#fff' : '#000', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-                  <button onClick={handleSaveName} disabled={saving} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: 'none', background: '#6366f1', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving? '...' : 'Change Name'}</button>
+                  <button onClick={handleSaveName} disabled={saving} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: 'none', background: '#6366f1', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving? 'Saving...' : 'Save'}</button>
                 </div>
               </div>
             )}
 
             {modal==='email' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
-                <div style={inputWrap}><input value={newEmail} onChange={e=>setNewEmail(e.target.value)} style={inputStyle} placeholder="New email"/></div>
+                <div style={inputWrap}><input value={newEmail} onChange={e=>setNewEmail(e.target.value)} style={inputStyle} placeholder="Enter new email"/></div>
                 <div style={inputWrap}>
                   <input type={showCurrent? "text" : "password"} value={currentPass} onChange={e=>setCurrentPass(e.target.value)} style={inputWithEye} placeholder="Current password"/>
                   <button onClick={()=>setShowCurrent(!showCurrent)} style={eyeBtn}>{showCurrent? <EyeOff size={18}/> : <Eye size={18}/>}</button>
                 </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                   <button onClick={()=>setModal(null)} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: 'none', color: darkMode? '#fff' : '#000', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-                  <button onClick={handleSaveEmail} disabled={saving} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: 'none', background: '#f59e0b', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving? '...' : 'Change Email'}</button>
+                  <button onClick={handleSaveEmail} disabled={saving} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: 'none', background: '#f59e0b', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving? 'Saving...' : 'Save'}</button>
                 </div>
               </div>
             )}
@@ -181,12 +206,12 @@ export default function SettingPage() {
                   <button onClick={()=>setShowNew(!showNew)} style={eyeBtn}>{showNew? <EyeOff size={18}/> : <Eye size={18}/>}</button>
                 </div>
                 <div style={inputWrap}>
-                  <input type={showConfirm? "text" : "password"} value={confirmPass} onChange={e=>setConfirmPass(e.target.value)} style={inputWithEye} placeholder="Confirm password"/>
+                  <input type={showConfirm? "text" : "password"} value={confirmPass} onChange={e=>setConfirmPass(e.target.value)} style={inputWithEye} placeholder="Confirm new password"/>
                   <button onClick={()=>setShowConfirm(!showConfirm)} style={eyeBtn}>{showConfirm? <EyeOff size={18}/> : <Eye size={18}/>}</button>
                 </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                   <button onClick={()=>setModal(null)} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: `1px solid ${darkMode? '#333' : '#ddd'}`, background: 'none', color: darkMode? '#fff' : '#000', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-                  <button onClick={handleChangePassword} disabled={saving} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving? '...' : 'Change Password'}</button>
+                  <button onClick={handleChangePassword} disabled={saving} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving? 'Saving...' : 'Change'}</button>
                 </div>
               </div>
             )}
@@ -227,6 +252,13 @@ export default function SettingPage() {
           </div>
         )}
       </div>
+
+      {confirmData && (
+        <CustomConfirm
+          isOpen={!!confirmData}
+          {...confirmData}
+        />
+      )}
     </div>
   );
-  }
+}
