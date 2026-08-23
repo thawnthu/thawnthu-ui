@@ -60,7 +60,6 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, [currentUser, otherUid]);
 
-  // FIX 1,3,4: open rual a realtime read mark
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
@@ -113,7 +112,7 @@ export default function ChatDetailPage() {
         timestamp: serverTimestamp(),
       });
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-    } catch (e: any) {
+    } catch {
       setNewMsg(text);
     }
   };
@@ -165,61 +164,22 @@ export default function ChatDetailPage() {
   const filteredMessages = searchQ? messages.filter(m => m.text?.toLowerCase().includes(searchQ.toLowerCase())) : messages;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: '135px',
-      bottom: '0',
-      left: '0',
-      right: '0',
-      display: 'flex',
-      flexDirection: 'column',
-      background: '#e5ddd5',
-      overflow: 'hidden',
-      zIndex: 5,
-    }}>
-      <div style={{
-        background: '#8d31ce',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '6px 8px 6px 4px',
-        flexShrink: 0,
-        height: '54px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
-      }}>
+    <div style={{ position: 'fixed', top: '135px', bottom: '0', left: '0', right: '0', display: 'flex', flexDirection: 'column', background: '#e5ddd5', overflow: 'hidden', zIndex: 5 }}>
+      <div style={{ background: '#8d31ce', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px 6px 4px', flexShrink: 0, height: '54px', boxShadow: '0 2px 4px rgba(0,0,0,0.15)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button onClick={() => router.back()} style={{ border: 'none', background: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <ArrowLeft size={22} color="#fff" />
-          </button>
-          <div onClick={() => router.push(`/profile/${otherUid}`)} style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#fff', color: '#8d31ce', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '15px', cursor: 'pointer' }}>
-            {getInitial(otherUser?.name || 'T')}
-          </div>
+          <button onClick={() => router.back()} style={{ border: 'none', background: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><ArrowLeft size={22} color="#fff" /></button>
+          <div onClick={() => router.push(`/profile/${otherUid}`)} style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#fff', color: '#8d31ce', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '15px', cursor: 'pointer' }}>{getInitial(otherUser?.name || 'T')}</div>
           <div onClick={() => router.push(`/profile/${otherUid}`)} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
             <span style={{ color: '#fff', fontWeight: '700', fontSize: '15px', lineHeight: '15px' }}>{otherUser?.name || 'User'}</span>
             <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '11px', marginTop: '2px' }}>{isReallyOnline(otherUser)? 'Online' : 'Offline'}</span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={menuRef}>
-          {showSearch? (
-            <div style={{ display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '20px', padding: '4px 10px' }}>
-              <Search size={14} color="#888" />
-              <input autoFocus value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Search" style={{ border: 'none', outline: 'none', marginLeft: '6px', width: '70px', fontSize: '12px' }} />
-              <button onClick={() => { setShowSearch(false); setSearchQ(''); }} style={{ border: 'none', background: 'none' }}><X size={14} color="#888" /></button>
-            </div>
-          ) : null}
-          <button onClick={() => setShowMenu(!showMenu)} style={{ border: 'none', background: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <MoreVertical size={18} color="#fff" />
-          </button>
-          {showMenu && (
-            <div style={{ position: 'absolute', right: '0', top: '38px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '150px', overflow: 'hidden', zIndex: 50 }}>
-              <button onClick={() => { router.push(`/profile/${otherUid}`); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px', border: 'none', borderBottom: '1px solid #f0f0f0', background: 'none', fontSize: '13px', fontWeight: '700' }}><User size={14} /> Profile</button>
-              <button onClick={handleBlock} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px', border: 'none', borderBottom: '1px solid #f0f0f0', background: 'none', fontSize: '13px', fontWeight: '700', color: '#ef4444' }}><Ban size={14} /> Block</button>
-              <button onClick={() => { setShowSearch(true); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px', border: 'none', background: 'none', fontSize: '13px', fontWeight: '700' }}><Search size={14} /> Search</button>
-            </div>
-          )}
+          {showSearch? (<div style={{ display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '20px', padding: '4px 10px' }}><Search size={14} color="#888" /><input autoFocus value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Search" style={{ border: 'none', outline: 'none', marginLeft: '6px', width: '70px', fontSize: '12px' }} /><button onClick={() => { setShowSearch(false); setSearchQ(''); }} style={{ border: 'none', background: 'none' }}><X size={14} color="#888" /></button></div>) : null}
+          <button onClick={() => setShowMenu(!showMenu)} style={{ border: 'none', background: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><MoreVertical size={18} color="#fff" /></button>
+          {showMenu && (<div style={{ position: 'absolute', right: '0', top: '38px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '150px', overflow: 'hidden', zIndex: 50 }}><button onClick={() => { router.push(`/profile/${otherUid}`); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px', border: 'none', borderBottom: '1px solid #f0f0f0', background: 'none', fontSize: '13px', fontWeight: '700' }}><User size={14} /> Profile</button><button onClick={handleBlock} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px', border: 'none', borderBottom: '1px solid #f0f0f0', background: 'none', fontSize: '13px', fontWeight: '700', color: '#ef4444' }}><Ban size={14} /> Block</button><button onClick={() => { setShowSearch(true); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px', border: 'none', background: 'none', fontSize: '13px', fontWeight: '700' }}><Search size={14} /> Search</button></div>)}
         </div>
       </div>
-
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', background: '#e5ddd5', WebkitOverflowScrolling: 'touch', display: 'flex', flexDirection: 'column' }}>
         <div style={{ flex: 1 }}></div>
         <div style={{ padding: '10px 18px 10px 18px' }}>
@@ -229,31 +189,12 @@ export default function ChatDetailPage() {
             const showDate = shouldShowDate(msg, prev);
             return (
               <div key={msg.id}>
-                {showDate && (
-                  <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0' }}>
-                    <span style={{ background: '#fff', color: '#54656f', fontSize: '11px', padding: '3px 9px', borderRadius: '8px', boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)', fontWeight: '500' }}>
-                      {formatDateLabel(msg.timestamp)}
-                    </span>
-                  </div>
-                )}
+                {showDate && (<div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0' }}><span style={{ background: '#fff', color: '#54656f', fontSize: '11px', padding: '3px 9px', borderRadius: '8px', boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)', fontWeight: '500' }}>{formatDateLabel(msg.timestamp)}</span></div>)}
                 <div style={{ display: 'flex', justifyContent: isMe? 'flex-end' : 'flex-start', marginBottom: '4px', paddingLeft: isMe? '20px' : '0', paddingRight: isMe? '0' : '20px' }}>
-                  <div style={{
-                    maxWidth: '74%',
-                    padding: '6px 8px 4px 10px',
-                    borderRadius: isMe? '8px 8px 0 8px' : '8px 8px 8px 0',
-                    background: isMe? '#8d31ce' : '#fff',
-                    color: isMe? '#fff' : '#111b21',
-                    boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)',
-                    position: 'relative',
-                    minWidth: '90px'
-                  }}>
-                    <span style={{ fontSize: '15px', lineHeight: '19px', fontWeight: '400', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
-                      {msg.text}
-                    </span>
+                  <div style={{ maxWidth: '74%', padding: '6px 8px 4px 10px', borderRadius: isMe? '8px 8px 0 8px' : '8px 8px 8px 0', background: isMe? '#8d31ce' : '#fff', color: isMe? '#fff' : '#111b21', boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)', position: 'relative', minWidth: '90px' }}>
+                    <span style={{ fontSize: '15px', lineHeight: '19px', fontWeight: '400', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{msg.text}</span>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '2px', marginTop: '2px', float: 'right', marginLeft: '12px', paddingTop: '3px' }}>
-                      <span style={{ fontSize: '10.5px', color: isMe? 'rgba(255,255,255,0.85)' : '#667781', fontWeight: '400', lineHeight: '10px', whiteSpace: 'nowrap' }}>
-                        {formatMsgTime(msg.timestamp)}
-                      </span>
+                      <span style={{ fontSize: '10.5px', color: isMe? 'rgba(255,255,255,0.85)' : '#667781', fontWeight: '400', lineHeight: '10px', whiteSpace: 'nowrap' }}>{formatMsgTime(msg.timestamp)}</span>
                     </div>
                     <div style={{ clear: 'both' }}></div>
                   </div>
@@ -264,27 +205,12 @@ export default function ChatDetailPage() {
           <div ref={messagesEndRef} style={{ height: '2px' }} />
         </div>
       </div>
-
       <div style={{ background: '#e5ddd5', padding: '6px 14px 10px 14px', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#fff', borderRadius: '20px', padding: '2px 12px', boxShadow: '0 1px 1px rgba(0,0,0,0.08)', minHeight: '40px' }}>
-          <textarea
-            value={newMsg}
-            onChange={(e) => setNewMsg(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' &&!e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder="Type a message..."
-            rows={1}
-            style={{ flex: 1, border: 'none', outline: 'none', fontSize: '15px', background: 'none', padding: '6px 0', resize: 'none', maxHeight: '80px', lineHeight: '18px', fontFamily: 'inherit' }}
-            onInput={(e) => {
-              const target = e.target as HTMLTextAreaElement;
-              target.style.height = 'auto';
-              target.style.height = Math.min(target.scrollHeight, 80) + 'px';
-            }}
-          />
+          <textarea value={newMsg} onChange={(e) => setNewMsg(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' &&!e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder="Type a message..." rows={1} style={{ flex: 1, border: 'none', outline: 'none', fontSize: '15px', background: 'none', padding: '6px 0', resize: 'none', maxHeight: '80px', lineHeight: '18px', fontFamily: 'inherit' }} onInput={(e) => { const target = e.target as HTMLTextAreaElement; target.style.height = 'auto'; target.style.height = Math.min(target.scrollHeight, 80) + 'px'; }} />
         </div>
-        <button onClick={handleSend} style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#8d31ce', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" style={{ marginLeft: '1px' }}><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
-        </button>
+        <button onClick={handleSend} style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#8d31ce', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}><svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" style={{ marginLeft: '1px' }}><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg></button>
       </div>
     </div>
   );
-      }
+    }
