@@ -65,26 +65,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, []);
 
-  // FIXED CHAT COUNT - tick ngai lo, lastSender!= nangmah chuan Chat(1)
+  // FIX: Chat count dik tak - unread >0 chiah count, Chat(3)->2->1->0
   useEffect(() => {
     let unsubChats: any = null;
     const unsubAuth = onAuthStateChanged(auth, (user) => {
       if (!user) { setChatUnread(0); return; }
+      if (unsubChats) unsubChats();
       const q = query(collection(db, "chats"), where("participants", "array-contains", user.uid));
       unsubChats = onSnapshot(q, (snap) => {
         let count = 0;
         snap.docs.forEach(d => {
           const data = d.data() as any;
+          // lastSender nangmah i nih loh chuan chiah unread check
           if (data.lastSender && data.lastSender!== user.uid) {
             const unread = data.unread?.[user.uid] || 0;
-            if (unread > 0) { count += 1; return; }
-            // fallback - unread 0 pawh nise lastSender midang a nih chuan seen check
-            if (!data.seen ||!data.seen[user.uid]) { count += 1; return; }
-            try {
-              const lastT = data.lastTimestamp?.toDate?.()?.getTime() || data.updatedAt?.toDate?.()?.getTime() || 0;
-              const seenT = data.seen[user.uid]?.toDate?.()?.getTime() || 0;
-              if (lastT > seenT + 1000) count += 1;
-            } catch { count += 1; }
+            if (unread > 0) count += 1;
           }
         });
         setChatUnread(count);
