@@ -65,7 +65,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, []);
 
-  // FIX: Chat count dik tak - unread >0 chiah count, Chat(3)->2->1->0
   useEffect(() => {
     let unsubChats: any = null;
     const unsubAuth = onAuthStateChanged(auth, (user) => {
@@ -76,7 +75,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         let count = 0;
         snap.docs.forEach(d => {
           const data = d.data() as any;
-          // lastSender nangmah i nih loh chuan chiah unread check
           if (data.lastSender && data.lastSender!== user.uid) {
             const unread = data.unread?.[user.uid] || 0;
             if (unread > 0) count += 1;
