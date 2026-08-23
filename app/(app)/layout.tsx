@@ -100,11 +100,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const currentPath = pathname.split('/')[1] || 'home';
   const activeTab = currentPath === ''? 'Home' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1);
-
-  const handleTab = (tab: string) => {
-    router.push(`/${tab.toLowerCase()}`);
-  }
-
+  const handleTab = (tab: string) => { router.push(`/${tab.toLowerCase()}`); }
   const handleLogout = async () => {
     try {
       if (auth.currentUser) await setDoc(doc(db, "users", auth.currentUser.uid), { online: false, lastSeen: serverTimestamp() }, { merge: true });
@@ -118,29 +114,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{background: dark? '#0f0f10' : '#f5f5f5', minHeight: '100vh', fontFamily: 'Inter, sans-serif'}}>
       <div style={{position: 'sticky', top: 0, zIndex: 30, background: '#8d31ce', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 8px 0 12px', height: '48px'}}>
-        <div style={{
-          fontSize: '28px',
-          fontWeight: '900',
-          fontFamily: 'Outfit, Poppins, sans-serif',
-          background: 'linear-gradient(90deg, #ffffff, #ffde59, #ffffff)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          letterSpacing: '-1px',
-          filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))'
-        }}>
-          MzApp
-        </div>
+        <div style={{fontSize: '28px', fontWeight: '900', fontFamily: 'Outfit, Poppins, sans-serif', background: 'linear-gradient(90deg, #ffffff, #ffde59, #ffffff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-1px'}}>MzApp</div>
         <div style={{display: 'flex', alignItems: 'center', gap: '2px'}}>
-          {/* SEARCH - FIX - Setting ah kal lo - search page ah chiah kal ang */}
-          <button
-            type="button"
-            onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); router.push('/search'); }}
-            style={{background: 'none', border: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}
-          >
-            <Search size={22} color='#fff' strokeWidth={3}/>
-          </button>
+          <button type="button" onClick={()=>router.push('/search')} style={{background: 'none', border: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><Search size={22} color='#fff' strokeWidth={3}/></button>
           <div style={{position: 'relative'}} ref={menuRef}>
-            <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><MoreVertical size={22} color='#fff' strokeWidth={3}/></button>
+            <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><MoreVertical size={22} color='#fff' strokeWidth={3}/></button>
             {showMenu && (
               <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px', width: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 40}}>
                 <button onClick={()=>{setShowMenu(false); router.push('/contact');}} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: '#666', fontWeight: '700', fontSize: '16px'}}><Mail size={20}/> Contact us</button>
@@ -153,27 +131,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <div style={{display: 'flex', minHeight: 'calc(100vh - 48px)'}}>
-        {/* 1. MENU TI TAWI - 38% atanga 32% ah - Notification lang kim tho */}
-        <div style={{width: '32%', maxWidth: '138px', minWidth: '122px', background: card, borderRight: `1px solid ${border}`, position: 'sticky', top: '48px', height: 'calc(100vh - 48px)', overflowY: 'auto', padding: '6px 0'}}>
+        <div style={{width: '32%', maxWidth: '135px', minWidth: '120px', background: card, borderRight: `1px solid ${border}`, position: 'sticky', top: '48px', height: 'calc(100vh - 48px)', overflowY: 'auto', padding: '6px 0'}}>
           {tabs.map((tab, idx) => {
             const isActive = activeTab.toLowerCase() === tab.name.toLowerCase();
             return (
               <div key={tab.name}>
                 <button onClick={()=>handleTab(tab.name)} style={{width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 8px', border: 'none', background: isActive? '#f3e8ff' : 'none', cursor: 'pointer', textAlign: 'left', borderLeft: isActive? '4px solid #8d31ce' : '4px solid transparent'}}>
-                  <div style={{width: '26px', height: '26px', borderRadius: '7px', background: tab.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', flexShrink: 0}}>
-                    {tab.icon}
-                  </div>
-                  <span style={{fontSize: '12px', fontWeight: isActive? '800' : '600', color: isActive? '#8d31ce' : '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{tab.name}</span>
+                  <div style={{width: '26px', height: '26px', borderRadius: '7px', background: tab.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', flexShrink: 0}}>{tab.icon}</div>
+                  <span style={{fontSize: '11.5px', fontWeight: isActive? '800' : '600', color: isActive? '#8d31ce' : '#333', whiteSpace: 'nowrap'}}>{tab.name}</span>
                 </button>
                 {idx < tabs.length - 1 && <div style={{height: '1px', background: '#f0f0f0', margin: '0 8px'}}></div>}
               </div>
             );
           })}
         </div>
-
-        <div style={{width: '68%', flex: 1, background: dark? '#0f0f10' : '#f5f5f5', overflowY: 'auto'}}>
-          <div style={{padding: '0px'}}>{children}</div>
-        </div>
+        <div style={{width: '68%', flex: 1, background: dark? '#0f0f10' : '#f5f5f5', overflowY: 'auto'}}><div style={{padding: '0px'}}>{children}</div></div>
       </div>
     </div>
   )
