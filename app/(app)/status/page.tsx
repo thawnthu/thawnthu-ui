@@ -184,7 +184,7 @@ export default function StatusPage() {
   return (
     <div style={{ background: '#f5f5f5', minHeight: 'calc(100vh - 130px)' }}>
       {/* Search ding reng */}
-      <div style={{ position: 'sticky', top: '130px', zIndex: 15, padding: '10px 12px 12px 12px', background: '#f5f5f5' }}>
+      <div style={{ position: 'sticky', top: '55px', zIndex: 15, padding: '10px 12px 12px 12px', background: '#f5f5f5' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fff', padding: '14px 16px', borderRadius: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #eee' }}>
           <Search size={20} color="#888" />
           <input type="text" placeholder="Search status..." value={search} onChange={e => setSearch(e.target.value)} style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '16px' }} />
