@@ -86,7 +86,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => { unsubAuth(); if (unsubChats) unsubChats(); };
   }, []);
 
-  // 3. ORDER THAR - i sawi ang chiah
   const tabs = [
     { name: 'Home', icon: '🏠', bg: '#e0f2fe', color: '#0284c7' },
     { name: 'Chat', icon: '💬', bg: '#dcfce7', color: '#16a34a' },
@@ -106,6 +105,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     router.push(`/${tab.toLowerCase()}`);
   }
 
+  // 2. SEARCH FIX - Setting ah kal lo tur
+  const handleSearch = () => {
+    setShowMenu(false);
+    // site pumpui search page kan siam sa kha
+    window.location.href = '/search';
+  }
+
   const handleLogout = async () => {
     try {
       if (auth.currentUser) await setDoc(doc(db, "users", auth.currentUser.uid), { online: false, lastSeen: serverTimestamp() }, { merge: true });
@@ -118,9 +124,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{background: dark? '#0f0f10' : '#f5f5f5', minHeight: '100vh', fontFamily: 'Inter, sans-serif'}}>
-      {/* HEADER */}
       <div style={{position: 'sticky', top: 0, zIndex: 30, background: '#8d31ce', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 8px 0 12px', height: '48px'}}>
-        {/* 4. MzApp Gradient font mawi */}
         <div style={{
           fontSize: '28px',
           fontWeight: '900',
@@ -134,8 +138,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           MzApp
         </div>
         <div style={{display: 'flex', alignItems: 'center', gap: '2px'}}>
-          {/* 1. SEARCH - Site pumpui search ah kal tur FIX */}
-          <button onClick={()=>{ setShowMenu(false); router.push('/search'); }} style={{background: 'none', border: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}>
+          <button onClick={handleSearch} style={{background: 'none', border: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}>
             <Search size={22} color='#fff' strokeWidth={3}/>
           </button>
           <div style={{position: 'relative'}} ref={menuRef}>
@@ -151,20 +154,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      {/* 3+7 LAYOUT */}
       <div style={{display: 'flex', minHeight: 'calc(100vh - 48px)'}}>
-        {/* VEILAM 3 - Menu Colour Icon */}
-        <div style={{width: '30%', maxWidth: '150px', minWidth: '115px', background: card, borderRight: `1px solid ${border}`, position: 'sticky', top: '48px', height: 'calc(100vh - 48px)', overflowY: 'auto', padding: '6px 0'}}>
+        {/* 1. NOTIFICATION TI ZAU - 30% atanga 38% ah */}
+        <div style={{width: '38%', maxWidth: '165px', minWidth: '135px', background: card, borderRight: `1px solid ${border}`, position: 'sticky', top: '48px', height: 'calc(100vh - 48px)', overflowY: 'auto', padding: '6px 0'}}>
           {tabs.map((tab, idx) => {
             const isActive = activeTab.toLowerCase() === tab.name.toLowerCase();
             return (
               <div key={tab.name}>
                 <button onClick={()=>handleTab(tab.name)} style={{width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 10px', border: 'none', background: isActive? '#f3e8ff' : 'none', cursor: 'pointer', textAlign: 'left', borderLeft: isActive? '4px solid #8d31ce' : '4px solid transparent'}}>
-                  {/* 2. Colour icon - Setting icon ang */}
                   <div style={{width: '28px', height: '28px', borderRadius: '8px', background: tab.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0}}>
                     {tab.icon}
                   </div>
-                  <span style={{fontSize: '13.5px', fontWeight: isActive? '800' : '600', color: isActive? '#8d31ce' : '#333'}}>{tab.name}</span>
+                  <span style={{fontSize: '13px', fontWeight: isActive? '800' : '600', color: isActive? '#8d31ce' : '#333', whiteSpace: 'nowrap'}}>{tab.name}</span>
                 </button>
                 {idx < tabs.length - 1 && <div style={{height: '1px', background: '#f0f0f0', margin: '0 10px'}}></div>}
               </div>
@@ -172,11 +173,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           })}
         </div>
 
-        {/* DINGLAM 7 - Content */}
-        <div style={{width: '70%', flex: 1, background: dark? '#0f0f10' : '#f5f5f5', overflowY: 'auto'}}>
+        <div style={{width: '62%', flex: 1, background: dark? '#0f0f10' : '#f5f5f5', overflowY: 'auto'}}>
           <div style={{padding: '0px'}}>{children}</div>
         </div>
       </div>
     </div>
   )
-}
+                }
