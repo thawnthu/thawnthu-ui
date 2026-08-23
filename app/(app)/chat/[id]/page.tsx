@@ -13,7 +13,6 @@ export default function ChatDetailPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [otherUser, setOtherUser] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
-  const [chatData, setChatData] = useState<any>(null);
   const [newMsg, setNewMsg] = useState('');
   const [showMenu, setShowMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -61,15 +60,7 @@ export default function ChatDetailPage() {
     return () => unsub();
   }, [currentUser, otherUid]);
 
-  useEffect(() => {
-    if (!currentUser?.uid ||!otherUid) return;
-    const chatId = getChatId(currentUser.uid, otherUid);
-    const unsub = onSnapshot(doc(db, "chats", chatId), snap => {
-      if (snap.exists()) setChatData(snap.data());
-    });
-    return () => unsub();
-  }, [currentUser, otherUid]);
-
+  // FIX 1,3,4: open rual a realtime read mark
   useEffect(() => {
     if (!currentUser?.uid ||!otherUid) return;
     const chatId = getChatId(currentUser.uid, otherUid);
