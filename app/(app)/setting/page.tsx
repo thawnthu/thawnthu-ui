@@ -4,7 +4,7 @@ import { User, Mail, Lock, Moon, ShieldBan, X, Edit3, ChevronRight, Type, Eye, E
 import { auth, db } from '@/lib/firebase';
 import { updateProfile, updatePassword, updateEmail, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { doc, onSnapshot, getDoc, setDoc, collection, deleteDoc, updateDoc } from 'firebase/firestore';
-import CustomConfirm from '@/components/CustomConfirm';
+import CustomConfirm from '@/app/components/CustomConfirm';
 
 export default function SettingPage() {
   const [name, setName] = useState('');
