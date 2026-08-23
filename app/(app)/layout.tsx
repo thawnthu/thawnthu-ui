@@ -1,7 +1,7 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { Search, MoreVertical, LogOut, Mail, Menu, X } from 'lucide-react';
+import { Search, LogOut, Mail } from 'lucide-react';
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp, collection, onSnapshot, query, where } from "firebase/firestore";
@@ -10,14 +10,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [dark] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [showDropDown, setShowDropDown] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current &&!menuRef.current.contains(event.target as Node)) setShowMenu(false);
       if (dropRef.current &&!dropRef.current.contains(event.target as Node)) setShowDropDown(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -52,7 +49,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => { unsubAuth(); if (cleanupFn) cleanupFn(); if (intervalId) clearInterval(intervalId); };
   }, []);
 
-  // Status leh Online tel lo - Chat ah kan dah tawh ang i tih angin
   const tabs = [
     { name: 'Home', icon: '🏠', bg: '#e0f2fe' },
     { name: 'Chat', icon: '💬', bg: '#dcfce7' },
@@ -78,10 +74,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{background: dark? '#0f0f10' : '#f5f5f5', minHeight: '100vh', fontFamily: 'Inter, sans-serif'}}>
-      {/* HEADER - MzApp hma ah dropdown icon */}
-      <div style={{position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, background: '#8d31ce', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 8px 0 8px', height: '52px'}}>
+      {/* HEADER - MzApp veilam, search + humberger dinglam - Dot 3 a bo */}
+      <div style={{position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, background: '#8d31ce', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 8px 0 12px', height: '52px'}}>
+        <div style={{
+          fontSize: '28px',
+          fontWeight: '900',
+          fontFamily: 'Outfit, Poppins, sans-serif',
+          background: 'linear-gradient(90deg, #ffffff, #ffde59, #ffffff)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          letterSpacing: '-1px'
+        }}>
+          MzApp
+        </div>
+
         <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-          {/* I thlalak ami ang dropdown menu icon */}
+          <button type="button" onClick={()=>router.push('/search')} style={{background: 'none', border: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><Search size={22} color='#fff' strokeWidth={3}/></button>
+
+          {/* Dot 3 awmna ah humberger menu - i sawi ang chiah */}
           <div style={{position: 'relative'}} ref={dropRef}>
             <button
               onClick={()=>setShowDropDown(!showDropDown)}
@@ -104,17 +114,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <div style={{width: '20px', height: '4px', background: '#6d6d6d', borderRadius: '10px'}}></div>
             </button>
 
-            {/* DROP DOWN MENU - design ngai vek */}
             {showDropDown && (
               <div style={{
                 position: 'absolute',
-                left: 0,
+                right: 0,
                 top: '48px',
                 background: card,
                 border: `1px solid ${border}`,
                 borderRadius: '14px',
-                width: '200px',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                width: '210px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
                 zIndex: 60,
                 overflow: 'hidden',
                 padding: '6px 0'
@@ -135,58 +144,67 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         textAlign: 'left',
                         borderLeft: isActive? '4px solid #8d31ce' : '4px solid transparent'
                       }}>
-                        <div style={{width: '30px', height: '30px', borderRadius: '8px', background: tab.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0}}>
-                          {tab.icon}
-                        </div>
+                        <div style={{width: '30px', height: '30px', borderRadius: '8px', background: tab.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0}}>{tab.icon}</div>
                         <span style={{fontSize: '14.5px', fontWeight: isActive? '800' : '600', color: isActive? '#8d31ce' : '#333'}}>{tab.name}</span>
                       </button>
                       {idx < tabs.length - 1 && <div style={{height: '1px', background: '#f0f0f0', margin: '0 12px'}}></div>}
                     </div>
                   );
                 })}
-              </div>
-            )}
-          </div>
 
-          <div style={{
-            fontSize: '28px',
-            fontWeight: '900',
-            fontFamily: 'Outfit, Poppins, sans-serif',
-            background: 'linear-gradient(90deg, #ffffff, #ffde59, #ffffff)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            letterSpacing: '-1px'
-          }}>
-            MzApp
-          </div>
-        </div>
+                <div style={{height: '1px', background: '#e5e7eb', margin: '6px 0'}}></div>
 
-        <div style={{display: 'flex', alignItems: 'center', gap: '2px'}}>
-          <button type="button" onClick={()=>router.push('/search')} style={{background: 'none', border: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><Search size={22} color='#fff' strokeWidth={3}/></button>
-          <div style={{position: 'relative'}} ref={menuRef}>
-            <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><MoreVertical size={22} color='#fff' strokeWidth={3}/></button>
-            {showMenu && (
-              <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px', width: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 60}}>
-                <button onClick={()=>{setShowMenu(false); router.push('/contact');}} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: '#666', fontWeight: '700', fontSize: '16px'}}><Mail size={20}/> Contact us</button>
-                <div style={{height: '1px', background: border, margin: '4px 0'}}></div>
-                <button onClick={handleLogout} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: 'red', fontWeight: '700', fontSize: '16px'}}><LogOut size={20}/> Log out</button>
+                {/* Humberger menu hnuaiah Contact us leh Logout - icon mawi nen */}
+                <button onClick={()=>{setShowDropDown(false); router.push('/contact');}} style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 14px',
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  borderLeft: '4px solid transparent'
+                }}>
+                  <div style={{width: '30px', height: '30px', borderRadius: '8px', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0}}>
+                    <Mail size={16} color="#0ea5e9"/>
+                  </div>
+                  <span style={{fontSize: '14.5px', fontWeight: 600, color: '#333'}}>Contact us</span>
+                </button>
+
+                <button onClick={handleLogout} style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 14px',
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  borderLeft: '4px solid transparent'
+                }}>
+                  <div style={{width: '30px', height: '30px', borderRadius: '8px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0}}>
+                    <LogOut size={16} color="#ef4444"/>
+                  </div>
+                  <span style={{fontSize: '14.5px', fontWeight: 700, color: '#ef4444'}}>Logout</span>
+                </button>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Content - veilam menu a awm tawh lo - full width */}
       <div style={{paddingTop: '52px', minHeight: '100vh', background: dark? '#0f0f10' : '#f5f5f5'}}>
         <div style={{width: '100%', maxWidth: '100%'}}>
           {children}
         </div>
       </div>
 
-      {/* Background overlay dropdown hawn lai */}
       {showDropDown && (
-        <div onClick={()=>setShowDropDown(false)} style={{position: 'fixed', inset: 0, top: '52px', background: 'rgba(0,0,0,0.2)', zIndex: 40}}></div>
+        <div onClick={()=>setShowDropDown(false)} style={{position: 'fixed', inset: 0, top: '52px', background: 'rgba(0,0,0,0.15)', zIndex: 40}}></div>
       )}
     </div>
   )
-                             }
+}
