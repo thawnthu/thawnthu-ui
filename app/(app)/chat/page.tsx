@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, MoreVertical, Trash2 } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, orderBy, doc, deleteDoc, updateDoc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, doc, deleteDoc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 type ChatItem = {
@@ -67,29 +67,24 @@ export default function ChatListPage() {
     } catch { return ''; }
   };
 
+  // FIX 2 & 3: Receiver tan chiah unread, sender tan 0
   const getUnreadCount = (chat: ChatItem) => {
     if (!chat.lastSender || chat.lastSender === currentUid) return 0;
-    if (chat.unread && typeof chat.unread[currentUid]!== 'undefined') {
-      return chat.unread[currentUid] || 0;
-    }
-    return 0;
+    return chat.unread?.[currentUid] || 0;
   };
 
+  // FIX 4: Sender tan Read/Unread - receiver open hnu ah Read ah thlak realtime
   const getSenderStatus = (chat: ChatItem) => {
     if (chat.lastSender!== currentUid) return null;
     const otherId = chat.participants.find(p => p!== currentUid);
     if (!otherId) return 'Sent';
     const otherUnread = chat.unread?.[otherId] || 0;
     if (otherUnread > 0) return 'Unread';
-    try {
-      const lastT = chat.lastTimestamp?.toDate?.()?.getTime() || chat.updatedAt?.toDate?.()?.getTime() || 0;
-      const seenT = chat.seen?.[otherId]?.toDate?.()?.getTime() || 0;
-      if (seenT > 0 && lastT <= seenT + 1000) return 'Read';
-    } catch {}
-    return 'Unread';
+    return 'Read';
   };
 
   const handleOpenChat = async (chat: ChatItem) => {
+    // Optimistic - open hma in blue bo nghal, Chat(0) tur
     setChats(prev => prev.map(c =>
       c.id === chat.id
      ? {...c, unread: {...(c.unread||{}), [currentUid]: 0 }, seen: {...(c.seen||{}), [currentUid]: new Date() } }
@@ -108,7 +103,7 @@ export default function ChatListPage() {
     setChats(prev => prev.filter(c => c.id!== idToDelete));
     setDeleteId(null);
     setOpenMenuId(null);
-    try { await deleteDoc(doc(db, "chats", idToDelete)); } catch (e: any) { console.log('Delete error:', e.message); }
+    try { await deleteDoc(doc(db, "chats", idToDelete)); } catch {}
   };
 
   const highlightText = (text: string, q: string) => {
@@ -137,29 +132,40 @@ export default function ChatListPage() {
       <div style={{ padding: '0 12px 12px 12px' }}>
         <div style={{ background: '#fff', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
           {filtered.length===0? (
-            <p style={{ textAlign: 'center', color: '#888', padding: '40px 20px' }}>{search? `No chat for "${search}"` : 'Chat ala awm lo - Users atangin chat tan rawh'}</p>
+            <p style={{ textAlign: 'center', color: '#888', padding: '40px 20px' }}>{search? `No chat for "${search}"` : 'Chat ala awm lo'}</p>
           ) : filtered.map((chat) => {
             const unread = getUnreadCount(chat);
             const isUnread = unread > 0;
             const senderStatus = getSenderStatus(chat);
             const isMeSender = chat.lastSender === currentUid;
             return (
-              <div key={chat.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 14px', borderBottom: '1px solid #f0f0f0', background: isUnread? '#eef7ff' : '#fff', cursor: 'pointer', position: 'relative' }} onClick={() => handleOpenChat(chat)}>
+              <div key={chat.id} style={{
+                display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 14px',
+                borderBottom: '1px solid #f0f0f0',
+                background: isUnread? '#e3f2fd' : '#fff', // FIX 2: chat thar danglam
+                cursor: 'pointer', position: 'relative'
+              }} onClick={() => handleOpenChat(chat)}>
                 <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: getColor(chat.otherUser?.name || 'U'), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '700', flexShrink: 0 }}>{getInitial(chat.otherUser?.name || '?')}</div>
                 <div style={{ flex: 1, overflow: 'hidden' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <p style={{ margin: 0, fontSize: '16px', fontWeight: isUnread? '800' : '600', color: '#000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>{highlightText(chat.otherUser?.name || 'Unknown', search)}</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                      <span style={{ fontSize: '12px', color: isUnread? '#2563eb' : '#888', fontWeight: isUnread? '700' : '400' }}>{formatTime(chat.lastTimestamp || chat.updatedAt)}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                      <span style={{ fontSize: '12px', color: isUnread? '#0b57d0' : '#888', fontWeight: isUnread? '800' : '400' }}>{formatTime(chat.lastTimestamp || chat.updatedAt)}</span>
+                      {/* FIX 2: time bul ah badge */}
                       {isUnread && (
-                        <span style={{ background: '#2563eb', color: '#fff', fontSize: '11px', fontWeight: '700', minWidth: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>
+                        <span style={{ background: '#2563eb', color: '#fff', fontSize: '12px', fontWeight: '800', minWidth: '24px', height: '24px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px' }}>
                           {unread>9? '9+' : unread}
                         </span>
                       )}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3px' }}>
-                    <p style={{ margin: 0, fontSize: '14px', color: isUnread? '#000' : '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px', fontWeight: isUnread? '700' : '400' }}>
+                  <div style={{ marginTop: '3px' }}>
+                    <p style={{
+                      margin: 0, fontSize: '14px',
+                      color: isUnread? '#000' : '#666',
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '210px',
+                      fontWeight: isUnread? '700' : '400'
+                    }}>
                       {isMeSender? <><b>{senderStatus}:</b> {highlightText(chat.lastMessage || '...', search)}</> : <>{highlightText(chat.lastMessage || '...', search)}</>}
                     </p>
                   </div>
@@ -179,12 +185,11 @@ export default function ChatListPage() {
       </div>
       {deleteId && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={()=>setDeleteId(null)}>
-          <div onClick={e=>e.stopPropagation()} style={{ width: '100%', maxWidth: '330px', background: '#fff', borderRadius: '20px', padding: '20px', textAlign: 'center', boxSizing: 'border-box' }}>
+          <div onClick={e=>e.stopPropagation()} style={{ width: '100%', maxWidth: '330px', background: '#fff', borderRadius: '20px', padding: '20px', textAlign: 'center' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}><Trash2 size={22} color="#ef4444" /></div>
             <h3 style={{ margin: '0 0 6px 0', fontWeight: 800, fontSize: '1.1rem' }}>Delete chat?</h3>
-            <p style={{ margin: '0 0 18px 0', color: '#666', fontSize: '0.9rem' }}>Are you sure you want to delete this chat?</p>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={()=>setDeleteId(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #ddd', background: '#fff', color: '#000', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+              <button onClick={()=>setDeleteId(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #ddd', background: '#fff', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
               <button onClick={handleDelete} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Delete</button>
             </div>
           </div>
@@ -192,4 +197,4 @@ export default function ChatListPage() {
       )}
     </div>
   );
-                    }
+                                                                                                   }
