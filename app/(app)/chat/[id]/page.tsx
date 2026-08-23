@@ -2,12 +2,14 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { db, auth } from '@/lib/firebase';
-import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, writeBatch, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ArrowLeft, Send, Check, CheckCheck } from 'lucide-react';
 
 export default function ChatRoom() {
-  const { id: otherUid } = useParams();
+  const params = useParams();
+  const otherUidRaw = params.id;
+  const otherUid = Array.isArray(otherUidRaw)? otherUidRaw[0] : otherUidRaw as string;
   const router = useRouter();
   const [currentUid, setCurrentUid] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
@@ -17,41 +19,33 @@ export default function ChatRoom() {
 
   useEffect(()=>{ onAuthStateChanged(auth, u=>{ if(u) setCurrentUid(u.uid); }); }, []);
 
-  // Other user info
   useEffect(()=>{
-    const unsub = onSnapshot(doc(db, "users", otherUid as string), s=>{ if(s.exists()) setOtherUser(s.data()); });
+    if(!otherUid) return;
+    const unsub = onSnapshot(doc(db, "users", otherUid), s=>{ if(s.exists()) setOtherUser(s.data()); });
     return ()=>unsub();
   }, [otherUid]);
 
-  // ChatId siam - user pahnih id sort
   const getChatId = (uid1:string, uid2:string) => {
     return [uid1, uid2].sort().join('_');
   };
 
-  // Messages load + Seen logic
   useEffect(()=>{
     if(!currentUid ||!otherUid) return;
-    const chatId = getChatId(currentUid, otherUid as string);
+    const chatId = getChatId(currentUid, otherUid);
 
     const q = query(collection(db, "messages"), where("chatId", "==", chatId), orderBy("createdAt", "asc"));
     const unsub = onSnapshot(q, async (snap)=>{
       const list = snap.docs.map(d=>({id:d.id,...d.data()} as any));
       setMessages(list);
-
-      // Auto scroll chung ber a thar awm apiang
       setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:'smooth'}), 100);
 
-      // SEEN LOGIC: message keima hnen a rawn thleng, seen loh zawng seen ah thlak
       const batch = writeBatch(db);
       let needUpdate = false;
-      let lastSeenId = '';
       list.forEach(m=>{
         if(m.receiverId===currentUid && m.status!=='seen'){
           batch.update(doc(db, "messages", m.id), { status:'seen', seenAt: serverTimestamp() });
           needUpdate = true;
-          lastSeenId = m.id;
         }
-        // Deliver logic - online chuan delivered
         if(m.receiverId===currentUid && m.status==='sent'){
           batch.update(doc(db, "messages", m.id), { status:'delivered', deliveredAt: serverTimestamp() });
           needUpdate = true;
@@ -59,13 +53,11 @@ export default function ChatRoom() {
       });
       if(needUpdate){
         await batch.commit();
-        // Chat doc lastMessageStatus seen ah thlak + unread 0
-        const chatDocId = chatId;
         try{
-          await updateDoc(doc(db, "chats", chatDocId), {
+          await updateDoc(doc(db, "chats", chatId), {
             lastMessageStatus:'seen',
-            [`unreadCount.${currentUid}`]:0
-          });
+            [ `unreadCount.${currentUid}` ]: 0
+          } as any);
         }catch{}
       }
     });
@@ -73,24 +65,22 @@ export default function ChatRoom() {
   }, [currentUid, otherUid]);
 
   const sendMessage = async ()=>{
-    if(!text.trim() ||!currentUid) return;
-    const chatId = getChatId(currentUid, otherUid as string);
+    if(!text.trim() ||!currentUid ||!otherUid) return;
+    const chatId = getChatId(currentUid, otherUid);
     const msgText = text;
     setText('');
 
-    // 1 Tick - sent
     const newMsg = {
       chatId,
       senderId: currentUid,
       receiverId: otherUid,
       text: msgText,
-      status: 'sent', // 1 tick
+      status: 'sent',
       createdAt: serverTimestamp(),
       seen: false
     };
     const msgRef = await addDoc(collection(db, "messages"), newMsg);
 
-    // Chats collection update - chung ber ah a awm zel nan lastMessageAt update
     const chatDocRef = doc(db, "chats", chatId);
     try{
       await updateDoc(chatDocRef, {
@@ -100,11 +90,9 @@ export default function ChatRoom() {
         lastMessageSenderId: currentUid,
         lastMessageStatus: 'sent',
         updatedAt: serverTimestamp(),
-        [`unreadCount.${otherUid}`]: (otherUser?.unreadCount?.[otherUid]||0) + 1 || 1
-      });
+        [ `unreadCount.${otherUid}` ]: 1
+      } as any);
     }catch{
-      // chat awm loh chuan siam
-      const { setDoc } = await import('firebase/firestore');
       await setDoc(chatDocRef, {
         participants:[currentUid, otherUid],
         lastMessage: msgText,
@@ -113,23 +101,21 @@ export default function ChatRoom() {
         lastMessageStatus: 'sent',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        [`unreadCount.${otherUid}`]:1,
-        [`unreadCount.${currentUid}`]:0
-      }, {merge:true});
+        [ `unreadCount.${otherUid}` ]: 1,
+        [ `unreadCount.${currentUid}` ]: 0
+      } as any, {merge:true});
     }
 
-    // 2 sec hnu ah delivered ang ah ngai (receiver online nise)
     setTimeout(async ()=>{
       try{
         await updateDoc(doc(db, "messages", msgRef.id), { status:'delivered', deliveredAt: serverTimestamp() });
-        await updateDoc(chatDocRef, { lastMessageStatus:'delivered' });
+        await updateDoc(chatDocRef, { lastMessageStatus:'delivered' } as any);
       }catch{}
     }, 1000);
   };
 
   return (
     <div style={{display:'flex', flexDirection:'column', height:'calc(100vh - 52px)', background:'#e5ddd5'}}>
-      {/* HEADER */}
       <div style={{height:'60px', background:'#8d31ce', display:'flex', alignItems:'center', gap:'10px', padding:'0 10px', position:'fixed', top:'52px', left:0, right:0, zIndex:20}}>
         <button onClick={()=>router.back()} style={{background:'none', border:'none', cursor:'pointer'}}><ArrowLeft color="#fff"/></button>
         <div style={{width:'40px', height:'40px', borderRadius:'50%', background:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, overflow:'hidden'}}>
@@ -141,7 +127,6 @@ export default function ChatRoom() {
         </div>
       </div>
 
-      {/* MESSAGES */}
       <div style={{flex:1, overflowY:'auto', padding:'70px 10px 80px', display:'flex', flexDirection:'column', gap:'6px'}}>
         {messages.map(m=>{
           const isMe = m.senderId===currentUid;
@@ -175,7 +160,6 @@ export default function ChatRoom() {
         <div ref={bottomRef}></div>
       </div>
 
-      {/* INPUT */}
       <div style={{position:'fixed', bottom:0, left:0, right:0, background:'#f0f0f0', padding:'8px 10px', display:'flex', gap:'8px', alignItems:'center'}}>
         <input value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==='Enter'&&sendMessage()} placeholder="Type a message" style={{flex:1, border:'none', borderRadius:'24px', padding:'12px 16px', outline:'none', fontSize:'15px'}}/>
         <button onClick={sendMessage} style={{background:'#8d31ce', border:'none', width:'44px', height:'44px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer'}}>
@@ -184,4 +168,4 @@ export default function ChatRoom() {
       </div>
     </div>
   );
-}
+          }
