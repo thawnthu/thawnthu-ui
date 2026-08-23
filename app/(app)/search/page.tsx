@@ -33,6 +33,28 @@ export default function SearchPage() {
   const filteredUsers = q? users.filter(u => filter(u.name) || filter(u.email) || filter(u.displayName)) : [];
   const filteredGroups = q? groups.filter(g => filter(g.name)) : [];
 
+  // FIX - click a kal theih nan
+  const handleUserClick = (u:any) => {
+    const uid = u.uid || u.id;
+    // Profile ah kal - i app ah /profile/[id] leh /users/[id] pahnih a awm thei
+    router.push(`/profile/${uid}`);
+  };
+
+  const handlePostClick = (p:any) => {
+    // Post ah kal - home ah postId query nen
+    localStorage.setItem('scrollToPost', p.id);
+    router.push(`/home?post=${p.id}#${p.id}`);
+  };
+
+  const handleGroupClick = (g:any) => {
+    router.push(`/group/${g.id}`);
+  };
+
+  const handleChatClick = (u:any) => {
+    const uid = u.uid || u.id;
+    router.push(`/chat/${uid}`);
+  };
+
   return (
     <div style={{minHeight: 'calc(100vh - 52px)', background: '#f5f5f5', display:'flex', flexDirection:'column'}}>
       <div style={{
@@ -77,54 +99,47 @@ export default function SearchPage() {
 
         {q && (
           <div style={{display:'flex', flexDirection:'column', gap:'10px', marginTop:'8px'}}>
-            {/* USERS - profile pic lang vek */}
             {filteredUsers.length>0 && filteredUsers.slice(0,10).map(u=>{
               const pic = getPic(u);
               return (
-                <div key={u.id} onClick={()=>router.push(`/users/${u.id}`)} style={{display:'flex', alignItems:'center', gap:'12px', padding:'12px', background:'#fff', borderRadius:'16px', cursor:'pointer', boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
+                <div key={u.id} onClick={()=>handleUserClick(u)} style={{display:'flex', alignItems:'center', gap:'12px', padding:'12px', background:'#fff', borderRadius:'16px', cursor:'pointer', boxShadow:'0 1px 4px rgba(0,0,0,0.06)', border:'1px solid #f0f0f0'}}>
                   {pic? (
                     <img src={pic} alt={u.name} style={{width:'46px', height:'46px', borderRadius:'50%', objectFit:'cover', flexShrink:0, border:'2px solid #f0f0f0'}}/>
                   ) : (
-                    <div style={{width:'46px', height:'46px', borderRadius:'50%', background:'#8d31ce', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, color:'#fff', fontSize:'18px', flexShrink:0}}>{u.name?.[0]?.toUpperCase() || u.email?.[0]?.toUpperCase() || 'U'}</div>
+                    <div style={{width:'46px', height:'46px', borderRadius:'50%', background:'#8d31ce', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, color:'#fff', fontSize:'18px', flexShrink:0}}>{u.name?.[0]?.toUpperCase() || 'U'}</div>
                   )}
                   <div style={{flex:1, minWidth:0}}>
-                    <div style={{fontWeight:700, fontSize:'15px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{u.name || u.displayName}</div>
-                    <div style={{fontSize:'12px', color:'#888', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{u.email}</div>
+                    <div style={{fontWeight:700, fontSize:'15px'}}>{u.name || u.displayName}</div>
+                    <div style={{fontSize:'12px', color:'#888'}}>{u.email} • Tap to view profile</div>
                   </div>
                 </div>
               );
             })}
 
-            {/* POSTS - author pic lang vek */}
             {filteredPosts.length>0 && filteredPosts.slice(0,10).map(p=>{
               const author = usersMap[p.authorId || p.uid || p.userId] || {};
               const pic = getPic(author) || getPic(p);
               return (
-                <div key={p.id} onClick={()=>router.push(`/home`)} style={{display:'flex', alignItems:'center', gap:'12px', padding:'12px 14px', background:'#fff', borderRadius:'16px', cursor:'pointer', boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
+                <div key={p.id} onClick={()=>handlePostClick(p)} style={{display:'flex', alignItems:'center', gap:'12px', padding:'12px 14px', background:'#fff', borderRadius:'16px', cursor:'pointer', boxShadow:'0 1px 4px rgba(0,0,0,0.06)', border:'1px solid #f0f0f0'}}>
                   {pic? (
                     <img src={pic} alt="" style={{width:'42px', height:'42px', borderRadius:'50%', objectFit:'cover', flexShrink:0}}/>
                   ) : (
-                    <div style={{width:'42px', height:'42px', borderRadius:'50%', background:'#e0e7ff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, flexShrink:0}}>{p.authorName?.[0] || 'P'}</div>
+                    <div style={{width:'42px', height:'42px', borderRadius:'50%', background:'#e0e7ff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, flexShrink:0}}>P</div>
                   )}
                   <div style={{flex:1, minWidth:0}}>
                     <div style={{fontWeight:700, fontSize:'14px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.title || p.content?.slice(0,50)}</div>
-                    <div style={{fontSize:'12px', color:'#888', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.category} • {p.content?.slice(0,60)}</div>
+                    <div style={{fontSize:'12px', color:'#888'}}>{p.category} • {p.content?.slice(0,60)} • Tap to view post</div>
                   </div>
                 </div>
               );
             })}
 
-            {/* GROUPS - group pic lang vek */}
             {filteredGroups.length>0 && filteredGroups.map(g=>{
               const pic = getPic(g);
               return (
-                <div key={g.id} onClick={()=>router.push(`/group/${g.id}`)} style={{display:'flex', alignItems:'center', gap:'12px', padding:'12px 14px', background:'#fff', borderRadius:'16px', cursor:'pointer', boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
-                  {pic? (
-                    <img src={pic} alt="" style={{width:'42px', height:'42px', borderRadius:'50%', objectFit:'cover', flexShrink:0}}/>
-                  ) : (
-                    <div style={{width:'42px', height:'42px', borderRadius:'50%', background:'#f3e8ff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, flexShrink:0}}>G</div>
-                  )}
-                  <div style={{fontWeight:700, fontSize:'14px'}}>{g.name}</div>
+                <div key={g.id} onClick={()=>handleGroupClick(g)} style={{display:'flex', alignItems:'center', gap:'12px', padding:'12px 14px', background:'#fff', borderRadius:'16px', cursor:'pointer', boxShadow:'0 1px 4px rgba(0,0,0,0.06)', border:'1px solid #f0f0f0'}}>
+                  {pic? <img src={pic} alt="" style={{width:'42px', height:'42px', borderRadius:'50%', objectFit:'cover', flexShrink:0}}/> : <div style={{width:'42px', height:'42px', borderRadius:'50%', background:'#f3e8ff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, flexShrink:0}}>G</div>}
+                  <div style={{fontWeight:700, fontSize:'14px'}}>{g.name} • Tap to view group</div>
                 </div>
               );
             })}
