@@ -1,7 +1,7 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { Search, MoreVertical, LogOut, Mail } from 'lucide-react';
+import { Search, MoreVertical, LogOut, Mail, Home, MessageCircle, Wifi, Bell, Users2, CircleDot, User, Users, Settings } from 'lucide-react';
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp, collection, onSnapshot, query, where } from "firebase/firestore";
@@ -86,19 +86,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => { unsubAuth(); if (unsubChats) unsubChats(); };
   }, []);
 
-  const tabs = ['Home', 'Chat', 'Online', 'Notification', 'Group', 'Status', 'Profile', 'Users', 'Setting'];
+  const tabs = [
+    { name: 'Home', icon: Home },
+    { name: 'Chat', icon: MessageCircle },
+    { name: 'Online', icon: Wifi },
+    { name: 'Notification', icon: Bell },
+    { name: 'Group', icon: Users2 },
+    { name: 'Status', icon: CircleDot },
+    { name: 'Profile', icon: User },
+    { name: 'Users', icon: Users },
+    { name: 'Setting', icon: Settings },
+  ];
   const currentPath = pathname.split('/')[1] || 'home';
   const activeTab = currentPath === ''? 'Home' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1);
 
-  const getTabLabel = (tab: string) => {
-    if (tab === 'Users') return `Users(${usersCount})`;
-    if (tab === 'Online') return `Online(${onlineCount})`;
-    if (tab === 'Chat') return `Chat(${chatUnread})`;
-    if (tab === 'Notification') return `Notification(98)`;
-    return tab;
-  };
-
-  // FIX: Category delete tawh - Status chu /status ah kal tawh tur
   const handleTab = (tab: string) => {
     router.push(`/${tab.toLowerCase()}`);
   }
@@ -110,20 +111,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       router.replace('/');
     } catch (e) { console.log("Logout error", e); }
   }
-  const accent = '#2563eb';
-  const activeColor = '#ff6b35';
   const card = dark? '#1a1a1c' : '#ffffff';
   const border = dark? '#2a2a2c' : '#e0e0e0';
   return (
     <div style={{background: dark? '#0f0f10' : '#f5f5f5', minHeight: '100vh', fontFamily: 'Inter, sans-serif'}}>
-      <div style={{position: 'sticky', top: 0, zIndex: 30, background: '#8d31ce', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 4px 8px 16px'}}>
-        <div style={{fontSize: '22px', fontWeight: '800', color: '#fff'}}>MzApp</div>
-        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-          <button onClick={()=>router.push('/search')} style={{background: 'none', border: 'none', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><Search size={22} color='#fff'/></button>
+      {/* 1 & 2 & 6 - HEADER padding ti zim, font mawi, search bold, page tin ah lang reng */}
+      <div style={{position: 'sticky', top: 0, zIndex: 30, background: '#8d31ce', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 8px 0 12px', height: '48px'}}>
+        <div style={{fontSize: '26px', fontWeight: '900', color: '#fff', fontFamily: 'Outfit, Poppins, Inter, sans-serif', letterSpacing: '-0.8px'}}>MzApp</div>
+        <div style={{display: 'flex', alignItems: 'center', gap: '2px'}}>
+          <button onClick={()=>router.push('/search')} style={{background: 'none', border: 'none', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><Search size={22} color='#fff' strokeWidth={3} /></button>
           <div style={{position: 'relative'}} ref={menuRef}>
-            <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><MoreVertical size={22} color='#fff'/></button>
+            <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><MoreVertical size={22} color='#fff' strokeWidth={3} /></button>
             {showMenu && (
-              <div style={{position: 'absolute', right: 0, top: '44px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px', width: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 40}}>
+              <div style={{position: 'absolute', right: 0, top: '40px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px', width: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 40}}>
                 <button onClick={()=>router.push('/contact')} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: '#666', fontWeight: '700', fontSize: '16px'}}><Mail size={20}/> Contact us</button>
                 <div style={{height: '1px', background: border, margin: '4px 0'}}></div>
                 <button onClick={handleLogout} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: 'red', fontWeight: '700', fontSize: '16px'}}><LogOut size={20}/> Log out</button>
@@ -132,23 +132,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </div>
-      <div style={{position: 'sticky', top: '52px', zIndex: 20, background: card, display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 16px 4px 16px', borderBottom: `2px solid ${border}`, boxShadow: '0 2px 4px rgba(0,0,0,0.05)'}}>
-        <div style={{display: 'flex', justifyContent: 'space-between', gap: '8px', overflowX: 'auto'}}>
-          {tabs.slice(0,4).map(tab => {
-            const isActive = activeTab === tab;
-            const isChatUnread = tab === 'Chat' && chatUnread > 0;
-            const tabColor = isChatUnread? '#ef4444' : isActive? activeColor : accent;
-            return (<button key={tab} onClick={()=>handleTab(tab)} style={{padding: '6px 2px', border: 'none', background: 'none', color: tabColor, fontWeight: isChatUnread? '800' : '700', cursor: 'pointer', fontSize: '16px', whiteSpace: 'nowrap'}}>{getTabLabel(tab)}</button>)
+
+      {/* 3,4,5,6 - 3+7 LAYOUT - Vertical menu veilam, count paih */}
+      <div style={{display: 'flex', minHeight: 'calc(100vh - 48px)'}}>
+        {/* VEILAM 3 - Menu */}
+        <div style={{width: '30%', maxWidth: '150px', minWidth: '115px', background: card, borderRight: `1px solid ${border}`, position: 'sticky', top: '48px', height: 'calc(100vh - 48px)', overflowY: 'auto', padding: '6px 0'}}>
+          {tabs.map((tab, idx) => {
+            const isActive = activeTab === tab.name;
+            const Icon = tab.icon;
+            return (
+              <div key={tab.name}>
+                <button onClick={()=>handleTab(tab.name)} style={{width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '13px 10px', border: 'none', background: isActive? '#f3e8ff' : 'none', color: isActive? '#8d31ce' : '#333', fontWeight: isActive? '800' : '600', cursor: 'pointer', fontSize: '14.5px', textAlign: 'left', borderLeft: isActive? '4px solid #8d31ce' : '4px solid transparent'}}>
+                  <Icon size={18} color={isActive? '#8d31ce' : '#666'} strokeWidth={isActive? 2.6 : 2} />
+                  {tab.name}
+                </button>
+                {idx < tabs.length - 1 && <div style={{height: '1px', background: '#f0f0f0', margin: '0 10px'}}></div>}
+              </div>
+            );
           })}
         </div>
-        <div style={{display: 'flex', justifyContent: 'space-between', gap: '8px', overflowX: 'auto'}}>
-          {tabs.slice(4,9).map(tab => {
-            const isActive = activeTab === tab;
-            return (<button key={tab} onClick={()=>handleTab(tab)} style={{padding: '6px 2px', border: 'none', background: 'none', color: isActive? activeColor : accent, fontWeight: '700', cursor: 'pointer', fontSize: '16px', whiteSpace: 'nowrap'}}>{getTabLabel(tab)}</button>)
-          })}
+
+        {/* DINGLAM 7 - Content */}
+        <div style={{width: '70%', flex: 1, background: dark? '#0f0f10' : '#f5f5f5', overflowY: 'auto'}}>
+          <div style={{padding: '0px'}}>{children}</div>
         </div>
       </div>
-      <div style={{padding: '0px'}}>{children}</div>
     </div>
   )
-}
+                   }
