@@ -1,153 +1,200 @@
 'use client';
-import { usePathname, useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
-import { Search, MoreVertical, LogOut, Mail } from 'lucide-react';
-import { signOut, onAuthStateChanged } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
-import { doc, setDoc, serverTimestamp, collection, onSnapshot, query, where } from "firebase/firestore";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Search, MoreVertical, Trash2 } from 'lucide-react';
+import { auth, db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot, orderBy, doc, deleteDoc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+type ChatItem = {
+  id: string;
+  participants: string[];
+  lastMessage: string;
+  lastSender: string;
+  lastTimestamp: any;
+  updatedAt?: any;
+  unread?: any;
+  seen?: any;
+  otherUser?: any;
+};
+
+export default function ChatListPage() {
   const router = useRouter();
-  const pathname = usePathname();
-  const [dark] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
-  const [usersCount, setUsersCount] = useState(0);
-  const [onlineCount, setOnlineCount] = useState(0);
-  const [chatUnread, setChatUnread] = useState(0);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [currentUid, setCurrentUid] = useState<string>('');
+  const [chats, setChats] = useState<ChatItem[]>([]);
+  const [search, setSearch] = useState('');
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current &&!menuRef.current.contains(event.target as Node)) setShowMenu(false);
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    let cleanupFn: (() => void) | null = null;
-    let intervalId: any = null;
-    const setOnline = async (uid: string) => { try { await setDoc(doc(db, "users", uid), { online: true, lastSeen: serverTimestamp() }, { merge: true }); } catch {} };
-    const setOffline = async (uid: string) => { try { await setDoc(doc(db, "users", uid), { online: false, lastSeen: serverTimestamp() }, { merge: true }); } catch {} };
-    const unsubAuth = onAuthStateChanged(auth, (user) => {
-      if (cleanupFn) { cleanupFn(); cleanupFn = null; }
-      if (intervalId) clearInterval(intervalId);
-      if (!user) return;
-      const uid = user.uid;
-      setOnline(uid);
-      intervalId = setInterval(() => setOnline(uid), 30000);
-      const handleVisibility = () => { if (document.visibilityState === 'visible') setOnline(uid); else setOffline(uid); };
-      const handleBeforeUnload = () => setOffline(uid);
-      document.addEventListener('visibilitychange', handleVisibility);
-      window.addEventListener('beforeunload', handleBeforeUnload);
-      window.addEventListener('pagehide', handleBeforeUnload);
-      cleanupFn = () => {
-        document.removeEventListener('visibilitychange', handleVisibility);
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-        window.removeEventListener('pagehide', handleBeforeUnload);
-        setOffline(uid);
-        if (intervalId) clearInterval(intervalId);
-      };
-    });
-    return () => { unsubAuth(); if (cleanupFn) cleanupFn(); if (intervalId) clearInterval(intervalId); };
-  }, []);
-
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, "users"), (snap) => {
-      const allUsers = snap.docs.map(d => d.data() as any);
-      setUsersCount(allUsers.length - 1 < 0? allUsers.length : allUsers.length - 1);
-      const online = allUsers.filter(u => {
-        if (!u.online ||!u.lastSeen) return false;
-        try { const last = u.lastSeen.toDate? u.lastSeen.toDate() : new Date(u.lastSeen); return Date.now() - last.getTime() < 2 * 60 * 1000; } catch { return false; }
-      });
-      setOnlineCount(online.length > 0 && online.find(o => o.uid === auth.currentUser?.uid)? online.length - 1 : online.length);
-    });
+    const unsub = onAuthStateChanged(auth, u => { if (u) setCurrentUid(u.uid); });
     return () => unsub();
   }, []);
 
-  // FIX 1: Chat(0) -> Chat(1) realtime - unread >0 chiah count
   useEffect(() => {
-    let unsubChats: any = null;
-    const unsubAuth = onAuthStateChanged(auth, (user) => {
-      if (!user) { setChatUnread(0); return; }
-      if (unsubChats) unsubChats();
-      const q = query(collection(db, "chats"), where("participants", "array-contains", user.uid));
-      unsubChats = onSnapshot(q, (snap) => {
-        let count = 0;
-        snap.docs.forEach(d => {
-          const data = d.data() as any;
-          // Receiver tan chiah - lastSender midang a nih chuan unread check
-          if (data.lastSender && data.lastSender!== user.uid) {
-            const unread = data.unread?.[user.uid] || 0;
-            if (unread > 0) count += 1;
-          }
-        });
-        setChatUnread(count);
-      });
+    if (!currentUid) return;
+    const q = query(collection(db, "chats"), where("participants", "array-contains", currentUid), orderBy("updatedAt", "desc"));
+    const unsub = onSnapshot(q, async (snap) => {
+      const list: ChatItem[] = [];
+      for (const d of snap.docs) {
+        const data = d.data() as any;
+        const otherId = data.participants.find((p: string) => p!== currentUid);
+        let otherUser = null;
+        if (otherId) {
+          try {
+            const uSnap = await getDoc(doc(db, "users", otherId));
+            if (uSnap.exists()) otherUser = { id: uSnap.id,...uSnap.data() };
+          } catch {}
+        }
+        list.push({ id: d.id, otherUser,...data } as ChatItem);
+      }
+      setChats(list);
     });
-    return () => { unsubAuth(); if (unsubChats) unsubChats(); };
-  }, []);
+    return () => unsub();
+  }, [currentUid]);
 
-  const tabs = ['Home', 'Chat', 'Online', 'Notification', 'Group', 'Status', 'Profile', 'Users', 'Setting'];
-  const currentPath = pathname.split('/')[1] || 'home';
-  const activeTab = currentPath === ''? 'Home' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1) === 'Category'? 'Status' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1);
-  const getTabLabel = (tab: string) => {
-    if (tab === 'Users') return `Users(${usersCount})`;
-    if (tab === 'Online') return `Online(${onlineCount})`;
-    if (tab === 'Chat') return `Chat(${chatUnread})`;
-    if (tab === 'Notification') return `Notification(98)`;
-    return tab;
-  };
-  const handleTab = (tab: string) => {
-    if (tab === 'Status') { router.push('/category'); return; }
-    router.push(`/${tab.toLowerCase()}`);
-  }
-  const handleLogout = async () => {
+  const getInitial = (name: string) => name?.charAt(0).toUpperCase() || '?';
+  const getColor = (name: string) => ['#2563eb','#ef4444','#ff6b35','#f59e0b','#8d31ce'][(name?.length || 0) % 5];
+  const formatTime = (ts: any) => {
+    if (!ts) return '';
     try {
-      if (auth.currentUser) await setDoc(doc(db, "users", auth.currentUser.uid), { online: false, lastSeen: serverTimestamp() }, { merge: true });
-      await signOut(auth);
-      router.replace('/');
-    } catch (e) { console.log("Logout error", e); }
-  }
-  const accent = '#2563eb';
-  const activeColor = '#ff6b35';
-  const card = dark? '#1a1a1c' : '#ffffff';
-  const border = dark? '#2a2a2c' : '#e0e0e0';
+      const date = ts.toDate? ts.toDate() : new Date(ts);
+      let h = date.getHours();
+      const m = date.getMinutes().toString().padStart(2, '0');
+      const ampm = h >= 12? 'pm' : 'am';
+      h = h % 12; h = h? h : 12;
+      return `${h}:${m} ${ampm}`;
+    } catch { return ''; }
+  };
+
+  // FIX 2 & 3: Receiver tan chiah unread, sender tan 0
+  const getUnreadCount = (chat: ChatItem) => {
+    if (!chat.lastSender || chat.lastSender === currentUid) return 0;
+    return chat.unread?.[currentUid] || 0;
+  };
+
+  // FIX 4: Sender tan Read/Unread - receiver open hnu ah Read ah thlak realtime
+  const getSenderStatus = (chat: ChatItem) => {
+    if (chat.lastSender!== currentUid) return null;
+    const otherId = chat.participants.find(p => p!== currentUid);
+    if (!otherId) return 'Sent';
+    const otherUnread = chat.unread?.[otherId] || 0;
+    if (otherUnread > 0) return 'Unread';
+    return 'Read';
+  };
+
+  const handleOpenChat = async (chat: ChatItem) => {
+    // Optimistic - open hma in blue bo nghal, Chat(0) tur
+    setChats(prev => prev.map(c =>
+      c.id === chat.id
+     ? {...c, unread: {...(c.unread||{}), [currentUid]: 0 }, seen: {...(c.seen||{}), [currentUid]: new Date() } }
+        : c
+    ));
+    try {
+      await setDoc(doc(db, "chats", chat.id), { [`unread.${currentUid}`]: 0, [`seen.${currentUid}`]: serverTimestamp() }, { merge: true });
+    } catch {}
+    const otherId = chat.participants.find(p => p!== currentUid);
+    router.push(`/chat/${otherId}`);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    const idToDelete = deleteId;
+    setChats(prev => prev.filter(c => c.id!== idToDelete));
+    setDeleteId(null);
+    setOpenMenuId(null);
+    try { await deleteDoc(doc(db, "chats", idToDelete)); } catch {}
+  };
+
+  const highlightText = (text: string, q: string) => {
+    if (!q ||!text) return text;
+    try {
+      const regex = new RegExp(`(${q})`, 'gi');
+      const parts = text.split(regex);
+      return parts.map((part, i) => regex.test(part)? <span key={i} style={{ background: '#ffeb3b', color: '#000', fontWeight: 700, borderRadius: '3px', padding: '0 2px' }}>{part}</span> : part);
+    } catch { return text; }
+  };
+
+  const filtered = chats.filter(c => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return c.otherUser?.name?.toLowerCase().includes(q) || c.lastMessage?.toLowerCase().includes(q);
+  });
+
   return (
-    <div style={{background: dark? '#0f0f10' : '#f5f5f5', minHeight: '100vh', fontFamily: 'Inter, sans-serif'}}>
-      <div style={{position: 'sticky', top: 0, zIndex: 30, background: '#8d31ce', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 4px 8px 16px'}}>
-        <div style={{fontSize: '22px', fontWeight: '800', color: '#fff'}}>MzApp</div>
-        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-          <button onClick={()=>router.push('/search')} style={{background: 'none', border: 'none', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><Search size={22} color='#fff'/></button>
-          <div style={{position: 'relative'}} ref={menuRef}>
-            <button onClick={()=>setShowMenu(!showMenu)} style={{background: 'none', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}><MoreVertical size={22} color='#fff'/></button>
-            {showMenu && (
-              <div style={{position: 'absolute', right: 0, top: '44px', background: card, border: `1px solid ${border}`, borderRadius: '12px', padding: '8px', width: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 40}}>
-                <button onClick={()=>router.push('/contact')} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: '#666', fontWeight: '700', fontSize: '16px'}}><Mail size={20}/> Contact us</button>
-                <div style={{height: '1px', background: border, margin: '4px 0'}}></div>
-                <button onClick={handleLogout} style={{display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: 'red', fontWeight: '700', fontSize: '16px'}}><LogOut size={20}/> Log out</button>
+    <div style={{ background: '#f5f5f5', minHeight: 'calc(100vh - 130px)' }}>
+      <div style={{ position: 'sticky', top: '130px', zIndex: 15, padding: '10px 12px 12px 12px', background: '#f5f5f5' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fff', padding: '14px 16px', borderRadius: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #eee' }}>
+          <Search size={20} color="#888" />
+          <input type="text" placeholder="Search chat..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '16px' }} />
+        </div>
+      </div>
+      <div style={{ padding: '0 12px 12px 12px' }}>
+        <div style={{ background: '#fff', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          {filtered.length===0? (
+            <p style={{ textAlign: 'center', color: '#888', padding: '40px 20px' }}>{search? `No chat for "${search}"` : 'Chat ala awm lo'}</p>
+          ) : filtered.map((chat) => {
+            const unread = getUnreadCount(chat);
+            const isUnread = unread > 0;
+            const senderStatus = getSenderStatus(chat);
+            const isMeSender = chat.lastSender === currentUid;
+            return (
+              <div key={chat.id} style={{
+                display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 14px',
+                borderBottom: '1px solid #f0f0f0',
+                background: isUnread? '#e3f2fd' : '#fff', // FIX 2: chat thar danglam
+                cursor: 'pointer', position: 'relative'
+              }} onClick={() => handleOpenChat(chat)}>
+                <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: getColor(chat.otherUser?.name || 'U'), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '700', flexShrink: 0 }}>{getInitial(chat.otherUser?.name || '?')}</div>
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '16px', fontWeight: isUnread? '800' : '600', color: '#000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>{highlightText(chat.otherUser?.name || 'Unknown', search)}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                      <span style={{ fontSize: '12px', color: isUnread? '#0b57d0' : '#888', fontWeight: isUnread? '800' : '400' }}>{formatTime(chat.lastTimestamp || chat.updatedAt)}</span>
+                      {/* FIX 2: time bul ah badge */}
+                      {isUnread && (
+                        <span style={{ background: '#2563eb', color: '#fff', fontSize: '12px', fontWeight: '800', minWidth: '24px', height: '24px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px' }}>
+                          {unread>9? '9+' : unread}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '3px' }}>
+                    <p style={{
+                      margin: 0, fontSize: '14px',
+                      color: isUnread? '#000' : '#666',
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '210px',
+                      fontWeight: isUnread? '700' : '400'
+                    }}>
+                      {isMeSender? <><b>{senderStatus}:</b> {highlightText(chat.lastMessage || '...', search)}</> : <>{highlightText(chat.lastMessage || '...', search)}</>}
+                    </p>
+                  </div>
+                </div>
+                <div style={{ position: 'relative' }} onClick={(e)=>e.stopPropagation()}>
+                  <button onClick={()=>setOpenMenuId(openMenuId===chat.id? null : chat.id)} style={{ border: 'none', background: 'none', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><MoreVertical size={18} color="#999" /></button>
+                  {openMenuId===chat.id && (
+                    <div style={{ position: 'absolute', right: 0, top: '32px', background: '#fff', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '120px', zIndex: 10, overflow: 'hidden' }}>
+                      <button onClick={()=>{ setDeleteId(chat.id); setOpenMenuId(null); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '12px', border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}><Trash2 size={16}/> Delete</button>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
+            );
+          })}
+        </div>
+      </div>
+      {deleteId && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={()=>setDeleteId(null)}>
+          <div onClick={e=>e.stopPropagation()} style={{ width: '100%', maxWidth: '330px', background: '#fff', borderRadius: '20px', padding: '20px', textAlign: 'center' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}><Trash2 size={22} color="#ef4444" /></div>
+            <h3 style={{ margin: '0 0 6px 0', fontWeight: 800, fontSize: '1.1rem' }}>Delete chat?</h3>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+              <button onClick={()=>setDeleteId(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #ddd', background: '#fff', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleDelete} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Delete</button>
+            </div>
           </div>
         </div>
-      </div>
-      <div style={{position: 'sticky', top: '52px', zIndex: 20, background: card, display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 16px 4px 16px', borderBottom: `2px solid ${border}`, boxShadow: '0 2px 4px rgba(0,0,0,0.05)'}}>
-        <div style={{display: 'flex', justifyContent: 'space-between', gap: '8px', overflowX: 'auto'}}>
-          {tabs.slice(0,4).map(tab => {
-            const isActive = activeTab === tab;
-            const isChatUnread = tab === 'Chat' && chatUnread > 0;
-            const tabColor = isChatUnread? '#ef4444' : isActive? activeColor : accent;
-            return (<button key={tab} onClick={()=>handleTab(tab)} style={{padding: '6px 2px', border: 'none', background: 'none', color: tabColor, fontWeight: isChatUnread? '800' : '700', cursor: 'pointer', fontSize: '16px', whiteSpace: 'nowrap'}}>{getTabLabel(tab)}</button>)
-          })}
-        </div>
-        <div style={{display: 'flex', justifyContent: 'space-between', gap: '8px', overflowX: 'auto'}}>
-          {tabs.slice(4,9).map(tab => {
-            const isActive = activeTab === tab;
-            return (<button key={tab} onClick={()=>handleTab(tab)} style={{padding: '6px 2px', border: 'none', background: 'none', color: isActive? activeColor : accent, fontWeight: '700', cursor: 'pointer', fontSize: '16px', whiteSpace: 'nowrap'}}>{getTabLabel(tab)}</button>)
-          })}
-        </div>
-      </div>
-      <div style={{padding: '0px'}}>{children}</div>
+      )}
     </div>
-  )
+  );
                 }
