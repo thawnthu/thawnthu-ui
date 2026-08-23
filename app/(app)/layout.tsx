@@ -88,7 +88,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const tabs = ['Home', 'Chat', 'Online', 'Notification', 'Group', 'Status', 'Profile', 'Users', 'Setting'];
   const currentPath = pathname.split('/')[1] || 'home';
-  const activeTab = currentPath === ''? 'Home' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1) === 'Category'? 'Status' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1);
+  const activeTab = currentPath === ''? 'Home' : currentPath.charAt(0).toUpperCase() + currentPath.slice(1);
+
   const getTabLabel = (tab: string) => {
     if (tab === 'Users') return `Users(${usersCount})`;
     if (tab === 'Online') return `Online(${onlineCount})`;
@@ -96,10 +97,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (tab === 'Notification') return `Notification(98)`;
     return tab;
   };
+
+  // FIX: Category delete tawh - Status chu /status ah kal tawh tur
   const handleTab = (tab: string) => {
-    if (tab === 'Status') { router.push('/category'); return; }
     router.push(`/${tab.toLowerCase()}`);
   }
+
   const handleLogout = async () => {
     try {
       if (auth.currentUser) await setDoc(doc(db, "users", auth.currentUser.uid), { online: false, lastSeen: serverTimestamp() }, { merge: true });
@@ -148,4 +151,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div style={{padding: '0px'}}>{children}</div>
     </div>
   )
-      }
+}
